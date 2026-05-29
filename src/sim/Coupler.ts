@@ -16,6 +16,7 @@ export type CouplerMode = -1 | 0 | 1;
 export class Coupler {
   mode: CouplerMode = 0; // aktuální režim — čte audio/vizualizace (DD-01), zapisuje apply()
   relVel = 0;            // relativní rychlost konců (m/s) — hlasitost nárazu/cvaknutí
+  force = 0;             // znaménková síla (N): + tah (draft), − tlak (buff); ve vůli 0
 
   constructor(
     private readonly front: Body, // vůz vepředu (větší s)
@@ -31,13 +32,13 @@ export class Coupler {
     let displacement: number;
     if (stretch > half) { displacement = stretch - half; this.mode = 1; }        // draft — tah
     else if (stretch < -half) { displacement = stretch + half; this.mode = -1; } // buff — tlak
-    else { this.mode = 0; return; }                                              // vůle → 0 síly
+    else { this.mode = 0; this.force = 0; return; }                              // vůle → 0 síly
 
-    const force =
+    this.force =
       params.couplerStiffness * displacement + params.couplerDamping * this.relVel;
 
     // tah (force > 0) žene zadní vůz dopředu a přední brzdí; tlak (force < 0) opačně
-    this.rear.applyForce(force);
-    this.front.applyForce(-force);
+    this.rear.applyForce(this.force);
+    this.front.applyForce(-this.force);
   }
 }

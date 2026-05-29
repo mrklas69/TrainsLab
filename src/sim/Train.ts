@@ -136,14 +136,18 @@ export class Train {
       return;
     }
 
-    // požadovaný směr tahu (±1) a jeho velikost (0..1); vzad slabší (MAX_REVERSE < MAX_FORWARD)
+    // požadovaný směr tahu (±1)
     const dir = Math.sign(this.throttle);
-    const fraction = Math.abs(this.throttle) / MAX_FORWARD;
 
     // Tah proti směru pohybu = protiproudé brzdění (plugging). Výkonová hyperbola
     // P/v platí jen pro zrychlování (motor sype energii do pohybu); proti pohybu sílu
     // nelimituje — strop je adheze (a konstrukční F_max), tedy plný tah na brzdění.
     const counterPressure = Math.abs(loco.v) > V_POWER && Math.sign(loco.v) !== dir;
+
+    // Velikost úsilí (0..1). Při zrychlování jemně po stupních (MAX_FORWARD). Protiproudé
+    // brzdění je naopak inherentně naplno — motor zabírá proti rotujícím kolům, snadno
+    // překoná adhezi → skid (prokluz při brzdění). Proto fraction = 1, ne dělení stupni (DD-10).
+    const fraction = counterPressure ? 1 : Math.abs(this.throttle) / MAX_FORWARD;
     const available = counterPressure
       ? this.params.tractiveForceMax
       : Math.min(

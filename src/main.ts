@@ -13,7 +13,7 @@ if (!canvas) throw new Error('Chybí <canvas id="scene">');
 // Jedna sdílená instance parametrů: čte ji fyzika i slidery (live ladění).
 const params = { ...DEFAULT_PARAMS };
 
-const track = new Track(makeLoopControlPoints());
+const track = new Track(makeLoopControlPoints(params.trackAmplitude));
 // lokomotiva (čelo) + 4 vagony
 const train = new Train(track, params, [8, 6, 6, 6, 6]);
 const renderer = new Renderer(canvas, track, train);
@@ -25,6 +25,11 @@ const updatePanel = createControlPanel(params, {
   onNotchDown: () => train.notchDown(),
   onBrake: () => train.toggleBrake(),
   onMute: () => audio.toggleMute(),
+  // slider sklonu: přestav křivku (sim) i geometrii tubu (view); souprava jede dál
+  onAmplitudeChange: () => {
+    track.rebuild(makeLoopControlPoints(params.trackAmplitude));
+    renderer.rebuildTrack();
+  },
 });
 
 // Prohlížeč spustí zvuk až po první interakci uživatele (autoplay policy).

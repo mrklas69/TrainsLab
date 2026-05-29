@@ -8,6 +8,9 @@ interface SliderDef {
   max: number;
   step: number;
   unit: string;
+  // volitelná akce po posunu (vedle zápisu do params) — např. přestavba tratě.
+  // Většina sliderů jen mutuje sdílenou params; tahle hrstka má i side effect.
+  action?: (controls: PanelControls) => void;
 }
 
 interface Section {
@@ -21,10 +24,19 @@ export interface PanelControls {
   onNotchDown: () => void;
   onBrake: () => void;
   onMute: () => void;
+  onAmplitudeChange: () => void; // slider sklonu → přestavba tratě (sim + view)
 }
 
 // Deklarativní popis sliderů ve skupinách — všechny se generují stejně (izomorfismus).
 const SECTIONS: Section[] = [
+  {
+    title: 'Trať',
+    sliders: [
+      // sklon přestaví geometrii (action) — vidíš slack action: do kopce draft, z kopce buff
+      { key: 'trackAmplitude', label: 'Sklon (výška kopců)', min: 0, max: 4, step: 0.1, unit: 'm',
+        action: (c) => c.onAmplitudeChange() },
+    ],
+  },
   {
     title: 'Hmotnosti',
     sliders: [
@@ -91,7 +103,7 @@ export function createControlPanel(
     head.textContent = section.title;
     head.style.cssText = 'margin:10px 0 2px;opacity:0.6;font-size:11px;text-transform:uppercase';
     panel.appendChild(head);
-    for (const def of section.sliders) panel.appendChild(buildSlider(params, def));
+    for (const def of section.sliders) panel.appendChild(buildSlider(params, def, controls));
   }
 
   const keys = document.createElement('div');
@@ -136,7 +148,7 @@ function makeButton(label: string, onClick: () => void): HTMLButtonElement {
 }
 
 // Jeden řádek: popisek + živá hodnota + slider, obousměrně svázaný s params[key].
-function buildSlider(params: PhysicsParams, def: SliderDef): HTMLElement {
+function buildSlider(params: PhysicsParams, def: SliderDef, controls: PanelControls): HTMLElement {
   const row = document.createElement('label');
   row.style.cssText = 'display:block;margin:4px 0';
 
@@ -162,6 +174,7 @@ function buildSlider(params: PhysicsParams, def: SliderDef): HTMLElement {
   input.addEventListener('input', () => {
     params[def.key] = Number(input.value);
     show();
+    def.action?.(controls); // side effect navíc (např. přestavba tratě), pokud slider má
   });
   show();
 

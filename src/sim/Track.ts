@@ -15,11 +15,21 @@ export interface TrackSample {
  * stále nezná pixely, scénu ani renderer (DD-01).
  */
 export class Track {
-  readonly curve: CatmullRomCurve3;
-  readonly length: number;
+  curve: CatmullRomCurve3;
+  length: number;
 
   constructor(controlPoints: Vector3[]) {
     // uzavřená (closed=true) centripetální Catmull-Rom — bez self-intersection smyček
+    this.curve = new CatmullRomCurve3(controlPoints, true, 'centripetal');
+    this.length = this.curve.getLength();
+  }
+
+  /**
+   * Přestaví křivku z nových kontrolních bodů (slider sklonu za běhu). Reference
+   * na Track drží sim i renderer — proto in-place, ne nová instance. Pozice vozů
+   * `s` jsou v metrech a wrap() je zabalí přes novou délku, takže souprava jede dál.
+   */
+  rebuild(controlPoints: Vector3[]): void {
     this.curve = new CatmullRomCurve3(controlPoints, true, 'centripetal');
     this.length = this.curve.getLength();
   }

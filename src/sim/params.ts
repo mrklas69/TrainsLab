@@ -17,6 +17,7 @@ export interface PhysicsParams {
   tractiveForceMax: number;  // strop tažné síly při nízké rychlosti (N)
   adhesionCoeff: number;     // součinitel adheze kolo-kolej μ (sucho ≈ 0.30)
   brakeForceMax: number;     // max brzdná síla lokomotivy (N)
+  trackAmplitude: number;    // výška kopců tratě (m) — geometrie světa, viz makeLoopControlPoints
 }
 
 export const DEFAULT_PARAMS: PhysicsParams = {
@@ -33,4 +34,5 @@ export const DEFAULT_PARAMS: PhysicsParams = {
   tractiveForceMax: 200_000,
   adhesionCoeff: 0.3,
   brakeForceMax: 180_000,
+  trackAmplitude: 1.2,
 };
