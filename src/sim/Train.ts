@@ -8,7 +8,6 @@ const COUPLER_GAP = 0.6;   // konstrukční mezera mezi vozy ve středu vůle (m
 const MAX_FORWARD = 3;     // stupňů regulátoru vpřed
 const MAX_REVERSE = 1;     // stupňů vzad (couvání slabší)
 const V_POWER = 1.0;       // m/s — pod tím drží konstantní max síla (jinak P/v → ∞)
-const V_BRAKE = 0.1;       // m/s — pod tím brzda nepůsobí (drží statické tření)
 
 /**
  * Souprava = řetězec {@link Body} propojený {@link Coupler}y, v čele lokomotiva.
@@ -21,7 +20,7 @@ export class Train {
   readonly bodies: Body[];
   slipping = false; // prokluz hnacích kol — čte renderer (DD-01)
 
-  private readonly couplers: Coupler[];
+  readonly couplers: Coupler[]; // stav spřáhel čte audio/vizualizace (DD-01)
   private readonly restGaps: number[];
   private throttle = 0; // −MAX_REVERSE..MAX_FORWARD
   private braking = false;
@@ -103,10 +102,20 @@ export class Train {
 
     this.applyLocomotive();
 
+    // brzda působí jen na lokomotivu (index 0), jako řízený odpor v tření (DD-09)
+    const brake = this.brakeForce();
     for (let i = 0; i < this.bodies.length; i++) {
-      this.bodies[i].applyFriction(this.params, this.massOf(i));
+      this.bodies[i].applyFriction(this.params, this.massOf(i), i === 0 ? brake : 0);
       this.bodies[i].integrate(h, this.massOf(i));
     }
+  }
+
+  // brzdná síla lokomotivy, limitovaná adhezí (μ·N); 0 = nebrzdí
+  private brakeForce(): number {
+    if (!this.braking) return 0;
+    const adhesionLimit =
+      this.params.adhesionCoeff * this.params.locomotiveMass * this.params.gravity;
+    return Math.min(this.params.brakeForceMax, adhesionLimit);
   }
 
   // lokomotiva (index 0) je těžší — a její tíha je adhezní tíha N.
@@ -114,34 +123,36 @@ export class Train {
     return index === 0 ? this.params.locomotiveMass : this.params.carMass;
   }
 
-  // tah omezený výkonem (P/v) i adhezí (μ·N); brzda jen u lokomotivy, taky do adheze.
+  // tah omezený výkonem (P/v) i adhezí (μ·N). Brzda je řízené tření (DD-09), řeší se
+  // v applyFriction — tah a brzda se tak perou ve společném akumulátoru sil.
+  // Tah proti směru pohybu = protiproudé brzdění (plugging): limit jen adheze, ne P/v (DD-08).
   private applyLocomotive(): void {
     const loco = this.bodies[0];
     const { gravity, locomotiveMass, adhesionCoeff } = this.params;
     const adhesionLimit = adhesionCoeff * locomotiveMass * gravity; // μ·N
-
-    if (this.braking) {
-      this.slipping = false;
-      if (Math.abs(loco.v) > V_BRAKE) {
-        const force = Math.min(this.params.brakeForceMax, adhesionLimit);
-        loco.applyForce(-Math.sign(loco.v) * force);
-      }
-      return;
-    }
 
     if (this.throttle === 0) {
       this.slipping = false;
       return;
     }
 
-    const fraction = this.throttle / MAX_FORWARD; // záporné = vzad, slabší
-    const available = Math.min(
-      this.params.tractiveForceMax,
-      this.params.maxPower / Math.max(Math.abs(loco.v), V_POWER),
-    );
-    const requested = fraction * available;
+    // požadovaný směr tahu (±1) a jeho velikost (0..1); vzad slabší (MAX_REVERSE < MAX_FORWARD)
+    const dir = Math.sign(this.throttle);
+    const fraction = Math.abs(this.throttle) / MAX_FORWARD;
 
-    // adheze: nad limitem kola prokluzují, přenese se jen μ·N
+    // Tah proti směru pohybu = protiproudé brzdění (plugging). Výkonová hyperbola
+    // P/v platí jen pro zrychlování (motor sype energii do pohybu); proti pohybu sílu
+    // nelimituje — strop je adheze (a konstrukční F_max), tedy plný tah na brzdění.
+    const counterPressure = Math.abs(loco.v) > V_POWER && Math.sign(loco.v) !== dir;
+    const available = counterPressure
+      ? this.params.tractiveForceMax
+      : Math.min(
+          this.params.tractiveForceMax,
+          this.params.maxPower / Math.max(Math.abs(loco.v), V_POWER),
+        );
+    const requested = dir * fraction * available;
+
+    // adheze: nad limitem kola prokluzují (i při brzdění reverzem = skid), přenese se jen μ·N
     this.slipping = Math.abs(requested) > adhesionLimit;
     const tractive = this.slipping
       ? Math.sign(requested) * adhesionLimit

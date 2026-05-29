@@ -37,15 +37,20 @@ export class Body {
    * (vyšší — rozběhový), dokud ho ostatní síly nepřekonají; pak se „utrhne" na
    * kinetický valivý odpor. Tohle dává vůli ve spřáhle funkční smysl: lokomotiva
    * vybírá vůli a utrhává vozy postupně, ne celou soupravu naráz.
+   *
+   * `brakeForce` (≥ 0) je řízená brzda jako dodatečný odpor (jen lokomotiva, DD-09):
+   * zvyšuje statický práh → drží stojící vlak i na svahu; přidává kinetický odpor
+   * → brzdí za jízdy. Tah se počítá nezávisle, takže o pohybu rozhodne souboj sil.
    */
-  applyFriction(params: PhysicsParams, mass: number): void {
-    const kinetic = mass * params.gravity * params.rollingResistance;
+  applyFriction(params: PhysicsParams, mass: number, brakeForce = 0): void {
+    const rolling = mass * params.gravity * params.rollingResistance;
+    const kinetic = rolling + brakeForce;
     const isStanding = Math.abs(this.v) < V_STATIC;
 
     if (isStanding) {
-      const staticMax = kinetic * params.startingResistanceFactor;
+      const staticMax = rolling * params.startingResistanceFactor + brakeForce;
       if (Math.abs(this.force) <= staticMax) {
-        // statické tření udrží těleso v klidu
+        // statické tření (+ brzda) udrží těleso v klidu
         this.force = 0;
         this.v = 0;
       } else {

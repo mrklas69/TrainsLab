@@ -20,6 +20,7 @@ export interface PanelControls {
   onNotchUp: () => void;
   onNotchDown: () => void;
   onBrake: () => void;
+  onMute: () => void;
 }
 
 // Deklarativní popis sliderů ve skupinách — všechny se generují stejně (izomorfismus).
@@ -101,12 +102,14 @@ export function createControlPanel(
     'S / ↓ &nbsp;—&nbsp; ubrat stupeň',
     'B / mezerník &nbsp;—&nbsp; brzda',
     'R &nbsp;—&nbsp; reset',
+    'M &nbsp;—&nbsp; zvuk on/off',
   ].join('<br>');
   panel.appendChild(keys);
 
   panel.appendChild(makeButton('Stupeň +  (W)', controls.onNotchUp));
   panel.appendChild(makeButton('Stupeň −  (S)', controls.onNotchDown));
   panel.appendChild(makeButton('Brzda (B)', controls.onBrake));
+  panel.appendChild(makeButton('Zvuk (M)', controls.onMute));
   panel.appendChild(makeButton('Reset (R)', controls.onReset));
 
   document.body.appendChild(panel);

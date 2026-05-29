@@ -4,6 +4,7 @@ import { makeLoopControlPoints } from './sim/trackData';
 import { Train } from './sim/Train';
 import { DEFAULT_PARAMS } from './sim/params';
 import { Renderer } from './view/Renderer';
+import { AudioView } from './view/AudioView';
 import { createControlPanel } from './ui/ControlPanel';
 
 const canvas = document.querySelector<HTMLCanvasElement>('#scene');
@@ -16,16 +17,22 @@ const track = new Track(makeLoopControlPoints());
 // lokomotiva (čelo) + 4 vagony
 const train = new Train(track, params, [8, 6, 6, 6, 6]);
 const renderer = new Renderer(canvas, track, train);
+const audio = new AudioView(train);
 
 const updatePanel = createControlPanel(params, {
   onReset: () => train.reset(),
   onNotchUp: () => train.notchUp(),
   onNotchDown: () => train.notchDown(),
   onBrake: () => train.toggleBrake(),
+  onMute: () => audio.toggleMute(),
 });
 
-// Ovládání lokomotivy: regulátor (notch) + brzda + reset.
+// Prohlížeč spustí zvuk až po první interakci uživatele (autoplay policy).
+window.addEventListener('pointerdown', () => audio.resume());
+
+// Ovládání lokomotivy: regulátor (notch) + brzda + reset + zvuk.
 window.addEventListener('keydown', (e) => {
+  audio.resume();
   switch (e.code) {
     case 'KeyW':
     case 'ArrowUp':
@@ -45,6 +52,9 @@ window.addEventListener('keydown', (e) => {
     case 'KeyR':
       train.reset();
       break;
+    case 'KeyM':
+      audio.toggleMute();
+      break;
   }
 });
 
@@ -53,6 +63,7 @@ const clock = new THREE.Clock();
 function frame(): void {
   const dt = Math.min(clock.getDelta(), 0.05);
   train.update(dt);
+  audio.update(train, dt);
   updatePanel(train);
   renderer.render(train);
   requestAnimationFrame(frame);
