@@ -21,6 +21,17 @@ Koncept a kontext: viz `docs/diary/2026-05-29.md`.
   klopení (cant) — slider nebo auto z vyrovnávací rychlosti, up-vektor koleje ve view;
   Nadalovo kritérium (vyšplhání okolku, `L/V ≤ (tanβ−μ)/(1+μ·tanβ)`); proměnná geometrie
   trati (oblouky o různém r). Multi-body (Úroveň B) = jiný roh mřížky věrnosti, mimo PoC.
+- **Opuštění monorailu — žebřík DOF** (S7) — dnešní model je *monorail*: 1 těleso = skalár `s`
+  na 1 křivce (osa koleje), z 6 DOF tuhého tělesa máme jen surge. Úrovně rozšíření:
+  - **Úr. 1 — kývání skříně** → TODO (S7): roll (z odstředivky `v²/r`) + pitch (z `dv/dt`)
+    jako tlumené oscilátory. **Neopouští monorail** (rotace nemění `s`/`v`), drží DD-02.
+  - **Úr. 2 — dva podvozky na 1 křivce**: vůz = 2 body na téže centerline → yaw natočení
+    vůči tečně + přesah (overhang) v oblouku. Geometrie dlouhých vozů. Napůl opouští.
+  - **Úr. 3 — příčný DOF kola**: okolky, kuželový jízdní obrys, **hunting** (vrtění),
+    vykolejení jako *fyzika* (kolo opustí kolejnici), ne flag. **Tady fakt opouštíme
+    monorail** — vzniká příčná výchylka `y` dvojkolí, boří DD-02 = Úroveň B z DD-11.
+    Slouží jiné nice (vedení kola), ne slack action → **jiný roh mřížky, vědomě, ne plíživě.**
+  - **Úr. 4 — síť, výhybky**: graf místo smyčky (viz Topologie sítě výše), makro osa.
 - **Brzdy soupravy** — pneumatická soustava, prodleva šíření tlaku soupravou (další vlna).
   (Brzda lokomotivy hotová v F2; v S3 přepsána na řízené tření — souboj sil, DD-09.)
 - **Dynamický prokluz** → TODO (rozšíření F2) — kolo s vlastní setrvačností + creep křivka

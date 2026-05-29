@@ -14,6 +14,13 @@ Termíny projektu. Anglické identifikátory v kódu, české vysvětlení.
 - **arc-length parametrizace** — poloha vozu daná délkou `s` (m) podél křivky, ne parametrem
   křivky. Drží fyziku 1D; 3D pozice až při renderu (DD-02).
 - **grade (sklon)** — `sin(θ)` trati = y-složka jednotkové tečny; vstup do gravitace.
+- **radius (poloměr oblouku)** — lokální poloměr zatáčky z křivosti **horizontálního**
+  průmětu trati (`r = 1/κ`); rovinka → ∞. Izomorfní s grade: grade = vertikální chování
+  (gravitace), radius = horizontální zakřivení (odstředivka). Svislé zvlnění do něj nepatří.
+- **příčné (odstředivé) zrychlení** — `a_lat = v²/r`, kolmé k jízdě; **nemění** `s`/`v`
+  (drží koleje), proto je to odvozená *diagnostika*, ne síla v 1D modelu (DD-02, DD-11).
+- **monorail** — náš model: 1 těleso = skalár `s` na 1 křivce (osa koleje), z 6 DOF tuhého
+  tělesa jen surge. Kývání skříně (roll/pitch) ho neopouští; příčný DOF kola (hunting) ano.
 
 ## Trakce a adheze
 - **tractive effort (tažná síla, TE)** — síla, kterou lokomotiva žene soupravu.

@@ -53,13 +53,19 @@ Kontext a rozhodnutí: viz `docs/diary/2026-05-29.md`.
 - [~] Zvuk: prototyp `AudioView` hotový (procedurální) *(S3, vědomě předsunuto)*
 - [ ] Zvuk: vyměnit procedurální generátor za nahrané samply (zdroje + licence v IDEAS)
 
-## Příčná dynamika — oblouky & vykolejení  *(S6, Úroveň A — drží DD-02; F-osu doladit v README; ZAČÍT TÍMTO příště — rozhodnuto S6)*
-- [!] `Track.radius(s)` — lokální poloměr oblouku z křivosti (κ = |dT/ds|, r = 1/κ) — **první krok příště**
-- [ ] Odstředivá síla `m·v²/r` jako odvozená příčná veličina (nemění `s`/`v` — drží koleje)
+## Příčná dynamika — oblouky & vykolejení  *(S6, Úroveň A — drží DD-02; F-osu doladit v README)*
+- [x] `Track.radius(s)` — lokální poloměr oblouku z křivosti **horizontálního průmětu** (XZ);
+      izomorfní s `grade` (vertikála→gravitace, horizontála→odstředivka). Rovinka → ∞ *(S7)*
+- [x] Odstředivá síla → `Train.lateralAcceleration` (max `v²/r` přes vozy), odvozená diagnostika
+      (nemění `s`/`v` — drží DD-02); zobrazena ve status panelu *(S7)*
 - [ ] params: `trackGauge` (rozchod, 1.435 m), `comHeight` (výška těžiště vozu)
 - [ ] Kritérium převrácení: příčná akcelerace > `(gauge/2)/h · g` → vykolejení (fail state)
 - [ ] Vizualizace blízkosti meze + vykolejení (barva / reset) — izomorfní s přetržením vlaku
 - [ ] Trať s proměnným poloměrem (esíčko) — bez ní je `r` konstantní, vykolejení všude stejné
+- [ ] **Kývání skříně** *(S7, Úr. 1 žebříku — neopouští monorail, drží DD-02)* — roll z odstředivky
+      `v²/r`, pitch z podélné akcelerace `dv/dt`; tlumené oscilátory (rotační stav na `Body`,
+      sim ne view — má setrvačnost). Zviditelní slack-trh (pitch) i zatáčku (roll). Params:
+      tuhost + tlumení vypružení. Spojitá odezva, převrácení je její mez.
 
 ## Dokumentace / infra
 - [x] Deploy dema na GitHub Pages (Actions, base `/TrainsLab/`) *(S4)*

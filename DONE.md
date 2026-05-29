@@ -86,3 +86,15 @@ Dokončené úkoly. Detaily a rozhodnutí: `docs/diary/`.
 ### Diskuse fyziky (→ IDEAS, návrh)
 - Omezení max rychlosti: máme výkon vs. odpory; chybí otáčkový/mechanický strop (mean piston speed, pokles tlaku páry) → IDEAS, kandidát k F3.
 - **DD-11 — příčná dynamika jako 1D diagnostika, vykolejení = fail state** (Úroveň A, drží DD-02). Rozpracováno do TODO (odstředivka, převrácení, proměnná geometrie); klopení a Nadal odloženy do IDEAS.
+
+## Sezení 7 (2026-05-29)
+
+### Příčná dynamika — poloměr oblouku & odstředivka (DD-11, krok 1)
+- `Track.radius(s)` — lokální poloměr z křivosti **horizontálního průmětu** (XZ): centrální diference polohy + vzorec křivosti rovinné křivky; rovinka → `Infinity`. Izomorfní s `grade` (vertikála → gravitace, horizontála → odstředivka).
+- `Train.lateralAcceleration` (getter) — `max |v²/r|` přes vozy, odvozená příčná diagnostika; nemění `s`/`v` (drží DD-02), podklad pro budoucí převrácení i kývání.
+- Status panel rozšířen o příčné zrychlení (`příč X.X m/s²`).
+- Numericky ověřeno: délka tratě 251.3 m = obvod kruhu r=40; radius 33–44 m kolem 40; a_lat 6.78 m/s² @15 m/s.
+
+### Diskuse (→ IDEAS / TODO)
+- **Žebřík opuštění monorailu** (Úr. 0–4) → IDEAS: kývání skříně (Úr. 1) monorail neopouští (drží DD-02); příčný DOF kola (Úr. 3, hunting) = jiný roh mřížky.
+- **Kývání skříně** → TODO: roll z `v²/r` + pitch z `dv/dt` jako tlumené oscilátory v simu.
