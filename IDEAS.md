@@ -1,7 +1,7 @@
 # IDEAS — TrainsLab
 
 Raw nápady. Značky `→ TODO` / `→ DONE` u dozralých.
-Koncept a kontext: viz `resources/initial_session.md`.
+Koncept a kontext: viz `docs/diary/2026-05-29.md`.
 
 ## Prostor experimentů (mřížka měřítko × věrnost)
 - **Transport Tycoon vrstva** (makro × nízká věrnost) — síť, ekonomika, rozvozy.
@@ -12,11 +12,14 @@ Koncept a kontext: viz `resources/initial_session.md`.
   od fyziky. Brána k makro měřítku.
 
 ## Hlubší fyzika
-- **Sloshing kapaliny v cisterně** (F4) — pohyb kapaliny mění těžiště vagonu, zpětně
+- **Sloshing kapaliny v cisterně** (F5) — pohyb kapaliny mění těžiště vagonu, zpětně
   ovlivňuje dynamiku. „Tu pak rozpohybujeme."
 - **Přetržení vlaku** — když draft síla překročí mez spřáhla. Emergentní fail state.
-- **Brzdy** — pneumatická soustava, prodleva šíření tlaku soupravou (další vlna).
-- **Adheze kol** — prokluz při rozjezdu, ztráta tahu na mokru/stoupání.
+- **Brzdy soupravy** — pneumatická soustava, prodleva šíření tlaku soupravou (další vlna).
+  (Brzda lokomotivy hotová v F2.)
+- **Dynamický prokluz** → TODO (rozšíření F2) — kolo s vlastní setrvačností + creep křivka
+  (μ roste do ~1–2 % skluzu, pak padá). Doslovné „roztáčení kol", ne jen clamp. Pak písek.
+- **Adheze kol** — základ hotov v F2 (clamp `μ·N`, prokluz, indikace). → DONE.
 
 ## Výzkumná osa: „proč je uspokojivé sledovat vláčky"
 Udělat z A2 měřitelné hypotézy, ne filozofování (proto Lab):
@@ -28,3 +31,9 @@ Udělat z A2 měřitelné hypotézy, ne filozofování (proto Lab):
 ## Vizualizace
 - Kamera „sledující" konkrétní vagon vs. nadhled celé smyčky.
 - Vizuální zvýraznění napětí ve spřáhlech (barva / deformace) — fyzika viditelná.
+
+## Lab knoby & nástroje
+- **Slider sklonu tratě** — živá změna amplitudy kopců s přestavbou geometrie
+  (`TubeGeometry` + kontrolní body). Názorný knob: vztah sklon × výkon × hmotnost.
+- **Kalkulačka silové bilance** — z dnešního ověření (max sklon vs. adhezní/výkonový strop
+  vs. hmotnost soupravy). Buď jako Lab panel, nebo skript v `tools/`.
