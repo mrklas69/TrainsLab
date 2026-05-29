@@ -98,3 +98,21 @@ Dokončené úkoly. Detaily a rozhodnutí: `docs/diary/`.
 ### Diskuse (→ IDEAS / TODO)
 - **Žebřík opuštění monorailu** (Úr. 0–4) → IDEAS: kývání skříně (Úr. 1) monorail neopouští (drží DD-02); příčný DOF kola (Úr. 3, hunting) = jiný roh mřížky.
 - **Kývání skříně** → TODO: roll z `v²/r` + pitch z `dv/dt` jako tlumené oscilátory v simu.
+
+## Sezení 8 (2026-05-29)
+
+### Esíčko + most — geometrie tratě (DD-12)
+- **Trať = ležatá osmička** (Bernoulliho lemniskáta `/(1+sin²t)`, `A=B=120`, 24 bodů): laloky `r≈26 m`, střed = inflexe (`r→∞`) → esíčko (proměnný poloměr). Délka 629 m.
+- **Most + podjezd**: osmička se v půdorysu kříží; profil `Y=amplitude·sin(t)` posadí jeden průchod středem nahoru (most), druhý dolů (podjezd), clearance = 2×amplitude.
+- Emergentní oddělení domén: most/podjezd leží na inflexi (slack action), ostré laloky v rovině (převrácení) — izomorfní s grade/radius (S7).
+- Gerono lemniskáta zamítnuta probem (špičaté laloky `r_min≈5 m` = nehratelné).
+- Renderer: kamera + terén + tuba odzoomované na ~240m trať.
+
+### Kritérium převrácení → fail state (DD-11 dotažen)
+- `params.trackGauge` (1.435 m), `params.comHeight` (1.8 m); slidery v nové sekci **Příčná dynamika**.
+- `Train.overturnThreshold = (gauge/2)/comHeight·g`; při `lateralAcceleration > threshold` → **vykolejení**: souprava se zastaví, celá zrudne (`DERAILED_COLOR`), čeká na `R`.
+- Status: `příč X/Y m/s²` (aktuální/práh) + `VYKOLEJENO při Z m/s` (`derailSpeed`).
+- Slider sklonu přemapován na výšku mostu (0–8 m).
+
+### Reality check vykolejení
+- Reportované „vykolejuje nad 3 m/s" ověřeno **věrnou node-replikou celé simulace** → vykolejení až při **12.7 m/s** (fyzika správně). Dojem vznikl tím, že fail state nuluje `v` → rychlost nárazu mizela ze statusu; opraveno `derailSpeed`. Uživatel potvrdil 12.7 m/s.

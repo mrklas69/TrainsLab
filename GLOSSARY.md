@@ -21,6 +21,22 @@ Termíny projektu. Anglické identifikátory v kódu, české vysvětlení.
   (drží koleje), proto je to odvozená *diagnostika*, ne síla v 1D modelu (DD-02, DD-11).
 - **monorail** — náš model: 1 těleso = skalár `s` na 1 křivce (osa koleje), z 6 DOF tuhého
   tělesa jen surge. Kývání skříně (roll/pitch) ho neopouští; příčný DOF kola (hunting) ano.
+- **ležatá osmička (lemniskáta)** — tvar tratě (DD-12): křivka s jedním půdorysným křížením.
+  Použita **Bernoulliho** (kulaté laloky) místo Gerono (špičaté, `r_min≈5 m` = nehratelné).
+  Laloky = ostré zatáčky (`r≈26 m`), střed = inflexe (`r→∞`) → proměnný poloměr (esíčko).
+- **most / podjezd** — místo, kde se trať v půdorysu kříží: profil `Y=amplitude·sin(t)` vede
+  jeden průchod středem nahoře (most), druhý dole (podjezd). Most leží na inflexi osmičky
+  (podélná dynamika / slack), ostré laloky v rovině (příčná dynamika / převrácení).
+- **rozchod koleje (gauge)** — vzdálenost kolejnic (normální 1,435 m); polovina = rameno tíhy
+  proti převrácení.
+- **výška těžiště (comHeight)** — výška těžiště vozu nad kolejí; páka, na kterou tlačí
+  odstředivka při převrácení. Vyšší → snazší převrácení.
+- **kritérium převrácení** — `a_lat > (gauge/2)/comHeight · g`: odstředivka přes výšku těžiště
+  překoná tíhu přes poloviční rozchod → vůz se přetočí přes vnější kolo. Statická momentová
+  rovnováha na ploché koleji (bez klopení, DD-11).
+- **vykolejení (derailment)** — fail state po překročení kritéria převrácení: souprava se
+  zastaví, zrudne, čeká na reset (`R`). První fail state projektu (homomorfní s budoucím
+  přetržením vlaku).
 
 ## Trakce a adheze
 - **tractive effort (tažná síla, TE)** — síla, kterou lokomotiva žene soupravu.
