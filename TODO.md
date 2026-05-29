@@ -53,8 +53,8 @@ Kontext a rozhodnutí: viz `docs/diary/2026-05-29.md`.
 - [~] Zvuk: prototyp `AudioView` hotový (procedurální) *(S3, vědomě předsunuto)*
 - [ ] Zvuk: vyměnit procedurální generátor za nahrané samply (zdroje + licence v IDEAS)
 
-## Příčná dynamika — oblouky & vykolejení  *(S6, Úroveň A — drží DD-02; zařazení do F-osy doladit v README)*
-- [ ] `Track.radius(s)` — lokální poloměr oblouku z křivosti (κ = |dT/ds|, r = 1/κ)
+## Příčná dynamika — oblouky & vykolejení  *(S6, Úroveň A — drží DD-02; F-osu doladit v README; ZAČÍT TÍMTO příště — rozhodnuto S6)*
+- [!] `Track.radius(s)` — lokální poloměr oblouku z křivosti (κ = |dT/ds|, r = 1/κ) — **první krok příště**
 - [ ] Odstředivá síla `m·v²/r` jako odvozená příčná veličina (nemění `s`/`v` — drží koleje)
 - [ ] params: `trackGauge` (rozchod, 1.435 m), `comHeight` (výška těžiště vozu)
 - [ ] Kritérium převrácení: příčná akcelerace > `(gauge/2)/h · g` → vykolejení (fail state)
