@@ -38,8 +38,9 @@ const SECTIONS: Section[] = [
   {
     title: 'Trať',
     sliders: [
-      // sklon přestaví geometrii (action) — vidíš slack action: do kopce draft, z kopce buff
-      { key: 'trackAmplitude', label: 'Sklon (výška kopců)', min: 0, max: 4, step: 0.1, unit: 'm',
+      // výška mostu přestaví geometrii (action) — strmější najezd = výraznější slack action
+      // (k mostu draft, pod most buff); zároveň clearance mostu = 2× tahle hodnota
+      { key: 'trackAmplitude', label: 'Sklon (výška mostu)', min: 0, max: 8, step: 0.2, unit: 'm',
         action: (h) => h.onAmplitudeChange() },
     ],
   },
@@ -74,6 +75,14 @@ const SECTIONS: Section[] = [
       { key: 'tractiveForceMax', label: 'Max tažná síla', min: 0, max: 400_000, step: 10_000, unit: 'N' },
       { key: 'adhesionCoeff', label: 'Adheze μ', min: 0, max: 0.5, step: 0.01, unit: '' },
       { key: 'brakeForceMax', label: 'Brzda', min: 0, max: 400_000, step: 10_000, unit: 'N' },
+    ],
+  },
+  {
+    // práh převrácení = (rozchod/2)/výška_těžiště · g; užší rozchod nebo vyšší těžiště → dřív
+    title: 'Příčná dynamika',
+    sliders: [
+      { key: 'trackGauge', label: 'Rozchod koleje', min: 1, max: 2, step: 0.05, unit: 'm' },
+      { key: 'comHeight', label: 'Výška těžiště', min: 0.5, max: 4, step: 0.1, unit: 'm' },
     ],
   },
 ];
@@ -129,10 +138,14 @@ export function createControlPanel(
     const n = train.notch;
     const notch = n > 0 ? `+${n}` : String(n);
     const flags =
-      (train.isBraking ? ' · BRZDA' : '') + (train.slipping ? ' · PROKLUZ' : '');
-    const lat = train.lateralAcceleration.toFixed(1); // příčné (odstředivé) zrychlení
+      (train.derailed ? ` · VYKOLEJENO při ${train.derailSpeed.toFixed(1)} m/s` : '') +
+      (train.isBraking ? ' · BRZDA' : '') +
+      (train.slipping ? ' · PROKLUZ' : '');
+    // příčné (odstředivé) zrychlení / práh převrácení — blízkost meze je vidět v čísle
+    const lat = train.lateralAcceleration.toFixed(1);
+    const limit = train.overturnThreshold.toFixed(1);
     status.textContent =
-      `Regulátor ${notch} · ${train.speed.toFixed(1)} m/s · příč ${lat} m/s²${flags}`;
+      `Regulátor ${notch} · ${train.speed.toFixed(1)} m/s · příč ${lat}/${limit} m/s²${flags}`;
   };
 }
 

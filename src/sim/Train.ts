@@ -20,6 +20,8 @@ const V_PLUGGING = 1.0;    // m/s — nad tím je reverz proti pohybu protiproud
 export class Train {
   readonly bodies: Body[];
   slipping = false; // prokluz hnacích kol — čte renderer (DD-01)
+  derailed = false; // vykolejeno převrácením — fail state, čeká na reset (čte renderer)
+  derailSpeed = 0;  // rychlost lokomotivy v okamžiku vykolejení (m/s) — diagnostika do UI
 
   readonly couplers: Coupler[]; // stav spřáhel čte audio/vizualizace (DD-01)
   private readonly restGaps: number[];
@@ -90,6 +92,18 @@ export class Train {
     return max;
   }
 
+  /**
+   * Práh příčného zrychlení pro převrácení (m/s²): (gauge/2)/comHeight · g.
+   *
+   * Statická momentová rovnováha na ploché koleji (bez klopení, DD-11): odstředivka
+   * `m·a_lat` přes výšku těžiště `h` vytvoří klopný moment, tíha `m·g` přes rameno
+   * poloviny rozchodu (gauge/2) ho drží. Když a_lat·h > g·(gauge/2), vůz se přetočí
+   * přes vnější kolo. Vyšší těžiště nebo užší rozchod → nižší práh (snazší převrácení).
+   */
+  get overturnThreshold(): number {
+    return ((this.params.trackGauge / 2) / this.params.comHeight) * this.params.gravity;
+  }
+
   /** Souprava do klidu, vozy v klidové rozteči za lokomotivou, řízení vynulováno. */
   reset(): void {
     let s = this.startS;
@@ -103,11 +117,22 @@ export class Train {
     this.throttle = 0;
     this.braking = false;
     this.slipping = false;
+    this.derailed = false;
+    this.derailSpeed = 0;
   }
 
   update(dt: number): void {
+    if (this.derailed) return; // vykolejená souprava leží — žádná dynamika, čeká na reset (R)
     const h = dt / SUBSTEPS;
     for (let i = 0; i < SUBSTEPS; i++) this.step(h);
+
+    // kritérium převrácení (DD-11): odstředivka na nejostřejším oblouku překoná rameno
+    // báze kol → vůz se přetočí přes vnější kolo. Tvrdý fail state — souprava se zastaví.
+    if (this.lateralAcceleration > this.overturnThreshold) {
+      this.derailed = true;
+      this.derailSpeed = Math.abs(this.bodies[0].v); // zachyť rychlost před zastavením
+      for (const body of this.bodies) body.v = 0;
+    }
   }
 
   // jeden substep: vlastní síly → spřáhla → trakce/brzda → tření → integrace.

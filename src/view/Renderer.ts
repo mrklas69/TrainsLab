@@ -19,6 +19,7 @@ const LOCO_BRAKE = new THREE.Color(0xc01818); // brzdí — červená
 const LOCO_POWER = new THREE.Color(0x2e9e3f); // táhne (notch ≠ 0, drží adhezi) — zelená, max. účinnost
 const LOCO_IDLE = new THREE.Color(0x555a5e);  // volnoběh (notch 0, nebrzdí) — neutrální šedá
 const CAR_COLOR = new THREE.Color(0x2b5a8b);  // vagon — modrá
+const DERAILED_COLOR = new THREE.Color(0x8a0f0f); // vykolejeno (převrácení) — tmavě rudá, celá souprava
 
 /**
  * Renderer = čistá funkce stavu → obraz (DD-01). Drží ThreeJS scénu a každý
@@ -30,7 +31,6 @@ export class Renderer {
   private readonly gl: THREE.WebGLRenderer;
   private readonly controls: OrbitControls;
   private readonly carMeshes: THREE.Mesh[];
-  private readonly locoMaterial: THREE.MeshStandardMaterial;
   private readonly couplerMeshes: THREE.Mesh[]; // marker napětí mezi sousedními vozy
   private trackMesh!: THREE.Mesh;                // tuba trati — přestavitelná sliderem sklonu
 
@@ -42,8 +42,8 @@ export class Renderer {
     this.gl = new THREE.WebGLRenderer({ canvas, antialias: true });
     this.gl.setPixelRatio(window.devicePixelRatio);
 
-    this.camera = new THREE.PerspectiveCamera(55, 1, 0.1, 1000);
-    this.camera.position.set(60, 55, 60);
+    this.camera = new THREE.PerspectiveCamera(55, 1, 0.1, 2000);
+    this.camera.position.set(150, 140, 150); // dál — osmička je ~240 m napříč
 
     this.controls = new OrbitControls(this.camera, canvas);
     this.controls.enableDamping = true;
@@ -57,7 +57,6 @@ export class Renderer {
     this.buildGround();
     this.buildTrack();
     this.carMeshes = this.buildCars(train);
-    this.locoMaterial = this.carMeshes[0].material as THREE.MeshStandardMaterial;
     this.couplerMeshes = this.buildCouplers(train);
 
     this.onResize();
@@ -72,14 +71,19 @@ export class Renderer {
       mesh.position.copy(position);
       mesh.position.y += CAR_HEIGHT / 2 + RAIL_RADIUS;
       mesh.lookAt(mesh.position.clone().add(tangent)); // čelo (−Z) ve směru jízdy
+
+      // barva: vykolejení přebíjí vše (celá souprava rudá); jinak lokomotiva
+      // stavovým semaforem (prokluz > brzda > tah > volnoběh), vozy modré.
+      const mat = mesh.material as THREE.MeshStandardMaterial;
+      mat.color.copy(
+        train.derailed ? DERAILED_COLOR :
+        i !== 0 ? CAR_COLOR :
+        train.slipping ? LOCO_SLIP :
+        train.isBraking ? LOCO_BRAKE :
+        train.notch !== 0 ? LOCO_POWER :
+        LOCO_IDLE,
+      );
     });
-    // stav lokomotivy barvou (priorita: prokluz > brzda > tah > volnoběh)
-    this.locoMaterial.color.copy(
-      train.slipping ? LOCO_SLIP :
-      train.isBraking ? LOCO_BRAKE :
-      train.notch !== 0 ? LOCO_POWER :
-      LOCO_IDLE,
-    );
     this.renderCouplers(train);
     this.controls.update();
     this.gl.render(this.scene, this.camera);
@@ -107,11 +111,11 @@ export class Renderer {
   /** Přestaví tubu trati po změně sklonu (slider). Křivka už je v Track.rebuild(). */
   rebuildTrack(): void {
     this.trackMesh.geometry.dispose();
-    this.trackMesh.geometry = new THREE.TubeGeometry(this.track.curve, 400, RAIL_RADIUS, 8, true);
+    this.trackMesh.geometry = new THREE.TubeGeometry(this.track.curve, 600, RAIL_RADIUS, 8, true);
   }
 
   private buildGround(): void {
-    const geo = new THREE.PlaneGeometry(400, 400);
+    const geo = new THREE.PlaneGeometry(700, 700);
     geo.rotateX(-Math.PI / 2);
     const ground = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: 0x4a7c3a }));
     ground.position.y = -10; // pod nejnižším bodem trati
@@ -119,7 +123,7 @@ export class Renderer {
   }
 
   private buildTrack(): void {
-    const geo = new THREE.TubeGeometry(this.track.curve, 400, RAIL_RADIUS, 8, true);
+    const geo = new THREE.TubeGeometry(this.track.curve, 600, RAIL_RADIUS, 8, true);
     this.trackMesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: 0x55564f }));
     this.scene.add(this.trackMesh);
   }
