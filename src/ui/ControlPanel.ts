@@ -1,6 +1,21 @@
 import type { PhysicsParams } from '../sim/params';
 import type { Train } from '../sim/Train';
 
+// Jeden zdroj pravdy o klávesové akci: pohání keydown handler (codes), nápovědu
+// v panelu (hint) i tlačítko (label). Dřív bylo mapování rozeseté na 3 místa.
+export interface KeyAction {
+  codes: string[];          // e.code hodnoty, na které akce reaguje (víc = aliasy)
+  hint: string;             // popis kláves pro nápovědu/tlačítko, např. 'W / ↑'
+  label: string;            // co akce dělá, např. 'Stupeň +'
+  preventDefault?: boolean; // šipky/mezerník jinak scrollují stránku
+  run: () => void;
+}
+
+// Side-effekty sliderů nad rámec zápisu do params (runtime callbacky z main).
+export interface PanelHandlers {
+  onAmplitudeChange: () => void; // slider sklonu → přestavba tratě (sim + view)
+}
+
 interface SliderDef {
   key: keyof PhysicsParams;
   label: string;
@@ -10,21 +25,12 @@ interface SliderDef {
   unit: string;
   // volitelná akce po posunu (vedle zápisu do params) — např. přestavba tratě.
   // Většina sliderů jen mutuje sdílenou params; tahle hrstka má i side effect.
-  action?: (controls: PanelControls) => void;
+  action?: (h: PanelHandlers) => void;
 }
 
 interface Section {
   title: string;
   sliders: SliderDef[];
-}
-
-export interface PanelControls {
-  onReset: () => void;
-  onNotchUp: () => void;
-  onNotchDown: () => void;
-  onBrake: () => void;
-  onMute: () => void;
-  onAmplitudeChange: () => void; // slider sklonu → přestavba tratě (sim + view)
 }
 
 // Deklarativní popis sliderů ve skupinách — všechny se generují stejně (izomorfismus).
@@ -34,7 +40,7 @@ const SECTIONS: Section[] = [
     sliders: [
       // sklon přestaví geometrii (action) — vidíš slack action: do kopce draft, z kopce buff
       { key: 'trackAmplitude', label: 'Sklon (výška kopců)', min: 0, max: 4, step: 0.1, unit: 'm',
-        action: (c) => c.onAmplitudeChange() },
+        action: (h) => h.onAmplitudeChange() },
     ],
   },
   {
@@ -79,7 +85,8 @@ const SECTIONS: Section[] = [
  */
 export function createControlPanel(
   params: PhysicsParams,
-  controls: PanelControls,
+  actions: KeyAction[],
+  handlers: PanelHandlers,
 ): (train: Train) => void {
   const panel = document.createElement('div');
   panel.style.cssText = [
@@ -90,7 +97,7 @@ export function createControlPanel(
   ].join(';');
 
   const title = document.createElement('div');
-  title.textContent = 'TrainsLab — F2';
+  title.textContent = 'TrainsLab';
   title.style.cssText = 'font-weight:600;margin-bottom:6px';
   panel.appendChild(title);
 
@@ -103,26 +110,18 @@ export function createControlPanel(
     head.textContent = section.title;
     head.style.cssText = 'margin:10px 0 2px;opacity:0.6;font-size:11px;text-transform:uppercase';
     panel.appendChild(head);
-    for (const def of section.sliders) panel.appendChild(buildSlider(params, def, controls));
+    for (const def of section.sliders) panel.appendChild(buildSlider(params, def, handlers));
   }
 
+  // nápověda kláves i tlačítka se generují ze stejného seznamu akcí (single source)
   const keys = document.createElement('div');
   keys.style.cssText = 'margin-top:10px;opacity:0.78;font-size:12px;line-height:1.7';
-  keys.innerHTML = [
-    '<b>Klávesy</b>',
-    'W / ↑ &nbsp;—&nbsp; přidat stupeň',
-    'S / ↓ &nbsp;—&nbsp; ubrat stupeň',
-    'B / mezerník &nbsp;—&nbsp; brzda',
-    'R &nbsp;—&nbsp; reset',
-    'M &nbsp;—&nbsp; zvuk on/off',
-  ].join('<br>');
+  keys.innerHTML = ['<b>Klávesy</b>', ...actions.map(
+    (a) => `${a.hint} &nbsp;—&nbsp; ${a.label}`,
+  )].join('<br>');
   panel.appendChild(keys);
 
-  panel.appendChild(makeButton('Stupeň +  (W)', controls.onNotchUp));
-  panel.appendChild(makeButton('Stupeň −  (S)', controls.onNotchDown));
-  panel.appendChild(makeButton('Brzda (B)', controls.onBrake));
-  panel.appendChild(makeButton('Zvuk (M)', controls.onMute));
-  panel.appendChild(makeButton('Reset (R)', controls.onReset));
+  for (const a of actions) panel.appendChild(makeButton(`${a.label}  (${a.hint})`, a.run));
 
   document.body.appendChild(panel);
 
@@ -148,7 +147,7 @@ function makeButton(label: string, onClick: () => void): HTMLButtonElement {
 }
 
 // Jeden řádek: popisek + živá hodnota + slider, obousměrně svázaný s params[key].
-function buildSlider(params: PhysicsParams, def: SliderDef, controls: PanelControls): HTMLElement {
+function buildSlider(params: PhysicsParams, def: SliderDef, handlers: PanelHandlers): HTMLElement {
   const row = document.createElement('label');
   row.style.cssText = 'display:block;margin:4px 0';
 
@@ -174,7 +173,7 @@ function buildSlider(params: PhysicsParams, def: SliderDef, controls: PanelContr
   input.addEventListener('input', () => {
     params[def.key] = Number(input.value);
     show();
-    def.action?.(controls); // side effect navíc (např. přestavba tratě), pokud slider má
+    def.action?.(handlers); // side effect navíc (např. přestavba tratě), pokud slider má
   });
   show();
 

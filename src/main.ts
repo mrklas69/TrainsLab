@@ -5,7 +5,7 @@ import { Train } from './sim/Train';
 import { DEFAULT_PARAMS } from './sim/params';
 import { Renderer } from './view/Renderer';
 import { AudioView } from './view/AudioView';
-import { createControlPanel } from './ui/ControlPanel';
+import { createControlPanel, type KeyAction } from './ui/ControlPanel';
 
 const canvas = document.querySelector<HTMLCanvasElement>('#scene');
 if (!canvas) throw new Error('Chybí <canvas id="scene">');
@@ -19,12 +19,16 @@ const train = new Train(track, params, [8, 6, 6, 6, 6]);
 const renderer = new Renderer(canvas, track, train);
 const audio = new AudioView(train);
 
-const updatePanel = createControlPanel(params, {
-  onReset: () => train.reset(),
-  onNotchUp: () => train.notchUp(),
-  onNotchDown: () => train.notchDown(),
-  onBrake: () => train.toggleBrake(),
-  onMute: () => audio.toggleMute(),
+// Klávesové akce — single source pro keydown handler, nápovědu i tlačítka panelu.
+const actions: KeyAction[] = [
+  { codes: ['KeyW', 'ArrowUp'], hint: 'W / ↑', label: 'Stupeň +', preventDefault: true, run: () => train.notchUp() },
+  { codes: ['KeyS', 'ArrowDown'], hint: 'S / ↓', label: 'Stupeň −', preventDefault: true, run: () => train.notchDown() },
+  { codes: ['KeyB', 'Space'], hint: 'B / mezerník', label: 'Brzda', preventDefault: true, run: () => train.toggleBrake() },
+  { codes: ['KeyM'], hint: 'M', label: 'Zvuk', run: () => audio.toggleMute() },
+  { codes: ['KeyR'], hint: 'R', label: 'Reset', run: () => train.reset() },
+];
+
+const updatePanel = createControlPanel(params, actions, {
   // slider sklonu: přestav křivku (sim) i geometrii tubu (view); souprava jede dál
   onAmplitudeChange: () => {
     track.rebuild(makeLoopControlPoints(params.trackAmplitude));
@@ -35,32 +39,13 @@ const updatePanel = createControlPanel(params, {
 // Prohlížeč spustí zvuk až po první interakci uživatele (autoplay policy).
 window.addEventListener('pointerdown', () => audio.resume());
 
-// Ovládání lokomotivy: regulátor (notch) + brzda + reset + zvuk.
+// Ovládání lokomotivy: jeden handler nad deklarovanými akcemi.
 window.addEventListener('keydown', (e) => {
   audio.resume();
-  switch (e.code) {
-    case 'KeyW':
-    case 'ArrowUp':
-      e.preventDefault();
-      train.notchUp();
-      break;
-    case 'KeyS':
-    case 'ArrowDown':
-      e.preventDefault();
-      train.notchDown();
-      break;
-    case 'KeyB':
-    case 'Space':
-      e.preventDefault();
-      train.toggleBrake();
-      break;
-    case 'KeyR':
-      train.reset();
-      break;
-    case 'KeyM':
-      audio.toggleMute();
-      break;
-  }
+  const action = actions.find((a) => a.codes.includes(e.code));
+  if (!action) return;
+  if (action.preventDefault) e.preventDefault();
+  action.run();
 });
 
 // Render loop: sim krok (s ochranou proti velkým dt) → vykreslení.

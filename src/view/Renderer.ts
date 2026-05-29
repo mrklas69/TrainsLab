@@ -14,10 +14,11 @@ const BUFF_COLOR = new THREE.Color(0x3070ff);  // tlak (stlačení) — modrá
 const SLACK_COLOR = new THREE.Color(0x707070); // ve vůli — neutrální šedá
 
 // stav lokomotivy (priorita: prokluz > brzda > tah > volnoběh)
-const LOCO_SLIP = 0xe08010;  // prokluz hnacích kol — oranžová
-const LOCO_BRAKE = 0xc01818; // brzdí — červená
-const LOCO_POWER = 0x2e9e3f; // táhne (notch ≠ 0, drží adhezi) — zelená, max. účinnost
-const LOCO_IDLE = 0x555a5e;  // volnoběh (notch 0, nebrzdí) — neutrální šedá
+const LOCO_SLIP = new THREE.Color(0xe08010);  // prokluz hnacích kol — oranžová
+const LOCO_BRAKE = new THREE.Color(0xc01818); // brzdí — červená
+const LOCO_POWER = new THREE.Color(0x2e9e3f); // táhne (notch ≠ 0, drží adhezi) — zelená, max. účinnost
+const LOCO_IDLE = new THREE.Color(0x555a5e);  // volnoběh (notch 0, nebrzdí) — neutrální šedá
+const CAR_COLOR = new THREE.Color(0x2b5a8b);  // vagon — modrá
 
 /**
  * Renderer = čistá funkce stavu → obraz (DD-01). Drží ThreeJS scénu a každý
@@ -73,7 +74,7 @@ export class Renderer {
       mesh.lookAt(mesh.position.clone().add(tangent)); // čelo (−Z) ve směru jízdy
     });
     // stav lokomotivy barvou (priorita: prokluz > brzda > tah > volnoběh)
-    this.locoMaterial.color.setHex(
+    this.locoMaterial.color.copy(
       train.slipping ? LOCO_SLIP :
       train.isBraking ? LOCO_BRAKE :
       train.notch !== 0 ? LOCO_POWER :
@@ -139,7 +140,7 @@ export class Renderer {
   private buildCars(train: Train): THREE.Mesh[] {
     return train.bodies.map((body, i) => {
       const geo = new THREE.BoxGeometry(CAR_WIDTH, CAR_HEIGHT, body.length);
-      const color = i === 0 ? LOCO_IDLE : 0x2b5a8b;
+      const color = i === 0 ? LOCO_IDLE : CAR_COLOR;
       const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color }));
       this.scene.add(mesh);
       return mesh;

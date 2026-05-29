@@ -8,6 +8,7 @@ const COUPLER_GAP = 0.6;   // konstrukční mezera mezi vozy ve středu vůle (m
 const MAX_FORWARD = 3;     // stupňů regulátoru vpřed
 const MAX_REVERSE = 1;     // stupňů vzad (couvání slabší)
 const V_POWER = 1.0;       // m/s — pod tím drží konstantní max síla (jinak P/v → ∞)
+const V_PLUGGING = 1.0;    // m/s — nad tím je reverz proti pohybu protiproudé brzdění, ne couvání
 
 /**
  * Souprava = řetězec {@link Body} propojený {@link Coupler}y, v čele lokomotiva.
@@ -105,17 +106,22 @@ export class Train {
     // brzda působí jen na lokomotivu (index 0), jako řízený odpor v tření (DD-09)
     const brake = this.brakeForce();
     for (let i = 0; i < this.bodies.length; i++) {
-      this.bodies[i].applyFriction(this.params, this.massOf(i), i === 0 ? brake : 0);
-      this.bodies[i].integrate(h, this.massOf(i));
+      const mass = this.massOf(i);
+      this.bodies[i].applyFriction(this.params, mass, i === 0 ? brake : 0);
+      this.bodies[i].integrate(h, mass);
     }
+  }
+
+  // adhezní strop μ·N (tíha lokomotivy = adhezní tíha N) — max přenositelná síla
+  // kolo-kolej; společný limit pro tah, protiproudé brzdění i provozní brzdu.
+  private get adhesionLimit(): number {
+    return this.params.adhesionCoeff * this.params.locomotiveMass * this.params.gravity;
   }
 
   // brzdná síla lokomotivy, limitovaná adhezí (μ·N); 0 = nebrzdí
   private brakeForce(): number {
     if (!this.braking) return 0;
-    const adhesionLimit =
-      this.params.adhesionCoeff * this.params.locomotiveMass * this.params.gravity;
-    return Math.min(this.params.brakeForceMax, adhesionLimit);
+    return Math.min(this.params.brakeForceMax, this.adhesionLimit);
   }
 
   // lokomotiva (index 0) je těžší — a její tíha je adhezní tíha N.
@@ -128,8 +134,7 @@ export class Train {
   // Tah proti směru pohybu = protiproudé brzdění (plugging): limit jen adheze, ne P/v (DD-08).
   private applyLocomotive(): void {
     const loco = this.bodies[0];
-    const { gravity, locomotiveMass, adhesionCoeff } = this.params;
-    const adhesionLimit = adhesionCoeff * locomotiveMass * gravity; // μ·N
+    const adhesionLimit = this.adhesionLimit; // μ·N
 
     if (this.throttle === 0) {
       this.slipping = false;
@@ -142,7 +147,7 @@ export class Train {
     // Tah proti směru pohybu = protiproudé brzdění (plugging). Výkonová hyperbola
     // P/v platí jen pro zrychlování (motor sype energii do pohybu); proti pohybu sílu
     // nelimituje — strop je adheze (a konstrukční F_max), tedy plný tah na brzdění.
-    const counterPressure = Math.abs(loco.v) > V_POWER && Math.sign(loco.v) !== dir;
+    const counterPressure = Math.abs(loco.v) > V_PLUGGING && Math.sign(loco.v) !== dir;
 
     // Velikost úsilí (0..1). Při zrychlování jemně po stupních (MAX_FORWARD). Protiproudé
     // brzdění je naopak inherentně naplno — motor zabírá proti rotujícím kolům, snadno
