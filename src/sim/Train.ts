@@ -74,6 +74,22 @@ export class Train {
     return this.bodies[0].v;
   }
 
+  /**
+   * Největší příčné (odstředivé) zrychlení v soupravě (m/s²): max |v²/r| přes vozy.
+   *
+   * Odvozená diagnostika příčné dynamiky (DD-11): kolmá k jízdě → nemění `s`/`v`,
+   * takže drží 1D model (DD-02). Podklad pro budoucí kritérium převrácení a klopení
+   * skříně. Na rovince r = ∞ → příspěvek 0.
+   */
+  get lateralAcceleration(): number {
+    let max = 0;
+    for (const body of this.bodies) {
+      const aLat = (body.v * body.v) / this.track.radius(body.s);
+      if (aLat > max) max = aLat;
+    }
+    return max;
+  }
+
   /** Souprava do klidu, vozy v klidové rozteči za lokomotivou, řízení vynulováno. */
   reset(): void {
     let s = this.startS;

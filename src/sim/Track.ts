@@ -51,6 +51,34 @@ export class Track {
     return this.at(s).tangent.y;
   }
 
+  /**
+   * Lokální poloměr oblouku v `s` (m) — z křivosti **horizontálního** průmětu trati.
+   *
+   * Izomorfní s {@link grade}: grade bere svislou složku tečny (kopec → podélná
+   * gravitace), radius bere zakřivení v půdorysu (zatáčka → příčná odstředivka v²/r).
+   * Svislé zvlnění (přejezd kopce/údolí) dává nadlehčení, ne boční převrácení —
+   * proto jen XZ, ne plná 3D křivost.
+   *
+   * Rovný úsek → `Infinity` (κ → 0; odstředivka v²/r → 0). Křivost κ z konečných
+   * diferencí polohy (vzorec křivosti rovinné křivky: |x'·z'' − z'·x''| / |r'|³).
+   */
+  radius(s: number): number {
+    const ds = 0.5; // m — krok centrální diference (kompromis přesnost × hladkost)
+    const p0 = this.at(s - ds).position;
+    const p1 = this.at(s).position;
+    const p2 = this.at(s + ds).position;
+
+    // 1. a 2. derivace polohy v půdorysu (XZ), centrální diference
+    const d1x = (p2.x - p0.x) / (2 * ds);
+    const d1z = (p2.z - p0.z) / (2 * ds);
+    const d2x = (p2.x - 2 * p1.x + p0.x) / (ds * ds);
+    const d2z = (p2.z - 2 * p1.z + p0.z) / (ds * ds);
+
+    const speed = Math.hypot(d1x, d1z); // |r'| v půdorysu (~1, je-li trať skoro vodorovná)
+    const curvature = Math.abs(d1x * d2z - d1z * d2x) / (speed * speed * speed);
+    return curvature < 1e-6 ? Infinity : 1 / curvature;
+  }
+
   /** Zabalení arc-length do [0, length) — trať je smyčka. */
   private wrap(s: number): number {
     return ((s % this.length) + this.length) % this.length;

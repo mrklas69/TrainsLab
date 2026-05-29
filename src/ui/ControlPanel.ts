@@ -130,7 +130,9 @@ export function createControlPanel(
     const notch = n > 0 ? `+${n}` : String(n);
     const flags =
       (train.isBraking ? ' · BRZDA' : '') + (train.slipping ? ' · PROKLUZ' : '');
-    status.textContent = `Regulátor ${notch} · ${train.speed.toFixed(1)} m/s${flags}`;
+    const lat = train.lateralAcceleration.toFixed(1); // příčné (odstředivé) zrychlení
+    status.textContent =
+      `Regulátor ${notch} · ${train.speed.toFixed(1)} m/s · příč ${lat} m/s²${flags}`;
   };
 }
 
