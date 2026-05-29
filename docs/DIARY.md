@@ -10,3 +10,4 @@ Více sezení v jednom dni = sekce `## Sezení N` v témže souboru.
 | 2026-05-29 | 3 | Reality check: reverz = protiproudé brzdění, brzda = řízené tření, prototyp AudioView. DD-08, DD-09 |
 | 2026-05-29 | 4 | Publikace dema na GitHub Pages: base `/TrainsLab/`, Actions deploy, oprava `build_type: legacy → workflow` |
 | 2026-05-29 | 5 | README, slider sklonu (live rebuild tratě), vizualizace napětí ve spřáhlech, stavový semafor loko, skid při protiproudém brzdění. DD-10 |
+| 2026-05-29 | 6 | `%AUDIT:CODE` (opravy D1–D3, K1–K3), diskuse omezení rychlosti (chybí otáčkový strop), návrh příčné dynamiky & vykolejení. DD-11 |

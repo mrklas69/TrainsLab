@@ -72,3 +72,17 @@ Dokončené úkoly. Detaily a rozhodnutí: `docs/diary/`.
 
 ### DD-10 — skid při protiproudém brzdění
 - `Train.applyLocomotive`: při `counterPressure` (reverz proti pohybu) `fraction = 1` místo dělení `MAX_FORWARD`. Plná `F_max` (200 kN) > adheze (177 kN) → prokluz + razantní brzdění. Couvání z klidu zůstává jemné. Řeší i původní stížnost S3 „reverz zpomaloval pomalu".
+
+## Sezení 6 (2026-05-29)
+
+### `%AUDIT:CODE` — úklid kódu (build + `tsc` zelené, žádná změna chování)
+- **D1 (DRY):** adhezní strop `μ·N` extrahován do getteru `Train.adhesionLimit`; sdílí `brakeForce()` i `applyLocomotive()` (dřív počítán 2×).
+- **D2:** pryč zastaralé fázové markery z UI (`index.html` „— F0", panel „— F2") → „TrainsLab"; stav fází zůstává single-source v README.
+- **D3:** `V_POWER` rozdělen na `V_POWER` (floor pro `P/v`) a `V_PLUGGING` (práh protiproudé brzdění vs. couvání).
+- **K1:** `KeyAction[]` jako single source pro keydown + nápovědu + tlačítka (dřív 3 místa); `switch` zmizel, `PanelControls` → `KeyAction[]` + `PanelHandlers`.
+- **K2:** barvy lokomotivy jednotně `THREE.Color`, přibyl `CAR_COLOR`.
+- **K3:** `massOf` ve `step()` do lokální `const` (3 volání/těleso → 2).
+
+### Diskuse fyziky (→ IDEAS, návrh)
+- Omezení max rychlosti: máme výkon vs. odpory; chybí otáčkový/mechanický strop (mean piston speed, pokles tlaku páry) → IDEAS, kandidát k F3.
+- **DD-11 — příčná dynamika jako 1D diagnostika, vykolejení = fail state** (Úroveň A, drží DD-02). Rozpracováno do TODO (odstředivka, převrácení, proměnná geometrie); klopení a Nadal odloženy do IDEAS.

@@ -53,6 +53,14 @@ Kontext a rozhodnutí: viz `docs/diary/2026-05-29.md`.
 - [~] Zvuk: prototyp `AudioView` hotový (procedurální) *(S3, vědomě předsunuto)*
 - [ ] Zvuk: vyměnit procedurální generátor za nahrané samply (zdroje + licence v IDEAS)
 
+## Příčná dynamika — oblouky & vykolejení  *(S6, Úroveň A — drží DD-02; zařazení do F-osy doladit v README)*
+- [ ] `Track.radius(s)` — lokální poloměr oblouku z křivosti (κ = |dT/ds|, r = 1/κ)
+- [ ] Odstředivá síla `m·v²/r` jako odvozená příčná veličina (nemění `s`/`v` — drží koleje)
+- [ ] params: `trackGauge` (rozchod, 1.435 m), `comHeight` (výška těžiště vozu)
+- [ ] Kritérium převrácení: příčná akcelerace > `(gauge/2)/h · g` → vykolejení (fail state)
+- [ ] Vizualizace blízkosti meze + vykolejení (barva / reset) — izomorfní s přetržením vlaku
+- [ ] Trať s proměnným poloměrem (esíčko) — bez ní je `r` konstantní, vykolejení všude stejné
+
 ## Dokumentace / infra
 - [x] Deploy dema na GitHub Pages (Actions, base `/TrainsLab/`) *(S4)*
 - [x] `README.md` — identita projektu, ovládání, stav fází, architektura, demo *(S5)*

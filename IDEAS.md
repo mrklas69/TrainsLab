@@ -15,10 +15,23 @@ Koncept a kontext: viz `docs/diary/2026-05-29.md`.
 - **Sloshing kapaliny v cisterně** (F5) — pohyb kapaliny mění těžiště vagonu, zpětně
   ovlivňuje dynamiku. „Tu pak rozpohybujeme."
 - **Přetržení vlaku** — když draft síla překročí mez spřáhla. Emergentní fail state.
+- **Příčná dynamika & vykolejení** → TODO (S6) — odstředivka v oblouku (`m·v²/r`), převrácení
+  kolem vnější kolejnice (výška těžiště × rozchod). Úroveň A: 1D + příčná **diagnostika**,
+  vykolejení = emergentní fail state (drží DD-02), homomorfní s přetržením vlaku. Rozšíření:
+  klopení (cant) — slider nebo auto z vyrovnávací rychlosti, up-vektor koleje ve view;
+  Nadalovo kritérium (vyšplhání okolku, `L/V ≤ (tanβ−μ)/(1+μ·tanβ)`); proměnná geometrie
+  trati (oblouky o různém r). Multi-body (Úroveň B) = jiný roh mřížky věrnosti, mimo PoC.
 - **Brzdy soupravy** — pneumatická soustava, prodleva šíření tlaku soupravou (další vlna).
   (Brzda lokomotivy hotová v F2; v S3 přepsána na řízené tření — souboj sil, DD-09.)
 - **Dynamický prokluz** → TODO (rozšíření F2) — kolo s vlastní setrvačností + creep křivka
   (μ roste do ~1–2 % skluzu, pak padá). Doslovné „roztáčení kol", ne jen clamp. Pak písek.
+- **Otáčkový / mechanický strop rychlosti** (kandidát k F3) — dnes je max rychlost čistě
+  rovnováha výkon vs. odpory (`P/v = Crr·m·g + b·v²`, ~67 m/s s defaulty). Chybí druhý
+  reálný limit: pohon s pevným převodem má strop otáček kol. U parní loko = **mean piston
+  speed** (setrvačnost ojnic/pístů ~v², „hammer blow") → velká hnací kola = vyšší v_max
+  (velikost kola JE převod). Druhý efekt: při vysokých otáčkách válec nestihne plnit párou
+  → střední tlak klesá → TE padá rychleji než `P/v`. Patří k F3 (tentýž stroj jako pára).
+  KISS verze: parametr `maxPistonSpeed` → nad odpovídající `v` plynulý pokles `TE` k nule.
 - **Adheze kol** — základ hotov v F2 (clamp `μ·N`, prokluz, indikace). → DONE.
 
 ## Výzkumná osa: „proč je uspokojivé sledovat vláčky"
