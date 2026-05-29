@@ -23,6 +23,7 @@ Kontext a rozhodnutí: viz `docs/diary/2026-05-29.md`.
 - [x] Šťouchnutí do lokomotivy → run-out vůle soupravou (podélná vlna)
 - [x] Slidery vůle / tuhost / tlumení spřáhla (živé ladění)
 - [~] Ověřit „aha": do kopce se souprava natáhne, z kopce zkrátí; vlna proběhne soupravou
+      *(S3: potvrzeno akusticky — cvakání spřáhel — a dojmově; cílený vizuální test chybí)*
 
 ### F2 — trakce & adheze (★)  *(nové, Sezení 2, DD-07)*
 - [x] Hmotnost per vůz (lokomotiva těžší) — místo sdílené hmoty
@@ -33,7 +34,10 @@ Kontext a rozhodnutí: viz `docs/diary/2026-05-29.md`.
 - [x] Rozběhový/statické tření (`Crr_start > Crr`) — dá vůli funkční smysl, sjednotí auto-stop
 - [x] Slidery: výkon, max síla, μ, adhezní hmota, brzda, rozběhový faktor
 - [x] Vizuální indikace prokluzu (barva lokomotivy)
+- [x] Reverz za jízdy vpřed = protiproudé brzdění (limit adheze, ne P/v) *(S3, DD-08)*
+- [x] Brzda jako řízené tření — souboj sil, dragging brakes, drží svah *(S3, DD-09)*
 - [ ] Rozšíření (později): dynamický prokluz (setrvačnost kola + creep křivka), písek
+- [ ] Rozšíření (později): víc reverzních/brzdných stupňů → skid při brzdění
 
 ### F3 — palivo  *(bývalé F2)*
 - [ ] Zásoby uhlí + vody, spotřeba tahem
@@ -45,8 +49,15 @@ Kontext a rozhodnutí: viz `docs/diary/2026-05-29.md`.
 - [ ] Stromy, kameny (instancing)
 - [ ] Modely lokomotivy a vagonů (jeden cisterna)
 - [ ] Kamera/osvětlení pro „uspokojivé" pozorování
+- [~] Zvuk: prototyp `AudioView` hotový (procedurální) *(S3, vědomě předsunuto)*
+- [ ] Zvuk: vyměnit procedurální generátor za nahrané samply (zdroje + licence v IDEAS)
+
+## Dokumentace / infra
+- [x] Deploy dema na GitHub Pages (Actions, base `/TrainsLab/`) *(S4)*
+- [!] `README.md` — identita projektu, ovládání, odkaz na demo *(přetrvává v Příště S2–S4)*
 
 ## Backlog / později
+- [ ] Vizualizace napětí ve spřáhlech (barva/deformace) — infra `Coupler.mode`/`relVel` hotová *(S3)*
 - [ ] F5: sloshing kapaliny v cisterně → posun těžiště *(bývalé F4)*
 - [ ] Průběžná brzda soupravy (pneumatická, šíření tlaku = další vlna)
 - [ ] Davisův lineární člen odporu `B·v`; křivkový odpor v obloucích

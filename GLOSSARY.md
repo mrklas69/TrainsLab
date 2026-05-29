@@ -27,6 +27,20 @@ Termíny projektu. Anglické identifikátory v kódu, české vysvětlení.
 - **rozběhový odpor (starting/breakaway resistance)** — klidové tření > valivé za jízdy;
   fyzikální *důvod*, proč slack action funguje (rozjezd vozů postupně).
 - **valivý odpor (Crr)** — kinetický odpor valení za jízdy (ocel-ocel ≈ 0,002).
+- **protiproudé brzdění (plugging / counter-pressure)** — tah motoru proti směru jízdy =
+  brzdění. Limit je adheze (`μ·N`), ne výkon `P/v` (ten platí jen pro zrychlování). V modelu
+  notch −1 za jízdy vpřed (DD-08).
+- **brzda jako řízené tření** — provozní brzda lokomotivy modelovaná jako dodatečný odpor
+  (zvyšuje statický práh i kinetický odpor), ne zvláštní síla. Tah a brzda se perou ve
+  společném akumulátoru sil (DD-09).
+- **dragging brakes** — tah překoná hranu, ale brzda + tření vlak udrží: kola prokluzují
+  proti stojící soupravě. Emergentní důsledek souboje sil (DD-09).
+
+## Zvuk
+- **chuff (výfuk páry)** — nárazový výdech páry komínem při otevřeném regulátoru; hustota
+  roste s rychlostí. V `AudioView` rytmický burst šumu.
+- **AudioView** — zvuk jako další „view" nad simem (DD-01): čte stav, ozvučuje události
+  (chuff, clank/náraz spřáhla, sykot prokluzu, skřípění brzd). Procedurální, bez souborů.
 
 ## Numerika a architektura
 - **semi-implicitní Euler** — integrátor: nejdřív rychlost z aktuálních sil, pak poloha.

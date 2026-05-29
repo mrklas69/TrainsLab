@@ -34,3 +34,26 @@ Dokončené úkoly. Detaily a rozhodnutí: `docs/diary/`.
 ### Dokumentace / housekeeping
 - Diář narovnán do `docs/diary/YYYY-MM-DD.md` + index `DIARY.md`.
 - Reframe F0 (DD-06): „tuhý tah dokola" → jednotělesová dynamika.
+
+## Sezení 3 (2026-05-29)
+
+### Reality check & doladění fyziky
+- **DD-08 — reverz = protiproudé brzdění:** tah proti pohybu limitován adhezí (`μ·N`), ne `P/v`. Opraven `P/v` bug na brzdné síle (reverz za jízdy byl uměle slabý).
+- **DD-09 — brzda = řízené tření:** zrušen early `return`; brzda je dodatečný odpor v `applyFriction` (jen loko), tah se počítá vždy. Emergentně: dragging brakes, držení na svahu (parkovací brzda), plynulé dojetí bez cukání. Odstraněna konstanta `V_BRAKE`.
+- Reálně potvrzeno jízdou: prokluz při rozjezdu, reverz, brzda.
+
+### AudioView — prototyp ozvučení (F4 záclona, vědomě předsunuto)
+- Zvuk jako další view nad simem (DD-01): čte stav, nic nezapisuje.
+- Procedurální Web Audio (žádné externí soubory): chuff (∝ rychlost), clank/náraz spřáhla (∝ relVel), sykot prokluzu, skřípění brzd.
+- Mute (klávesa `M` + tlačítko), resume na první vstup (autoplay policy).
+- Sim vystavil `Coupler.mode`/`relVel` + `Train.couplers` — využije i budoucí vizualizace napětí.
+- Rešerše otevřených zvukových databází (zdroje + licence) → IDEAS.md.
+
+## Sezení 4 (2026-05-29)
+
+### Publikace dema na GitHub Pages
+- `vite.config.ts` — `base: '/TrainsLab/'` při buildu, `'/'` v dev (oprava bílé stránky: absolutní `/assets` cesty mířily na kořen domény).
+- `.github/workflows/deploy.yml` — auto build + deploy na push do `main`; `dist/` zůstává v `.gitignore`.
+- Oprava Pages `build_type: legacy → workflow` (servíroval zdrojový `index.html` s `/src/main.ts` místo buildu).
+- Bump actions na Node 24 runtime (checkout v6, setup-node v6, upload-pages-artifact v5, deploy-pages v5) — pryč deprecation warning.
+- Demo živé: https://mrklas69.github.io/TrainsLab/ (vč. zvuků, ověřeno).
