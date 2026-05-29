@@ -1,0 +1,116 @@
+import { Body } from './Body';
+import { Coupler } from './Coupler';
+const SUBSTEPS = 8; // tužší spřáhla → víc substepů pro stabilitu integrátoru
+const COUPLER_GAP = 0.6; // konstrukční mezera mezi vozy ve středu vůle (m)
+const MAX_FORWARD = 3; // stupňů regulátoru vpřed
+const MAX_REVERSE = 1; // stupňů vzad (couvání slabší)
+const V_POWER = 1.0; // m/s — pod tím drží konstantní max síla (jinak P/v → ∞)
+const V_BRAKE = 0.1; // m/s — pod tím brzda nepůsobí (drží statické tření)
+/**
+ * Souprava = řetězec {@link Body} propojený {@link Coupler}y, v čele lokomotiva.
+ *
+ * Řídí integraci za celou soupravu (spřáhla tělesa provazují) a drží stav řízení
+ * lokomotivy: regulátor (notch), brzda. Tažná síla je omezená výkonem (P/v) i
+ * adhezí kolo-kolej; překročení adheze = prokluz ({@link slipping}).
+ */
+export class Train {
+    constructor(track, params, carLengths, // [0] = lokomotiva (čelo), dál vagony
+    startS = 0) {
+        this.track = track;
+        this.params = params;
+        this.startS = startS;
+        this.slipping = false; // prokluz hnacích kol — čte renderer (DD-01)
+        this.throttle = 0; // −MAX_REVERSE..MAX_FORWARD
+        this.braking = false;
+        this.bodies = carLengths.map((length) => new Body(0, length));
+        this.restGaps = [];
+        for (let i = 0; i < this.bodies.length - 1; i++) {
+            this.restGaps.push(this.bodies[i].length / 2 + COUPLER_GAP + this.bodies[i + 1].length / 2);
+        }
+        this.couplers = this.restGaps.map((gap, i) => new Coupler(this.bodies[i], this.bodies[i + 1], gap));
+        this.reset();
+    }
+    // --- řízení lokomotivy ---
+    notchUp() {
+        this.throttle = Math.min(this.throttle + 1, MAX_FORWARD);
+    }
+    notchDown() {
+        this.throttle = Math.max(this.throttle - 1, -MAX_REVERSE);
+    }
+    toggleBrake() {
+        this.braking = !this.braking;
+    }
+    get notch() {
+        return this.throttle;
+    }
+    get isBraking() {
+        return this.braking;
+    }
+    /** Rychlost lokomotivy (m/s) — pro UI. */
+    get speed() {
+        return this.bodies[0].v;
+    }
+    /** Souprava do klidu, vozy v klidové rozteči za lokomotivou, řízení vynulováno. */
+    reset() {
+        let s = this.startS;
+        this.bodies[0].s = s;
+        this.bodies[0].v = 0;
+        for (let i = 1; i < this.bodies.length; i++) {
+            s -= this.restGaps[i - 1];
+            this.bodies[i].s = s;
+            this.bodies[i].v = 0;
+        }
+        this.throttle = 0;
+        this.braking = false;
+        this.slipping = false;
+    }
+    update(dt) {
+        const h = dt / SUBSTEPS;
+        for (let i = 0; i < SUBSTEPS; i++)
+            this.step(h);
+    }
+    // jeden substep: vlastní síly → spřáhla → trakce/brzda → tření → integrace.
+    step(h) {
+        for (let i = 0; i < this.bodies.length; i++) {
+            this.bodies[i].beginStep(this.track, this.params, this.massOf(i));
+        }
+        for (const coupler of this.couplers)
+            coupler.apply(this.params);
+        this.applyLocomotive();
+        for (let i = 0; i < this.bodies.length; i++) {
+            this.bodies[i].applyFriction(this.params, this.massOf(i));
+            this.bodies[i].integrate(h, this.massOf(i));
+        }
+    }
+    // lokomotiva (index 0) je těžší — a její tíha je adhezní tíha N.
+    massOf(index) {
+        return index === 0 ? this.params.locomotiveMass : this.params.carMass;
+    }
+    // tah omezený výkonem (P/v) i adhezí (μ·N); brzda jen u lokomotivy, taky do adheze.
+    applyLocomotive() {
+        const loco = this.bodies[0];
+        const { gravity, locomotiveMass, adhesionCoeff } = this.params;
+        const adhesionLimit = adhesionCoeff * locomotiveMass * gravity; // μ·N
+        if (this.braking) {
+            this.slipping = false;
+            if (Math.abs(loco.v) > V_BRAKE) {
+                const force = Math.min(this.params.brakeForceMax, adhesionLimit);
+                loco.applyForce(-Math.sign(loco.v) * force);
+            }
+            return;
+        }
+        if (this.throttle === 0) {
+            this.slipping = false;
+            return;
+        }
+        const fraction = this.throttle / MAX_FORWARD; // záporné = vzad, slabší
+        const available = Math.min(this.params.tractiveForceMax, this.params.maxPower / Math.max(Math.abs(loco.v), V_POWER));
+        const requested = fraction * available;
+        // adheze: nad limitem kola prokluzují, přenese se jen μ·N
+        this.slipping = Math.abs(requested) > adhesionLimit;
+        const tractive = this.slipping
+            ? Math.sign(requested) * adhesionLimit
+            : requested;
+        loco.applyForce(tractive);
+    }
+}
