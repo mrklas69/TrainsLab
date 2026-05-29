@@ -22,8 +22,8 @@ Kontext a rozhodnutí: viz `docs/diary/2026-05-29.md`.
 - [x] `coupler` = pružina s vůlí (mrtvé pásmo) — tah (draft) i tlak přes nárazník (buff)
 - [x] Šťouchnutí do lokomotivy → run-out vůle soupravou (podélná vlna)
 - [x] Slidery vůle / tuhost / tlumení spřáhla (živé ladění)
-- [~] Ověřit „aha": do kopce se souprava natáhne, z kopce zkrátí; vlna proběhne soupravou
-      *(S3: potvrzeno akusticky — cvakání spřáhel — a dojmově; cílený vizuální test chybí)*
+- [x] Ověřit „aha": do kopce se souprava natáhne, z kopce zkrátí; vlna proběhne soupravou
+      *(S5: vizualizace napětí ve spřáhlech + slider sklonu → run-out přímo vidět)*
 
 ### F2 — trakce & adheze (★)  *(nové, Sezení 2, DD-07)*
 - [x] Hmotnost per vůz (lokomotiva těžší) — místo sdílené hmoty
@@ -36,8 +36,9 @@ Kontext a rozhodnutí: viz `docs/diary/2026-05-29.md`.
 - [x] Vizuální indikace prokluzu (barva lokomotivy)
 - [x] Reverz za jízdy vpřed = protiproudé brzdění (limit adheze, ne P/v) *(S3, DD-08)*
 - [x] Brzda jako řízené tření — souboj sil, dragging brakes, drží svah *(S3, DD-09)*
+- [x] Skid při protiproudém brzdění — reverz naplno (`fraction=1`) překoná adhezi *(S5, DD-10)*
 - [ ] Rozšíření (později): dynamický prokluz (setrvačnost kola + creep křivka), písek
-- [ ] Rozšíření (později): víc reverzních/brzdných stupňů → skid při brzdění
+- [ ] Rozšíření (později): víc reverzních/brzdných stupňů → plynulý přechod couvání↔skid
 
 ### F3 — palivo  *(bývalé F2)*
 - [ ] Zásoby uhlí + vody, spotřeba tahem
@@ -54,10 +55,14 @@ Kontext a rozhodnutí: viz `docs/diary/2026-05-29.md`.
 
 ## Dokumentace / infra
 - [x] Deploy dema na GitHub Pages (Actions, base `/TrainsLab/`) *(S4)*
-- [!] `README.md` — identita projektu, ovládání, odkaz na demo *(přetrvává v Příště S2–S4)*
+- [x] `README.md` — identita projektu, ovládání, stav fází, architektura, demo *(S5)*
+
+## Lab knoby
+- [x] Slider sklonu tratě — živá změna amplitudy + rebuild geometrie *(S5)*
 
 ## Backlog / později
-- [ ] Vizualizace napětí ve spřáhlech (barva/deformace) — infra `Coupler.mode`/`relVel` hotová *(S3)*
+- [x] Vizualizace napětí ve spřáhlech (barva markeru) — `Coupler.force` + koule mezi vozy *(S5)*
+- [ ] Jiskry při skidu / prokluzu — vizuál (F4 záclona)
 - [ ] F5: sloshing kapaliny v cisterně → posun těžiště *(bývalé F4)*
 - [ ] Průběžná brzda soupravy (pneumatická, šíření tlaku = další vlna)
 - [ ] Davisův lineární člen odporu `B·v`; křivkový odpor v obloucích

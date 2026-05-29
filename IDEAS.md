@@ -31,7 +31,10 @@ Udělat z A2 měřitelné hypotézy, ne filozofování (proto Lab):
 ## Vizualizace
 - Kamera „sledující" konkrétní vagon vs. nadhled celé smyčky.
 - Vizuální zvýraznění napětí ve spřáhlech (barva / deformace) — fyzika viditelná.
-  → TODO (backlog) — infrastruktura `Coupler.mode`/`relVel` hotová ze Sezení 3 (AudioView).
+  → DONE (S5) — koule-marker mezi vozy, barva dle `Coupler.mode`, jas ∝ `force`.
+- Stavový semafor lokomotivy (prokluz / brzda / tah / volnoběh barvou). → DONE (S5).
+- **Jiskry při skidu / prokluzu** — částicový efekt u kol (F4 záclona). Doslovné
+  „létání jisker" při protiproudém brzdění (DD-10) / prokluzu rozjezdu.
 
 ## Zvuk / audio view
 - **AudioView prototyp hotový** (S3) — zvuk jako další view nad simem (DD-01), procedurální
@@ -48,7 +51,7 @@ Udělat z A2 měřitelné hypotézy, ne filozofování (proto Lab):
     Freesound vyžaduje login ke stažení → soubory musí přinést uživatel.
 
 ## Lab knoby & nástroje
-- **Slider sklonu tratě** — živá změna amplitudy kopců s přestavbou geometrie
-  (`TubeGeometry` + kontrolní body). Názorný knob: vztah sklon × výkon × hmotnost.
+- **Slider sklonu tratě** → DONE (S5) — `trackAmplitude` v params, `Track.rebuild()`
+  in-place + `Renderer.rebuildTrack()`. Mění sklon za jízdy. Knob sklon × výkon × hmotnost.
 - **Kalkulačka silové bilance** — z dnešního ověření (max sklon vs. adhezní/výkonový strop
   vs. hmotnost soupravy). Buď jako Lab panel, nebo skript v `tools/`.

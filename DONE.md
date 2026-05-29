@@ -57,3 +57,18 @@ Dokončené úkoly. Detaily a rozhodnutí: `docs/diary/`.
 - Oprava Pages `build_type: legacy → workflow` (servíroval zdrojový `index.html` s `/src/main.ts` místo buildu).
 - Bump actions na Node 24 runtime (checkout v6, setup-node v6, upload-pages-artifact v5, deploy-pages v5) — pryč deprecation warning.
 - Demo živé: https://mrklas69.github.io/TrainsLab/ (vč. zvuků, ověřeno).
+
+## Sezení 5 (2026-05-29)
+
+### README
+- `README.md` — identita, odkaz na demo, ovládání (tabulka kláves ověřená proti kódu), Lab knoby, tabulka stavu fází F0–F5, architektura (sim/view split, strom `src/`), vývoj, odkazy na docs.
+
+### Vizuální ověření slack run-out (F1 `[~]` → `[x]`)
+- **Slider sklonu tratě** (Lab knob): `trackAmplitude` v `PhysicsParams`, `makeLoopControlPoints(amplitude)`, `Track.rebuild()` in-place, `Renderer.rebuildTrack()` (dispose + nová tuba). Obecný `SliderDef.action?` hook (rebuild jako side effect slideru). Mění sklon za jízdy bez resetu.
+- **Vizualizace napětí ve spřáhlech**: `Coupler.force` (znaménková síla, izomorfně k `mode`/`relVel`); koule-marker mezi vozy — barva dle režimu (tah červená / tlak modrá / vůle šedá), jas ∝ `|force|`. Run-out přímo vidět: do kopce vlna červená odpředu, z kopce modrá.
+
+### Stavový semafor lokomotivy
+- Barva loko dle stavu (priorita prokluz > brzda > tah > volnoběh): oranžová / červená / zelená / šedá. Renderer čte `train.notch` + `isBraking` + `slipping`.
+
+### DD-10 — skid při protiproudém brzdění
+- `Train.applyLocomotive`: při `counterPressure` (reverz proti pohybu) `fraction = 1` místo dělení `MAX_FORWARD`. Plná `F_max` (200 kN) > adheze (177 kN) → prokluz + razantní brzdění. Couvání z klidu zůstává jemné. Řeší i původní stížnost S3 „reverz zpomaloval pomalu".

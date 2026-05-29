@@ -29,7 +29,8 @@ Termíny projektu. Anglické identifikátory v kódu, české vysvětlení.
 - **valivý odpor (Crr)** — kinetický odpor valení za jízdy (ocel-ocel ≈ 0,002).
 - **protiproudé brzdění (plugging / counter-pressure)** — tah motoru proti směru jízdy =
   brzdění. Limit je adheze (`μ·N`), ne výkon `P/v` (ten platí jen pro zrychlování). V modelu
-  notch −1 za jízdy vpřed (DD-08).
+  notch −1 za jízdy vpřed (DD-08). Zabírá **plným úsilím** (`fraction=1`, ne dělené stupni),
+  takže `F_max` překoná adhezi → **skid** (prokluz při brzdění), DD-10.
 - **brzda jako řízené tření** — provozní brzda lokomotivy modelovaná jako dodatečný odpor
   (zvyšuje statický práh i kinetický odpor), ne zvláštní síla. Tah a brzda se perou ve
   společném akumulátoru sil (DD-09).
