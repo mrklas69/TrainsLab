@@ -17,7 +17,10 @@ export interface PhysicsParams {
   tractiveForceMax: number;  // strop tažné síly při nízké rychlosti (N)
   driverDiameter: number;    // průměr hnacího kola (m) — „převod": větší kolo → vyšší v_max
   maxPistonSpeed: number;    // mezní střední pístová rychlost (m/s) — otáčkový strop tahu
-  adhesionCoeff: number;     // součinitel adheze kolo-kolej μ (sucho ≈ 0.30)
+  adhesionCoeff: number;     // součinitel adheze kolo-kolej μ za sucha (≈ 0.30) — pískovaná μ
+  railFactor: number;        // stav koleje 0..1: 1 = sucho, níž = mokro/listí. eff. μ = adhesionCoeff·railFactor
+  sandCapacity: number;      // kapacita pískoven (kg) — spotřební zásoba jako uhlí/voda
+  sandRate: number;          // spotřeba písku při pískování (kg/s)
   brakeForceMax: number;     // max brzdná síla lokomotivy (N)
   trackAmplitude: number;    // výška mostu nad/pod střednicí (m) — geometrie světa, viz makeLoopControlPoints
   trackGauge: number;        // rozchod koleje (m) — báze kol, polovina = rameno proti převrácení
@@ -45,6 +48,9 @@ export const DEFAULT_PARAMS: PhysicsParams = {
   driverDiameter: 1.5,  // smíšená lokomotiva → v_mech ≈ 23 m/s (~83 km/h)
   maxPistonSpeed: 6.5,  // klasická mez střední pístové rychlosti (moderní stroje víc)
   adhesionCoeff: 0.3,
+  railFactor: 1.0,     // výchozí suchá kolej — hráč ji stáhne na mokro/listí, pak dá písek smysl
+  sandCapacity: 100,   // ~20 s pískování při sandRate (krátké dávky v krizi adheze)
+  sandRate: 5,
   brakeForceMax: 180_000,
   trackAmplitude: 4,
   trackGauge: 1.435, // normální rozchod

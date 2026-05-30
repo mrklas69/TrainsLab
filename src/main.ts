@@ -24,6 +24,8 @@ const actions: KeyAction[] = [
   { codes: ['ArrowUp'], hint: '↑', label: 'Stupeň +', preventDefault: true, run: () => train.notchUp() },
   { codes: ['ArrowDown'], hint: '↓', label: 'Stupeň −', preventDefault: true, run: () => train.notchDown() },
   { codes: ['KeyB', 'Space'], hint: 'B / mezerník', label: 'Brzda', preventDefault: true, run: () => train.toggleBrake() },
+  // held-key: drž P → sype písek (zvedne adhezi), pusť → přestane. blur to taky vypne.
+  { codes: ['KeyP'], hint: 'P (drž)', label: 'Písek', run: () => train.setSanding(true), onRelease: () => train.setSanding(false) },
   { codes: ['KeyM'], hint: 'M', label: 'Zvuk', run: () => audio.toggleMute() },
   { codes: ['KeyR'], hint: 'R', label: 'Reset', run: () => train.reset() },
 ];
@@ -46,6 +48,15 @@ window.addEventListener('keydown', (e) => {
   if (!action) return;
   if (action.preventDefault) e.preventDefault();
   action.run();
+});
+
+// keyup/blur dotahují held-key akce (drž pro efekt, např. pískování). Bez blur by
+// klávesa držená při ztrátě fokusu zůstala „zaseknutá" (symetrie s kamerou v Rendereru).
+window.addEventListener('keyup', (e) => {
+  actions.find((a) => a.codes.includes(e.code))?.onRelease?.();
+});
+window.addEventListener('blur', () => {
+  for (const a of actions) a.onRelease?.();
 });
 
 // Render loop: sim krok (s ochranou proti velkým dt) → vykreslení.
