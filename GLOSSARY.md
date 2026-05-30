@@ -23,7 +23,7 @@ Termíny projektu. Anglické identifikátory v kódu, české vysvětlení.
   tělesa jen surge. Kývání skříně (roll/pitch) ho neopouští; příčný DOF kola (hunting) ano.
 - **ležatá osmička (lemniskáta)** — tvar tratě (DD-12): křivka s jedním půdorysným křížením.
   Použita **Bernoulliho** (kulaté laloky) místo Gerono (špičaté, `r_min≈5 m` = nehratelné).
-  Laloky = ostré zatáčky (`r≈26 m`), střed = inflexe (`r→∞`) → proměnný poloměr (esíčko).
+  Laloky = ostré zatáčky (`r≈33 m`), střed = inflexe (`r→∞`) → proměnný poloměr (esíčko).
 - **most / podjezd** — místo, kde se trať v půdorysu kříží: profil `Y=amplitude·sin(t)` vede
   jeden průchod středem nahoře (most), druhý dole (podjezd). Most leží na inflexi osmičky
   (podélná dynamika / slack), ostré laloky v rovině (příčná dynamika / převrácení).
@@ -86,7 +86,7 @@ Termíny projektu. Anglické identifikátory v kódu, české vysvětlení.
 ## Palivo (F3)
 - **zásoby (uhlí / voda)** — spotřební zdroje v tendru (kg). Spotřeba úměrná otevření
   regulátoru; uhlí hoří i na volnoběh (idle — udržování ohně), voda jen tvorbou páry.
-  Historicky **voda dochází dřív** (spotřeba ~4–6:1 vůči uhlí hmotnostně).
+  Historicky **voda dochází dřív** (spotřeba ~6:1 vůči uhlí hmotnostně).
 - **parní tlak (steamPressure)** — `∈ [0,1]`, odvozený z menší ze zásob: drží 1 nad rezervou
   (15 %), pod ní lineárně klesá k 0. Škáluje tažnou sílu v obou směrech (pára žene písty).
   Po vyčerpání → tah 0 → vlak dojede setrvačností a zastaví na odporech. Brzda nezávisí (vzduchová).

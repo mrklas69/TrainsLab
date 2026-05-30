@@ -17,3 +17,4 @@ Více sezení v jednom dni = sekce `## Sezení N` v témže souboru.
 | 2026-05-30 | 10 | Ovládání kamery (WASD/QE/ZX, held-key v Rendereru), F3 palivo (uhlí + voda, parní tlak). Souběžné sezení z téže báze — kývání duplikováno, ponecháno S9. DD-14 |
 | 2026-05-30 | 11 | Otáčkový strop rychlosti — `v_mech = maxPistonSpeed·π·D/(2·zdvih)`, tah padá k mezní rychlosti (kolo = převod). Uzavřeno téma rychlosti z S6. DD-15 |
 | 2026-05-30 | 12 | `%AUDIT:CODE` (0 kritických) — sjednocení příčné dynamiky na `signedCurvature` (radius odstraněn), `positionAt`, drobný úklid (R1/R2/K1–K3). K4 README číslování ponecháno (volba a) |
+| 2026-05-31 | 13 | `%AUDIT:DOCS` (0 kritických) — D1 zastaralý `r≈33 m`, K1–K3 drobnosti; IDEAS/TODO pruning (P1–P4) — narovnání DRY TODO×IDEAS, nezralé nápady single-source v IDEAS. Údržbové, bez kódu |

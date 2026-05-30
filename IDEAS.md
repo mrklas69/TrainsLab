@@ -15,9 +15,10 @@ Koncept a kontext: viz `docs/diary/2026-05-29.md`.
 - **Sloshing kapaliny v cisterně** (F5) — pohyb kapaliny mění těžiště vagonu, zpětně
   ovlivňuje dynamiku. „Tu pak rozpohybujeme."
 - **Přetržení vlaku** — když draft síla překročí mez spřáhla. Emergentní fail state.
-- **Příčná dynamika & vykolejení** → TODO (S6) — odstředivka v oblouku (`m·v²/r`), převrácení
-  kolem vnější kolejnice (výška těžiště × rozchod). Úroveň A: 1D + příčná **diagnostika**,
-  vykolejení = emergentní fail state (drží DD-02), homomorfní s přetržením vlaku. Rozšíření:
+- **Příčná dynamika & vykolejení** → DONE (S6–S9, jádro) — odstředivka v oblouku (`m·v²/r`),
+  převrácení kolem vnější kolejnice (výška těžiště × rozchod). Úroveň A: 1D + příčná
+  **diagnostika**, vykolejení = emergentní fail state (drží DD-02), homomorfní s přetržením
+  vlaku. **Otevřená rozšíření:**
   klopení (cant) — slider nebo auto z vyrovnávací rychlosti, up-vektor koleje ve view;
   Nadalovo kritérium (vyšplhání okolku, `L/V ≤ (tanβ−μ)/(1+μ·tanβ)`); proměnná geometrie
   trati (oblouky o různém r). Multi-body (Úroveň B) = jiný roh mřížky věrnosti, mimo PoC.
@@ -42,6 +43,8 @@ Koncept a kontext: viz `docs/diary/2026-05-29.md`.
   **Písek** = spotřební zásoba (jako uhlí/voda) → po dobu pískování dočasně zvedne `μ` zpět (~0.3+).
   Bez nízké adheze je písek neviditelný knob (na suché koleji je tah pod adhezním stropem).
   Foundations: nejdřív proměnná adheze, pak písek.
+  *Hodnota `μ` při mokru k doladění až při implementaci* (zde ≈0.1, GLOSSARY uvádí ≈0.15) —
+  sjednotit na jeden zdroj podle herního citu (dost velký kontrast vůči suchu 0.3, ať je písek vidět).
 - **Otáčkový / mechanický strop rychlosti** → DONE (S11, DD-15) — `v_mech = maxPistonSpeed·π·D
   /(2·zdvih)`; tah plný do 0,75·v_mech, pak lineárně k 0. Velikost kola `D` = převod (větší →
   vyšší v_max). Default ~23 m/s místo ~67 (čistě `P/v`). Násobí tah jako další faktor (izomorfní

@@ -37,16 +37,14 @@ Kontext a rozhodnutí: viz `docs/diary/2026-05-29.md`.
 - [x] Reverz za jízdy vpřed = protiproudé brzdění (limit adheze, ne P/v) *(S3, DD-08)*
 - [x] Brzda jako řízené tření — souboj sil, dragging brakes, drží svah *(S3, DD-09)*
 - [x] Skid při protiproudém brzdění — reverz naplno (`fraction=1`) překoná adhezi *(S5, DD-10)*
-- [ ] Rozšíření (později): dynamický prokluz (setrvačnost kola + creep křivka), písek
-- [ ] Rozšíření (později): víc reverzních/brzdných stupňů → plynulý přechod couvání↔skid
+
+*Nezralá rozšíření (dynamický prokluz, víc reverzních/brzdných stupňů) → viz IDEAS.md.*
 
 ### F3 — palivo  *(bývalé F2)*  *(S10, DD-14)*
 - [x] Zásoby uhlí + vody, spotřeba tahem (úměrná otevření regulátoru; uhlí + idle, voda jen poptávka)
 - [x] Tah lokomotivy závislý na zásobách (`steamPressure` z menší zásoby, pokles pod rezervou 15 %)
 - [x] Vlak dojede setrvačností a zastaví po spotřebování zásob *(ověřeno: „Test OK")*
 - [x] Voda dochází dřív než uhlí (věrný detail) — `waterRate` doladěn na 38 kg/s
-- [ ] **Písek + mokrá kolej** *(odloženo, DD-14)* — proměnná adheze (počasí) → prokluz/skid →
-      písek dočasně zvedne μ. Bez nízké adheze je písek neviditelný knob (viz IDEAS).
 - [x] **Otáčkový/mechanický strop rychlosti** *(S11, DD-15)* — `v_mech = maxPistonSpeed·π·D/(2·zdvih)`,
       tah padá k mezní rychlosti (kolo = převod); ustálí ~22 m/s místo ~67. Slidery kolo + mez pístu.
 
@@ -85,10 +83,7 @@ Kontext a rozhodnutí: viz `docs/diary/2026-05-29.md`.
       regulátor přesunut jen na šipky ↑/↓ *(S10)*
 
 ## Backlog / později
-- [x] Vizualizace napětí ve spřáhlech (barva markeru) — `Coupler.force` + koule mezi vozy *(S5)*
-- [ ] Jiskry při skidu / prokluzu — vizuál (F4 záclona)
-- [ ] F5: sloshing kapaliny v cisterně → posun těžiště *(bývalé F4)*
-- [ ] Průběžná brzda soupravy (pneumatická, šíření tlaku = další vlna)
 - [ ] Davisův lineární člen odporu `B·v`; křivkový odpor v obloucích
 - [ ] Rotační setrvačnost hmot (rotating mass factor)
-- [ ] Hypotézy o „uspokojení" → měřitelné experimenty (viz IDEAS.md)
+- Dlouhodobé / nezralé nápady (sloshing F5, průběžná brzda, jiskry, hypotézy o „uspokojení",
+  dynamický prokluz) → **IDEAS.md** (single source pro nezralé).

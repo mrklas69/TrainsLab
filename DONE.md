@@ -2,6 +2,8 @@
 
 Dokončené úkoly. Detaily a rozhodnutí: `docs/diary/`.
 
+*(Sezení 1 = kick-off / koncept, bez kódu — nic k „dokončení", proto začínáme Sezením 2.)*
+
 ## Sezení 2 (2026-05-29)
 
 ### F0 — jednotělesová dynamika
