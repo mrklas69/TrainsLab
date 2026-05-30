@@ -20,6 +20,8 @@ export interface PhysicsParams {
   trackAmplitude: number;    // výška mostu nad/pod střednicí (m) — geometrie světa, viz makeLoopControlPoints
   trackGauge: number;        // rozchod koleje (m) — báze kol, polovina = rameno proti převrácení
   comHeight: number;         // výška těžiště vozu nad kolejí (m) — páka odstředivky při převrácení
+  suspensionFreq: number;    // Hz — vlastní frekvence kývání skříně (nižší = měkčí, víc se klopí)
+  suspensionDamping: number; // poměrné tlumení ζ kývání (0 = nedotlumené, 1 = kritické)
 }
 
 export const DEFAULT_PARAMS: PhysicsParams = {
@@ -38,5 +40,7 @@ export const DEFAULT_PARAMS: PhysicsParams = {
   brakeForceMax: 180_000,
   trackAmplitude: 4,
   trackGauge: 1.435, // normální rozchod
-  comHeight: 1.8,    // těžiště naloženého vozu
+  comHeight: 1.2,    // těžiště níže posazeného vozu — práh převrácení výš, méně náchylné k vykolejení
+  suspensionFreq: 0.6,     // pomalé houpání skříně (Hz)
+  suspensionDamping: 0.25, // lehce dotlumené — pár kmitů doznívá
 };

@@ -63,6 +63,17 @@ export class Track {
    * diferencí polohy (vzorec křivosti rovinné křivky: |x'·z'' − z'·x''| / |r'|³).
    */
   radius(s: number): number {
+    const k = Math.abs(this.signedCurvature(s));
+    return k < 1e-6 ? Infinity : 1 / k;
+  }
+
+  /**
+   * Znaménková křivost půdorysu (1/m) v `s`. Magnituda = 1/poloměr (vstup pro odstředivku),
+   * **znaménko** rozlišuje stranu zatáčky — to potřebuje náklon skříně (roll), aby se vyklonila
+   * na správnou stranu (ven z oblouku). Rovinka → ~0. Vzorec křivosti rovinné křivky:
+   * (x'·z'' − z'·x'') / |r'|³, z centrálních diferencí polohy v XZ.
+   */
+  signedCurvature(s: number): number {
     const ds = 0.5; // m — krok centrální diference (kompromis přesnost × hladkost)
     const p0 = this.at(s - ds).position;
     const p1 = this.at(s).position;
@@ -75,8 +86,7 @@ export class Track {
     const d2z = (p2.z - 2 * p1.z + p0.z) / (ds * ds);
 
     const speed = Math.hypot(d1x, d1z); // |r'| v půdorysu (~1, je-li trať skoro vodorovná)
-    const curvature = Math.abs(d1x * d2z - d1z * d2x) / (speed * speed * speed);
-    return curvature < 1e-6 ? Infinity : 1 / curvature;
+    return (d1x * d2z - d1z * d2x) / (speed * speed * speed);
   }
 
   /** Zabalení arc-length do [0, length) — trať je smyčka. */

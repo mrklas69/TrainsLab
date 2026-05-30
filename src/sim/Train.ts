@@ -85,11 +85,26 @@ export class Train {
    */
   get lateralAcceleration(): number {
     let max = 0;
-    for (const body of this.bodies) {
-      const aLat = (body.v * body.v) / this.track.radius(body.s);
+    for (let i = 0; i < this.bodies.length; i++) {
+      const aLat = this.lateralAccelerationOf(i);
       if (aLat > max) max = aLat;
     }
     return max;
+  }
+
+  /** Příčné (odstředivé) zrychlení vozu `index` (m/s²): v²/r v jeho aktuální pozici. */
+  lateralAccelerationOf(index: number): number {
+    const body = this.bodies[index];
+    return (body.v * body.v) / this.track.radius(body.s);
+  }
+
+  /**
+   * Blízkost převrácení vozu `index`: poměr příčného zrychlení k prahu převrácení.
+   * 0 = rovinka, 1 = přesně na mezi, > 1 = převrácení. Podklad pro barevný gradient
+   * blízkosti meze ve vizualizaci (žár skříně) — spojitá předzvěst tvrdého fail state.
+   */
+  tipRatio(index: number): number {
+    return this.lateralAccelerationOf(index) / this.overturnThreshold;
   }
 
   /**
@@ -113,6 +128,10 @@ export class Train {
       s -= this.restGaps[i - 1];
       this.bodies[i].s = s;
       this.bodies[i].v = 0;
+    }
+    // vynuluj i rotační stav vypružení (roll/pitch), ať reset srovná skříně
+    for (const body of this.bodies) {
+      body.roll = 0; body.rollVel = 0; body.pitch = 0; body.pitchVel = 0;
     }
     this.throttle = 0;
     this.braking = false;
@@ -150,6 +169,13 @@ export class Train {
       const mass = this.massOf(i);
       this.bodies[i].applyFriction(this.params, mass, i === 0 ? brake : 0);
       this.bodies[i].integrate(h, mass);
+    }
+
+    // vypružení skříně (DD-02: rotace, nemění s/v) — buzení z příčného (v²·κ se znaménkem)
+    // a podélného (dv/dt) zrychlení; integruje se ve stejných substepech jako zbytek
+    for (const body of this.bodies) {
+      const latSigned = body.v * body.v * this.track.signedCurvature(body.s);
+      body.updateSuspension(this.params, latSigned, body.accel, h);
     }
   }
 

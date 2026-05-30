@@ -60,14 +60,14 @@ Kontext a rozhodnutí: viz `docs/diary/2026-05-29.md`.
       (nemění `s`/`v` — drží DD-02); zobrazena ve status panelu *(S7)*
 - [x] params: `trackGauge` (rozchod, 1.435 m), `comHeight` (výška těžiště vozu) *(S8)*
 - [x] Kritérium převrácení: příčná akcelerace > `(gauge/2)/h · g` → vykolejení (fail state) *(S8, DD-12)*
-- [x] Trať s proměnným poloměrem (esíčko) — ležatá osmička (Bernoulli), laloky r≈26 m, střed inflexe *(S8, DD-12)*
+- [x] Trať s proměnným poloměrem (esíčko) — ležatá osmička (Bernoulli), laloky r≈33 m, střed inflexe *(S8, mírněji v S9)*
 - [x] Most + podjezd — trať se v půdorysu kříží, `Y=amplitude·sin(t)` *(S8, DD-12, požadavek uživatele)*
-- [~] Vizualizace blízkosti meze + vykolejení — vykolejení hotové (rudá souprava + stop + R,
-      status `příč X/Y` + `VYKOLEJENO při Z m/s`); zbývá barevný **gradient** blízkosti meze *(S8)*
-- [ ] **Kývání skříně** *(S7, Úr. 1 žebříku — neopouští monorail, drží DD-02)* — roll z odstředivky
-      `v²/r`, pitch z podélné akcelerace `dv/dt`; tlumené oscilátory (rotační stav na `Body`,
-      sim ne view — má setrvačnost). Zviditelní slack-trh (pitch) i zatáčku (roll). Params:
-      tuhost + tlumení vypružení. Spojitá odezva, převrácení je její mez.
+- [x] Vizualizace blízkosti meze + vykolejení — rudá souprava + stop + R, status `příč X/Y` +
+      `VYKOLEJENO při Z m/s`; gradient blízkosti meze = žár skříně ∝ `v²·κ` per-vůz (emissive) *(S8–S9)*
+- [x] **Kývání skříně** *(S9, DD-13 — neopouští monorail, drží DD-02)* — roll z odstředivky
+      `v²·κ` (znaménko = strana náklonu), pitch z podélné akcelerace `dv/dt`; tlumené torzní
+      oscilátory (rotační stav na `Body`). Zviditelní slack-trh (pitch) i zatáčku (roll). Params:
+      frekvence + tlumení vypružení (sekce „Vypružení"). Kritérium převrácení zatím oddělené (roll = předzvěst).
 
 ## Dokumentace / infra
 - [x] Deploy dema na GitHub Pages (Actions, base `/TrainsLab/`) *(S4)*
@@ -75,6 +75,7 @@ Kontext a rozhodnutí: viz `docs/diary/2026-05-29.md`.
 
 ## Lab knoby
 - [x] Slider sklonu tratě — živá změna amplitudy + rebuild geometrie *(S5)*
+- [x] Minimalizace ovládacího panelu — hlavička (titulek + přepínač + status) oddělená od těla *(S9)*
 
 ## Backlog / později
 - [x] Vizualizace napětí ve spřáhlech (barva markeru) — `Coupler.force` + koule mezi vozy *(S5)*

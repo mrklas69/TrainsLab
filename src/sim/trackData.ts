@@ -4,7 +4,7 @@ import { Vector3 } from 'three';
  * Kontrolní body ležaté osmičky (Bernoulliho lemniskáta) v rovině XZ s mostem ve Y.
  *
  * Osmička dělá dvě věci jedním tahem:
- *  - **esíčko** — laloky jsou ostré zatáčky (r ≈ 26 m), střed je inflexe (r → ∞);
+ *  - **esíčko** — laloky jsou zatáčky (r ≈ 33 m), střed je inflexe (r → ∞);
  *    souprava zatáčí doleva, projede rovinkou ve středu, pak doprava. Proměnný poloměr
  *    dává příčné dynamice (odstředivka v²/r) co počítat — na lalocích hrozí převrácení.
  *  - **most** — trať se v půdorysu kříží ve středu osmičky. `Y = amplitude·sin(t)` posadí
@@ -20,8 +20,8 @@ import { Vector3 } from 'three';
  */
 export function makeLoopControlPoints(amplitude: number): Vector3[] {
   const points: Vector3[] = [];
-  const A = 120; // šířka osmičky (poloviční rozpětí v X, m)
-  const B = 120; // výška laloků (rozpětí v Z, m)
+  const A = 150; // šířka osmičky (poloviční rozpětí v X, m) — větší = mírnější oblouky
+  const B = 150; // výška laloků (rozpětí v Z, m)
   const count = 24;
   for (let i = 0; i < count; i++) {
     const t = (i / count) * Math.PI * 2;

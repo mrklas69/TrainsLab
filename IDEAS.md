@@ -44,6 +44,13 @@ Koncept a kontext: viz `docs/diary/2026-05-29.md`.
   → střední tlak klesá → TE padá rychleji než `P/v`. Patří k F3 (tentýž stroj jako pára).
   KISS verze: parametr `maxPistonSpeed` → nad odpovídající `v` plynulý pokles `TE` k nule.
 - **Adheze kol** — základ hotov v F2 (clamp `μ·N`, prokluz, indikace). → DONE.
+- **Gradient blízkosti meze = osciloskop slack action** (pozorování, kandidát na DD / diary) —
+  žár skříně je ∝ `v²·κ` per-vůz. Protože je to **kvadrát rychlosti** a na rovince `κ=0`,
+  oblouk funguje jako „obrazovka": podélné kmity `v` ze slack action (spřáhla = pružiny s vůlí)
+  se zviditelní **jen v zatáčce**, jako rudá vlna běžící soupravou. Při couvání (protiproudé
+  brzdění naplno → stick-slip, DD-08/10) se vlna silně budí a **odráží na koncích soupravy** →
+  „cca 5× za oblouk". Emergentní propojení podélné (F1) a příčné (S8) dynamiky — nikde explicitně
+  nenaprogramované, vyplynulo z toho, že žár čte `v²/r`. Pozorováno uživatelem při testu kývání.
 
 ## Výzkumná osa: „proč je uspokojivé sledovat vláčky"
 Udělat z A2 měřitelné hypotézy, ne filozofování (proto Lab):

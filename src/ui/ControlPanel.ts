@@ -85,6 +85,14 @@ const SECTIONS: Section[] = [
       { key: 'comHeight', label: 'Výška těžiště', min: 0.5, max: 4, step: 0.1, unit: 'm' },
     ],
   },
+  {
+    // kývání skříně: tlumený oscilátor buzený příčným (roll) a podélným (pitch) zrychlením
+    title: 'Vypružení',
+    sliders: [
+      { key: 'suspensionFreq', label: 'Frekvence kývání', min: 0.2, max: 2, step: 0.05, unit: 'Hz' },
+      { key: 'suspensionDamping', label: 'Tlumení kývání', min: 0, max: 1, step: 0.05, unit: 'ζ' },
+    ],
+  },
 ];
 
 /**
@@ -105,21 +113,36 @@ export function createControlPanel(
     'max-height:calc(100vh - 24px)', 'overflow:auto',
   ].join(';');
 
+  // --- hlavička: titulek + minimalizační přepínač + živý status ---
+  // Hlavička je oddělená od ovládání (slidery/tlačítka v `body`): klik na ni
+  // schová jen tělo, titulek a telemetrie zůstanou vidět i po minimalizaci.
+  const header = document.createElement('div');
+
+  const titleRow = document.createElement('div');
+  // celá řádka je klikací přepínač; cursor:pointer to napovídá
+  titleRow.style.cssText = 'display:flex;justify-content:space-between;align-items:center;cursor:pointer';
   const title = document.createElement('div');
   title.textContent = 'TrainsLab';
-  title.style.cssText = 'font-weight:600;margin-bottom:6px';
-  panel.appendChild(title);
+  title.style.cssText = 'font-weight:600';
+  const toggle = document.createElement('span'); // indikátor stavu: − rozbaleno / + sbaleno
+  toggle.style.cssText = 'opacity:0.7;font-size:16px;line-height:1;padding-left:10px';
+  titleRow.append(title, toggle);
 
   const status = document.createElement('div');
-  status.style.cssText = 'margin-bottom:8px;font-variant-numeric:tabular-nums';
-  panel.appendChild(status);
+  status.style.cssText = 'margin:6px 0 4px;font-variant-numeric:tabular-nums';
+
+  header.append(titleRow, status);
+  panel.appendChild(header);
+
+  // --- tělo: vlastní ovládání (slidery + nápověda + tlačítka), minimalizovatelné ---
+  const body = document.createElement('div');
 
   for (const section of SECTIONS) {
     const head = document.createElement('div');
     head.textContent = section.title;
     head.style.cssText = 'margin:10px 0 2px;opacity:0.6;font-size:11px;text-transform:uppercase';
-    panel.appendChild(head);
-    for (const def of section.sliders) panel.appendChild(buildSlider(params, def, handlers));
+    body.appendChild(head);
+    for (const def of section.sliders) body.appendChild(buildSlider(params, def, handlers));
   }
 
   // nápověda kláves i tlačítka se generují ze stejného seznamu akcí (single source)
@@ -128,9 +151,23 @@ export function createControlPanel(
   keys.innerHTML = ['<b>Klávesy</b>', ...actions.map(
     (a) => `${a.hint} &nbsp;—&nbsp; ${a.label}`,
   )].join('<br>');
-  panel.appendChild(keys);
+  body.appendChild(keys);
 
-  for (const a of actions) panel.appendChild(makeButton(`${a.label}  (${a.hint})`, a.run));
+  for (const a of actions) body.appendChild(makeButton(`${a.label}  (${a.hint})`, a.run));
+
+  panel.appendChild(body);
+
+  // přepínač minimalizace: klik na hlavičku sbalí/rozbalí tělo a překlopí indikátor
+  let collapsed = false;
+  const applyCollapsed = (): void => {
+    body.style.display = collapsed ? 'none' : 'block';
+    toggle.textContent = collapsed ? '+' : '−';
+  };
+  titleRow.addEventListener('click', () => {
+    collapsed = !collapsed;
+    applyCollapsed();
+  });
+  applyCollapsed(); // výchozí stav = rozbaleno
 
   document.body.appendChild(panel);
 
