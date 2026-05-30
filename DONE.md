@@ -152,3 +152,11 @@ Dokončené úkoly. Detaily a rozhodnutí: `docs/diary/`.
 - `steamPressure ∈ [0,1]` z menší zásoby (plný nad rezervou 15 %, pod ní lineárně k 0) škáluje tah v obou směrech v `applyLocomotive`. Brzda nezávisí (vzduchová). `R` doplní zásoby.
 - Vlak postupně ztratí tah, dojede setrvačností, zastaví na odporech — ověřeno „Test OK". Voda dochází dřív (věrný detail), `waterRate` doladěn na 38.
 - `Renderer` — loko nesvítí zeleně bez páry. `ControlPanel` — sekce **Palivo**, status `uhlí % · voda %` + flagy `DOCHÁZÍ PÁRA`/`BEZ PÁRY`.
+
+## Sezení 11 (2026-05-30)
+
+### Otáčkový strop rychlosti (DD-15) — uzavření tématu z S6
+- `params` — `driverDiameter` (1,5 m), `maxPistonSpeed` (6,5 m/s). `Train` — konst. `PISTON_STROKE` (0,66 m), `RPM_KNEE` (0,75); gettery `vMechMax` a `tractionDerating`.
+- `v_mech = maxPistonSpeed·π·D/(2·zdvih)`; tah plný do 0,75·v_mech, pak lineárně k 0 → vlak fyzicky nepřekročí mezní rychlost. Násobí tah v `applyLocomotive` (jen zrychlování; plugging limituje adheze, DD-08).
+- Default → v_mech ≈ 23 m/s (~83 km/h); vlak se ustálí ~22 m/s místo ~67 (ověřeno). Větší kolo / vyšší mez = vyšší v_max („kolo je převod").
+- `ControlPanel` — slidery průměr kola + mez pístové rychlosti (sekce Trakce); status flag `OTÁČKY`.

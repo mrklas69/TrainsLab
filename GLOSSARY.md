@@ -54,6 +54,13 @@ Termíny projektu. Anglické identifikátory v kódu, české vysvětlení.
 ## Trakce a adheze
 - **tractive effort (tažná síla, TE)** — síla, kterou lokomotiva žene soupravu.
 - **výkonový limit** — `TE = min(F_max, P/v)`; při vyšší rychlosti omezuje výkon (hyperbola).
+- **otáčkový strop (mechanický limit rychlosti)** — tvrdý strop pevného převodu, nezávislý na
+  `P/v`. Mezní rychlost `v_mech = maxPistonSpeed·π·D/(2·zdvih)`; nad kolenem (0,75·v_mech) tah
+  lineárně padá k 0 (`tractionDerating`). Vlak `v_mech` fyzicky nepřekročí (DD-15).
+- **střední pístová rychlost (mean piston speed)** — průměrná rychlost pístu (`c = 2·zdvih·otáčky`);
+  její mez (setrvačnost ojnic „hammer blow" + plnění válce párou) určuje otáčkový strop.
+- **průměr hnacího kola (driver diameter)** — velikost hnacího kola je **převod**: při dané mezi
+  pístové rychlosti větší kolo = vyšší maximální rychlost vlaku.
 - **adheze (μ)** — součinitel tření kolo-kolej; strop přenositelné síly `μ·N`
   (`N` = adhezní tíha lokomotivy). Sucho ≈ 0,30, mokro ≈ 0,15.
 - **prokluz (wheel slip)** — požadovaná TE > `μ·N`; kola se protáčejí, tah se zhroutí.

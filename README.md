@@ -52,7 +52,8 @@ Akce lokomotivy jsou i jako tlačítka v panelu.
 
 Levý panel ladí fyziku **za běhu** (single source of truth, [`src/sim/params.ts`](src/sim/params.ts)):
 hmotnosti (lokomotiva = adhezní tíha), odpory (gravitace, valivý, rozběhový faktor, vzduch),
-spřáhlo (vůle / tuhost / tlumení), trakce (výkon, max tažná síla, adheze μ, brzda), příčnou
+spřáhlo (vůle / tuhost / tlumení), trakce (výkon, max tažná síla, adheze μ, brzda, průměr
+hnacího kola a mez pístové rychlosti = otáčkový strop), příčnou
 dynamiku (rozchod koleje, výška těžiště — určují práh převrácení; výška mostu = sklon najezdu),
 vypružení skříně (frekvence / tlumení kývání) a palivo (kapacity a spotřeby uhlí / vody).
 

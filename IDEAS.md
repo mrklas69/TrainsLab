@@ -42,13 +42,10 @@ Koncept a kontext: viz `docs/diary/2026-05-29.md`.
   **Písek** = spotřební zásoba (jako uhlí/voda) → po dobu pískování dočasně zvedne `μ` zpět (~0.3+).
   Bez nízké adheze je písek neviditelný knob (na suché koleji je tah pod adhezním stropem).
   Foundations: nejdřív proměnná adheze, pak písek.
-- **Otáčkový / mechanický strop rychlosti** (kandidát k F3) — dnes je max rychlost čistě
-  rovnováha výkon vs. odpory (`P/v = Crr·m·g + b·v²`, ~67 m/s s defaulty). Chybí druhý
-  reálný limit: pohon s pevným převodem má strop otáček kol. U parní loko = **mean piston
-  speed** (setrvačnost ojnic/pístů ~v², „hammer blow") → velká hnací kola = vyšší v_max
-  (velikost kola JE převod). Druhý efekt: při vysokých otáčkách válec nestihne plnit párou
-  → střední tlak klesá → TE padá rychleji než `P/v`. Patří k F3 (tentýž stroj jako pára).
-  KISS verze: parametr `maxPistonSpeed` → nad odpovídající `v` plynulý pokles `TE` k nule.
+- **Otáčkový / mechanický strop rychlosti** → DONE (S11, DD-15) — `v_mech = maxPistonSpeed·π·D
+  /(2·zdvih)`; tah plný do 0,75·v_mech, pak lineárně k 0. Velikost kola `D` = převod (větší →
+  vyšší v_max). Default ~23 m/s místo ~67 (čistě `P/v`). Násobí tah jako další faktor (izomorfní
+  se `steamPressure`), jen při zrychlování (plugging limituje adheze). Slidery kolo + mez pístu.
 - **Adheze kol** — základ hotov v F2 (clamp `μ·N`, prokluz, indikace). → DONE.
 - **Gradient blízkosti meze = osciloskop slack action** (pozorování, kandidát na DD / diary) —
   žár skříně je ∝ `v²·κ` per-vůz. Protože je to **kvadrát rychlosti** a na rovince `κ=0`,

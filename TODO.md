@@ -47,7 +47,8 @@ Kontext a rozhodnutí: viz `docs/diary/2026-05-29.md`.
 - [x] Voda dochází dřív než uhlí (věrný detail) — `waterRate` doladěn na 38 kg/s
 - [ ] **Písek + mokrá kolej** *(odloženo, DD-14)* — proměnná adheze (počasí) → prokluz/skid →
       písek dočasně zvedne μ. Bez nízké adheze je písek neviditelný knob (viz IDEAS).
-- [ ] **Otáčkový/mechanický strop rychlosti** *(IDEAS, kandidát k F3)* — `maxPistonSpeed`
+- [x] **Otáčkový/mechanický strop rychlosti** *(S11, DD-15)* — `v_mech = maxPistonSpeed·π·D/(2·zdvih)`,
+      tah padá k mezní rychlosti (kolo = převod); ustálí ~22 m/s místo ~67. Slidery kolo + mez pístu.
 
 ### F4 — záclony  *(bývalé F3)*
 - [ ] Lowpoly terén
