@@ -160,3 +160,13 @@ Dokončené úkoly. Detaily a rozhodnutí: `docs/diary/`.
 - `v_mech = maxPistonSpeed·π·D/(2·zdvih)`; tah plný do 0,75·v_mech, pak lineárně k 0 → vlak fyzicky nepřekročí mezní rychlost. Násobí tah v `applyLocomotive` (jen zrychlování; plugging limituje adheze, DD-08).
 - Default → v_mech ≈ 23 m/s (~83 km/h); vlak se ustálí ~22 m/s místo ~67 (ověřeno). Větší kolo / vyšší mez = vyšší v_max („kolo je převod").
 - `ControlPanel` — slidery průměr kola + mez pístové rychlosti (sekce Trakce); status flag `OTÁČKY`.
+
+## Sezení 12 (2026-05-30)
+
+### `%AUDIT:CODE` — úklid příčné dynamiky (0 kritických; build + `tsc` zelené, beze změny chování)
+- **R1 (DRY/SLAP):** `signedCurvature` jediný primitiv křivosti; `Track.radius()` odstraněn (byl `1/|κ|`). `Train.signedLateralAccelerationOf(i) = v²·κ` jako jedno jádro příčného zrychlení — z něj `lateralAccelerationOf = abs(...)` i buzení rollu ve `step()` (dřív dvě nezávislé cesty). Žádný mrtvý kód; budoucí křivkový odpor vezme `κ` přímo.
+- **R2 (efektivita):** `Track.positionAt(s)` (jen `getPointAt`, bez tečny) — `signedCurvature` ho volá 3× místo `at()`, ušetří 3× `getTangentAt` na horké cestě.
+- **K1:** `tractionDerating` cachuje `vMechMax` (getter ho počítal 2× za volání).
+- **K2:** opraven zastaralý příklad v komentáři `KeyAction.hint` (`'W / ↑'` → `'B / mezerník'`).
+- **K3:** `Renderer` drží `train` jako field (symetrie s `track`), `render(dt)` místo `render(train, dt)`.
+- **K4 (README číslování fází):** ponecháno (volba a) — `F6` = pořadí vzniku konceptu, pozice = tématická návaznost. Vědomé.

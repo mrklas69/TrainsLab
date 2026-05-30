@@ -16,3 +16,4 @@ Více sezení v jednom dni = sekce `## Sezení N` v témže souboru.
 | 2026-05-30 | 9 | Kývání skříně (roll/pitch jako tlumené torzní oscilátory, `Track.signedCurvature`), gradient blízkosti meze (žár ∝ v²·κ), tuning vykolejení, minimalizace panelu. DD-13 |
 | 2026-05-30 | 10 | Ovládání kamery (WASD/QE/ZX, held-key v Rendereru), F3 palivo (uhlí + voda, parní tlak). Souběžné sezení z téže báze — kývání duplikováno, ponecháno S9. DD-14 |
 | 2026-05-30 | 11 | Otáčkový strop rychlosti — `v_mech = maxPistonSpeed·π·D/(2·zdvih)`, tah padá k mezní rychlosti (kolo = převod). Uzavřeno téma rychlosti z S6. DD-15 |
+| 2026-05-30 | 12 | `%AUDIT:CODE` (0 kritických) — sjednocení příčné dynamiky na `signedCurvature` (radius odstraněn), `positionAt`, drobný úklid (R1/R2/K1–K3). K4 README číslování ponecháno (volba a) |

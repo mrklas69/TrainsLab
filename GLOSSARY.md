@@ -14,9 +14,9 @@ Termíny projektu. Anglické identifikátory v kódu, české vysvětlení.
 - **arc-length parametrizace** — poloha vozu daná délkou `s` (m) podél křivky, ne parametrem
   křivky. Drží fyziku 1D; 3D pozice až při renderu (DD-02).
 - **grade (sklon)** — `sin(θ)` trati = y-složka jednotkové tečny; vstup do gravitace.
-- **radius (poloměr oblouku)** — lokální poloměr zatáčky z křivosti **horizontálního**
-  průmětu trati (`r = 1/κ`); rovinka → ∞. Izomorfní s grade: grade = vertikální chování
-  (gravitace), radius = horizontální zakřivení (odstředivka). Svislé zvlnění do něj nepatří.
+- **radius (poloměr oblouku)** — lokální poloměr zatáčky `r = 1/|κ|`; rovinka → ∞. Koncept
+  (vstup pro odstředivku `v²/r`); v kódu je primitivem `signedCurvature` a poloměr je jeho
+  odvozenina (S12: samostatná metoda `radius()` zrušena, jádrem je znaménková křivost).
 - **příčné (odstředivé) zrychlení** — `a_lat = v²/r`, kolmé k jízdě; **nemění** `s`/`v`
   (drží koleje), proto je to odvozená *diagnostika*, ne síla v 1D modelu (DD-02, DD-11).
 - **monorail** — náš model: 1 těleso = skalár `s` na 1 křivce (osa koleje), z 6 DOF tuhého
@@ -37,8 +37,11 @@ Termíny projektu. Anglické identifikátory v kódu, české vysvětlení.
 - **vykolejení (derailment)** — fail state po překročení kritéria převrácení: souprava se
   zastaví, zrudne, čeká na reset (`R`). První fail state projektu (homomorfní s budoucím
   přetržením vlaku).
-- **znaménková křivost (signed curvature)** — křivost půdorysu `κ` se znaménkem; magnituda
-  `1/r` (odstředivka), znaménko rozlišuje stranu zatáčky (na kterou se skříň naklání).
+- **znaménková křivost (signed curvature)** — křivost **horizontálního** průmětu trati `κ`
+  se znaménkem; **primitiv příčné dynamiky** (S12). Magnituda `1/r` (odstředivka `v²·κ`),
+  znaménko rozlišuje stranu zatáčky (na kterou se skříň naklání). Izomorfní s **grade**: grade =
+  svislá složka tečny (gravitace), křivost = horizontální zakřivení (odstředivka). Svislé zvlnění
+  do ní nepatří (jen XZ).
 - **gradient blízkosti meze** — vizuální předzvěst převrácení: skříň žhne (emissive) úměrně
   `tipRatio = a_lat/práh` daného vozu. Per-vůz → výstraha „cestuje" soupravou; vykolejení = plný žár.
 
