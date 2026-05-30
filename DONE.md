@@ -137,3 +137,18 @@ Dokončené úkoly. Detaily a rozhodnutí: `docs/diary/`.
 
 ### Minimalizace panelu
 - Hlavička (titulek + přepínač −/+ + živý status) oddělená od těla (slidery + nápověda + tlačítka). Klik na hlavičku sbalí tělo, telemetrie zůstane vidět.
+
+## Sezení 10 (2026-05-30)
+
+*Souběžné sezení z téže báze S8 (jiný stroj). Kývání skříně vzniklo nezávisle i tady — po kolizi s pushnutým S9 ponecháno S9 řešení, přeneseny jen unikátní kusy níže.*
+
+### Klávesové ovládání kamery
+- Held-key model v `Renderer` (`heldKeys` + keydown/keyup/blur), aplikace každý frame v `updateCamera(dt)`; interakce, ne stav simu (DD-01 drží). `render(train, dt)`.
+- WASD posun v rovině (hýbe kamerou i cílem), QE výška, ZX dolly (zoom k cíli, min. odstup). Myší orbit beze změny.
+- Regulátor přemapován **jen na šipky ↑/↓** (W/S šly kameře). Zoom na `KeyZ` (ne `KeyY`) kvůli US/programátorské klávesnici — `e.code` = fyzická pozice vedle `X`.
+
+### F3 — palivo: uhlí + voda (DD-14)
+- `params` — `coalCapacity`/`waterCapacity`/`coalRate`/`waterRate`. `Train` — stav `coal`/`water`, `consumeFuel()` (uhlí idle + dle poptávky, voda jen poptávka), gettery `coalFraction`/`waterFraction`/`steamPressure`.
+- `steamPressure ∈ [0,1]` z menší zásoby (plný nad rezervou 15 %, pod ní lineárně k 0) škáluje tah v obou směrech v `applyLocomotive`. Brzda nezávisí (vzduchová). `R` doplní zásoby.
+- Vlak postupně ztratí tah, dojede setrvačností, zastaví na odporech — ověřeno „Test OK". Voda dochází dřív (věrný detail), `waterRate` doladěn na 38.
+- `Renderer` — loko nesvítí zeleně bez páry. `ControlPanel` — sekce **Palivo**, status `uhlí % · voda %` + flagy `DOCHÁZÍ PÁRA`/`BEZ PÁRY`.

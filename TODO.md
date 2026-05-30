@@ -40,10 +40,14 @@ Kontext a rozhodnutí: viz `docs/diary/2026-05-29.md`.
 - [ ] Rozšíření (později): dynamický prokluz (setrvačnost kola + creep křivka), písek
 - [ ] Rozšíření (později): víc reverzních/brzdných stupňů → plynulý přechod couvání↔skid
 
-### F3 — palivo  *(bývalé F2)*
-- [ ] Zásoby uhlí + vody, spotřeba tahem
-- [ ] Tah lokomotivy závislý na zásobách (parní tlak)
-- [ ] Vlak dojede setrvačností a zastaví po spotřebování zásob
+### F3 — palivo  *(bývalé F2)*  *(S10, DD-14)*
+- [x] Zásoby uhlí + vody, spotřeba tahem (úměrná otevření regulátoru; uhlí + idle, voda jen poptávka)
+- [x] Tah lokomotivy závislý na zásobách (`steamPressure` z menší zásoby, pokles pod rezervou 15 %)
+- [x] Vlak dojede setrvačností a zastaví po spotřebování zásob *(ověřeno: „Test OK")*
+- [x] Voda dochází dřív než uhlí (věrný detail) — `waterRate` doladěn na 38 kg/s
+- [ ] **Písek + mokrá kolej** *(odloženo, DD-14)* — proměnná adheze (počasí) → prokluz/skid →
+      písek dočasně zvedne μ. Bez nízké adheze je písek neviditelný knob (viz IDEAS).
+- [ ] **Otáčkový/mechanický strop rychlosti** *(IDEAS, kandidát k F3)* — `maxPistonSpeed`
 
 ### F4 — záclony  *(bývalé F3)*
 - [ ] Lowpoly terén
@@ -76,6 +80,8 @@ Kontext a rozhodnutí: viz `docs/diary/2026-05-29.md`.
 ## Lab knoby
 - [x] Slider sklonu tratě — živá změna amplitudy + rebuild geometrie *(S5)*
 - [x] Minimalizace ovládacího panelu — hlavička (titulek + přepínač + status) oddělená od těla *(S9)*
+- [x] Klávesové ovládání kamery — WASD posun, QE výška, ZX zoom; held-key model v Rendereru,
+      regulátor přesunut jen na šipky ↑/↓ *(S10)*
 
 ## Backlog / později
 - [x] Vizualizace napětí ve spřáhlech (barva markeru) — `Coupler.force` + koule mezi vozy *(S5)*

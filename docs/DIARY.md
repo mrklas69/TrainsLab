@@ -13,3 +13,5 @@ Více sezení v jednom dni = sekce `## Sezení N` v témže souboru.
 | 2026-05-29 | 6 | `%AUDIT:CODE` (opravy D1–D3, K1–K3), diskuse omezení rychlosti (chybí otáčkový strop), návrh příčné dynamiky & vykolejení. DD-11 |
 | 2026-05-29 | 7 | Příčná dynamika: `Track.radius(s)` (křivost horizontálního průmětu) + `lateralAcceleration` diagnostika. Žebřík opuštění monorailu (kývání = Úr. 1, drží DD-02) |
 | 2026-05-29 | 8 | Esíčko + most: trať = ležatá osmička (Bernoulli), kritérium převrácení → fail state (vykolejení). DD-12 |
+| 2026-05-30 | 9 | Kývání skříně (roll/pitch jako tlumené torzní oscilátory, `Track.signedCurvature`), gradient blízkosti meze (žár ∝ v²·κ), tuning vykolejení, minimalizace panelu. DD-13 |
+| 2026-05-30 | 10 | Ovládání kamery (WASD/QE/ZX, held-key v Rendereru), F3 palivo (uhlí + voda, parní tlak). Souběžné sezení z téže báze — kývání duplikováno, ponecháno S9. DD-14 |

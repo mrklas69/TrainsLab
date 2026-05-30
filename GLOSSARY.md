@@ -73,6 +73,16 @@ Termíny projektu. Anglické identifikátory v kódu, české vysvětlení.
 - **dragging brakes** — tah překoná hranu, ale brzda + tření vlak udrží: kola prokluzují
   proti stojící soupravě. Emergentní důsledek souboje sil (DD-09).
 
+## Palivo (F3)
+- **zásoby (uhlí / voda)** — spotřební zdroje v tendru (kg). Spotřeba úměrná otevření
+  regulátoru; uhlí hoří i na volnoběh (idle — udržování ohně), voda jen tvorbou páry.
+  Historicky **voda dochází dřív** (spotřeba ~4–6:1 vůči uhlí hmotnostně).
+- **parní tlak (steamPressure)** — `∈ [0,1]`, odvozený z menší ze zásob: drží 1 nad rezervou
+  (15 %), pod ní lineárně klesá k 0. Škáluje tažnou sílu v obou směrech (pára žene písty).
+  Po vyčerpání → tah 0 → vlak dojede setrvačností a zastaví na odporech. Brzda nezávisí (vzduchová).
+- **pískování (sanding)** — *(odloženo, DD-14)* sypání písku pod hnací kola zvyšuje adhezi μ.
+  Smysl má jen při nízké adhezi (mokro/listí); na suché koleji neviditelný → čeká na mokrou kolej.
+
 ## Zvuk
 - **chuff (výfuk páry)** — nárazový výdech páry komínem při otevřeném regulátoru; hustota
   roste s rychlostí. V `AudioView` rytmický burst šumu.

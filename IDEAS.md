@@ -23,8 +23,8 @@ Koncept a kontext: viz `docs/diary/2026-05-29.md`.
   trati (oblouky o různém r). Multi-body (Úroveň B) = jiný roh mřížky věrnosti, mimo PoC.
 - **Opuštění monorailu — žebřík DOF** (S7) — dnešní model je *monorail*: 1 těleso = skalár `s`
   na 1 křivce (osa koleje), z 6 DOF tuhého tělesa máme jen surge. Úrovně rozšíření:
-  - **Úr. 1 — kývání skříně** → TODO (S7): roll (z odstředivky `v²/r`) + pitch (z `dv/dt`)
-    jako tlumené oscilátory. **Neopouští monorail** (rotace nemění `s`/`v`), drží DD-02.
+  - **Úr. 1 — kývání skříně** → DONE (S9): roll (z odstředivky `v²·κ`) + pitch (z `dv/dt`)
+    jako tlumené torzní oscilátory. **Neopouští monorail** (rotace nemění `s`/`v`), drží DD-02.
   - **Úr. 2 — dva podvozky na 1 křivce**: vůz = 2 body na téže centerline → yaw natočení
     vůči tečně + přesah (overhang) v oblouku. Geometrie dlouhých vozů. Napůl opouští.
   - **Úr. 3 — příčný DOF kola**: okolky, kuželový jízdní obrys, **hunting** (vrtění),
@@ -36,6 +36,12 @@ Koncept a kontext: viz `docs/diary/2026-05-29.md`.
   (Brzda lokomotivy hotová v F2; v S3 přepsána na řízené tření — souboj sil, DD-09.)
 - **Dynamický prokluz** → TODO (rozšíření F2) — kolo s vlastní setrvačností + creep křivka
   (μ roste do ~1–2 % skluzu, pak padá). Doslovné „roztáčení kol", ne jen clamp. Pak písek.
+- **Mokrá kolej + písek** (S10, DD-14 — odloženo z F3) — písek dává smysl **jen ve dvojici
+  s proměnnou adhezí**. Mechanika: slider/stav „adheze" (počasí — sucho ≈0.3, mokro/listí ≈0.1)
+  sníží `μ` → při rozjezdu kola hrabou (prokluz), při brzdění kloužou (wheel slide, delší dráha).
+  **Písek** = spotřební zásoba (jako uhlí/voda) → po dobu pískování dočasně zvedne `μ` zpět (~0.3+).
+  Bez nízké adheze je písek neviditelný knob (na suché koleji je tah pod adhezním stropem).
+  Foundations: nejdřív proměnná adheze, pak písek.
 - **Otáčkový / mechanický strop rychlosti** (kandidát k F3) — dnes je max rychlost čistě
   rovnováha výkon vs. odpory (`P/v = Crr·m·g + b·v²`, ~67 m/s s defaulty). Chybí druhý
   reálný limit: pohon s pevným převodem má strop otáček kol. U parní loko = **mean piston
