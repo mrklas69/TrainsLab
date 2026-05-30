@@ -13,6 +13,9 @@ const V_PLUGGING = 1.0;    // m/s — nad tím je reverz proti pohybu protiproud
 const COAL_IDLE_FRACTION = 0.1; // oheň hoří i naprázdno: idle spotřeba = 10 % plné (jen uhlí)
 const STEAM_RESERVE = 0.15;     // pod 15 % menší zásoby klesá parní tlak → tah (vlak dojíždí)
 
+const PISTON_STROKE = 0.66;  // m — zdvih pístu (konstrukční konstanta; intuitivní knoby jsou kolo + mez)
+const RPM_KNEE = 0.75;       // tah drží plný do 75 % mezní rychlosti, pak lineárně padá k 0
+
 /**
  * Souprava = řetězec {@link Body} propojený {@link Coupler}y, v čele lokomotiva.
  *
@@ -142,6 +145,27 @@ export class Train {
     return Math.min(Math.min(this.coalFraction, this.waterFraction) / STEAM_RESERVE, 1);
   }
 
+  /**
+   * Mechanická mezní rychlost (m/s) z otáčkového stropu: `maxPistonSpeed·π·D/(2·zdvih)`.
+   * Píst je ojnicí svázán s hnacím kolem — nad touto rychlostí by střední pístová rychlost
+   * překročila mez (setrvačnost ojnic, plnění válce párou). Větší kolo `D` = vyšší v_max
+   * (kolo je převod). Tvrdý strop, nezávislý na měkkém výkonovém `P/v`.
+   */
+  get vMechMax(): number {
+    return (this.params.maxPistonSpeed * Math.PI * this.params.driverDiameter) / (2 * PISTON_STROKE);
+  }
+
+  /**
+   * Útlum tahu od otáčkového stropu (1..0): plný do kolene (RPM_KNEE·vMechMax), pak
+   * lineárně k 0 při vMechMax → vlak fyzicky nepřekročí mezní rychlost. Čte se v tahu.
+   */
+  get tractionDerating(): number {
+    const knee = RPM_KNEE * this.vMechMax;
+    const v = Math.abs(this.bodies[0].v);
+    if (v <= knee) return 1;
+    return Math.max(0, 1 - (v - knee) / (this.vMechMax - knee));
+  }
+
   /** Souprava do klidu, vozy v klidové rozteči za lokomotivou, řízení vynulováno. */
   reset(): void {
     let s = this.startS;
@@ -257,12 +281,14 @@ export class Train {
     // brzdění je naopak inherentně naplno — motor zabírá proti rotujícím kolům, snadno
     // překoná adhezi → skid (prokluz při brzdění). Proto fraction = 1, ne dělení stupni (DD-10).
     const fraction = counterPressure ? 1 : Math.abs(this.throttle) / MAX_FORWARD;
+    // při zrychlování limituje výkon (P/v) i otáčkový strop (tractionDerating); protiproudé
+    // brzdění je limitováno jen adhezí (DD-08) — otáčky tah nesnižují, brzdí se naplno.
     const available = counterPressure
       ? this.params.tractiveForceMax
       : Math.min(
           this.params.tractiveForceMax,
           this.params.maxPower / Math.max(Math.abs(loco.v), V_POWER),
-        );
+        ) * this.tractionDerating;
     // parní tlak škáluje tah v obou směrech (pára žene písty); při vyčerpání zásob → 0
     const requested = dir * fraction * available * this.steamPressure;
 

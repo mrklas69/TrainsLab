@@ -75,6 +75,9 @@ const SECTIONS: Section[] = [
       { key: 'tractiveForceMax', label: 'Max tažná síla', min: 0, max: 400_000, step: 10_000, unit: 'N' },
       { key: 'adhesionCoeff', label: 'Adheze μ', min: 0, max: 0.5, step: 0.01, unit: '' },
       { key: 'brakeForceMax', label: 'Brzda', min: 0, max: 400_000, step: 10_000, unit: 'N' },
+      // otáčkový strop: v_mech = maxPistonSpeed·π·D/(2·zdvih); větší kolo / vyšší mez = vyšší v_max
+      { key: 'driverDiameter', label: 'Průměr hnacího kola', min: 1, max: 2.2, step: 0.05, unit: 'm' },
+      { key: 'maxPistonSpeed', label: 'Mez pístové rychlosti', min: 3, max: 14, step: 0.5, unit: 'm/s' },
     ],
   },
   {
@@ -198,7 +201,9 @@ export function createControlPanel(
       (train.slipping ? ' · PROKLUZ' : '') +
       // klesající/nulový parní tlak — vidět jen při otevřeném regulátoru (jinak tah neřešíme)
       (train.notch !== 0 && train.steamPressure === 0 ? ' · BEZ PÁRY'
-        : train.notch !== 0 && train.steamPressure < 1 ? ' · DOCHÁZÍ PÁRA' : '');
+        : train.notch !== 0 && train.steamPressure < 1 ? ' · DOCHÁZÍ PÁRA' : '') +
+      // otáčkový strop — tah utlumen blízkostí mezní rychlosti (jen při zrychlování vpřed)
+      (train.notch > 0 && train.tractionDerating < 1 ? ' · OTÁČKY' : '');
     // příčné (odstředivé) zrychlení / práh převrácení — blízkost meze je vidět v čísle
     const lat = train.lateralAcceleration.toFixed(1);
     const limit = train.overturnThreshold.toFixed(1);

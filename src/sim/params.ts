@@ -15,6 +15,8 @@ export interface PhysicsParams {
   couplerDamping: number;    // tlumení spřáhla (N·s/m)
   maxPower: number;          // výkon lokomotivy (W) — TE = min(F_max, P/v)
   tractiveForceMax: number;  // strop tažné síly při nízké rychlosti (N)
+  driverDiameter: number;    // průměr hnacího kola (m) — „převod": větší kolo → vyšší v_max
+  maxPistonSpeed: number;    // mezní střední pístová rychlost (m/s) — otáčkový strop tahu
   adhesionCoeff: number;     // součinitel adheze kolo-kolej μ (sucho ≈ 0.30)
   brakeForceMax: number;     // max brzdná síla lokomotivy (N)
   trackAmplitude: number;    // výška mostu nad/pod střednicí (m) — geometrie světa, viz makeLoopControlPoints
@@ -40,6 +42,8 @@ export const DEFAULT_PARAMS: PhysicsParams = {
   couplerDamping: 60_000,
   maxPower: 600_000,
   tractiveForceMax: 200_000,
+  driverDiameter: 1.5,  // smíšená lokomotiva → v_mech ≈ 23 m/s (~83 km/h)
+  maxPistonSpeed: 6.5,  // klasická mez střední pístové rychlosti (moderní stroje víc)
   adhesionCoeff: 0.3,
   brakeForceMax: 180_000,
   trackAmplitude: 4,
