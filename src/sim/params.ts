@@ -22,6 +22,10 @@ export interface PhysicsParams {
   comHeight: number;         // výška těžiště vozu nad kolejí (m) — páka odstředivky při převrácení
   suspensionFreq: number;    // Hz — vlastní frekvence kývání skříně (nižší = měkčí, víc se klopí)
   suspensionDamping: number; // poměrné tlumení ζ kývání (0 = nedotlumené, 1 = kritické)
+  coalCapacity: number;      // kapacita uhlí v tendru (kg)
+  waterCapacity: number;     // kapacita vody v tendru (kg)
+  coalRate: number;          // spotřeba uhlí při plně otevřeném regulátoru (kg/s)
+  waterRate: number;         // spotřeba vody při plně otevřeném regulátoru (kg/s)
 }
 
 export const DEFAULT_PARAMS: PhysicsParams = {
@@ -43,4 +47,8 @@ export const DEFAULT_PARAMS: PhysicsParams = {
   comHeight: 1.2,    // těžiště níže posazeného vozu — práh převrácení výš, méně náchylné k vykolejení
   suspensionFreq: 0.6,     // pomalé houpání skříně (Hz)
   suspensionDamping: 0.25, // lehce dotlumené — pár kmitů doznívá
+  coalCapacity: 1500,  // ~250 s plného výkonu (demo dojezd)
+  waterCapacity: 5000, // při waterRate dojde dřív než uhlí (~130 s) — zastávky na vodu
+  coalRate: 6,
+  waterRate: 38,       // voda dochází první i při míchaném režimu (idle uhlí ji jinak dotáhne)
 };

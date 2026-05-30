@@ -7,6 +7,14 @@ const CAR_WIDTH = 2.6;
 const CAR_HEIGHT = 3.0;
 const RAIL_RADIUS = 0.3;
 
+// klávesové ovládání kamery (vedle myší orbitace) — plynulý pohyb při držení klávesy.
+const UP = new THREE.Vector3(0, 1, 0);
+const CAMERA_KEYS = ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyQ', 'KeyE', 'KeyZ', 'KeyX'];
+const PAN_SPEED = 120;  // m/s — posun v rovině (WASD)
+const ELEV_SPEED = 90;  // m/s — výška (QE)
+const ZOOM_SPEED = 120; // m/s — přiblížení/oddálení (ZX)
+const MIN_DIST = 5;     // m — minimální odstup od cíle (nezoomovat skrz)
+
 // napětí ve spřáhle pod tímhle (N) bereme jako klid — marker zešedne, jas plný při FORCE_FULL
 const FORCE_FULL = 400_000;
 const DRAFT_COLOR = new THREE.Color(0xe01818); // tah (natažení) — červená
@@ -45,6 +53,7 @@ export class Renderer {
   private readonly carMeshes: THREE.Mesh[];
   private readonly couplerMeshes: THREE.Mesh[]; // marker napětí mezi sousedními vozy
   private trackMesh!: THREE.Mesh;                // tuba trati — přestavitelná sliderem sklonu
+  private readonly heldKeys = new Set<string>(); // držené klávesy kamery (WASD/QE/ZX)
 
   constructor(
     canvas: HTMLCanvasElement,
@@ -73,10 +82,19 @@ export class Renderer {
 
     this.onResize();
     window.addEventListener('resize', () => this.onResize());
+
+    // klávesy kamery: keydown drží, keyup pouští; blur vyčistí (jinak by klávesa
+    // držená při ztrátě fokusu zůstala „zaseknutá"). Lokomotivu řídí jiný handler.
+    window.addEventListener('keydown', (e) => {
+      if (CAMERA_KEYS.includes(e.code)) this.heldKeys.add(e.code);
+    });
+    window.addEventListener('keyup', (e) => this.heldKeys.delete(e.code));
+    window.addEventListener('blur', () => this.heldKeys.clear());
   }
 
   // čte sim stav a promítá ho do scény — žádný zápis do modelu.
-  render(train: Train): void {
+  render(train: Train, dt: number): void {
+    this.updateCamera(dt);
     train.bodies.forEach((body, i) => {
       const { position, tangent } = this.track.at(body.s);
       const mesh = this.carMeshes[i];
@@ -96,7 +114,7 @@ export class Renderer {
         i !== 0 ? CAR_COLOR :
         train.slipping ? LOCO_SLIP :
         train.isBraking ? LOCO_BRAKE :
-        train.notch !== 0 ? LOCO_POWER :
+        train.notch !== 0 && train.steamPressure > 0 ? LOCO_POWER : // bez páry netáhne → zhasne
         LOCO_IDLE,
       );
 
@@ -108,6 +126,47 @@ export class Renderer {
     this.renderCouplers(train);
     this.controls.update();
     this.gl.render(this.scene, this.camera);
+  }
+
+  /**
+   * Pohyb kamery z držených kláves (vedle myší orbitace). WASD = posun v rovině
+   * (hýbe kamerou i cílem → směr pohledu se zachová), QE = výška, ZX = dolly k cíli.
+   * Interakce, ne stav simu — DD-01 drží (do modelu se nezapisuje).
+   */
+  private updateCamera(dt: number): void {
+    const keys = this.heldKeys;
+    if (keys.size === 0) return;
+    const cam = this.camera;
+    const target = this.controls.target;
+
+    // směr pohledu v rovině (WASD) + kolmice vpravo
+    const forward = new THREE.Vector3().subVectors(target, cam.position);
+    forward.y = 0;
+    forward.normalize();
+    const right = new THREE.Vector3().crossVectors(forward, UP).normalize();
+
+    const pan = PAN_SPEED * dt;
+    const move = new THREE.Vector3();
+    if (keys.has('KeyW')) move.addScaledVector(forward, pan);
+    if (keys.has('KeyS')) move.addScaledVector(forward, -pan);
+    if (keys.has('KeyD')) move.addScaledVector(right, pan);
+    if (keys.has('KeyA')) move.addScaledVector(right, -pan);
+    if (keys.has('KeyE')) move.y += ELEV_SPEED * dt;
+    if (keys.has('KeyQ')) move.y -= ELEV_SPEED * dt;
+    cam.position.add(move);
+    target.add(move);
+
+    // zoom (ZX): dolly po ose pohledu — mění vzdálenost ke cíli, ne cíl
+    if (keys.has('KeyZ') || keys.has('KeyX')) {
+      const toTarget = new THREE.Vector3().subVectors(target, cam.position);
+      const dist = toTarget.length();
+      const dir = toTarget.normalize();
+      let delta = 0;
+      if (keys.has('KeyZ')) delta += ZOOM_SPEED * dt; // přiblížit
+      if (keys.has('KeyX')) delta -= ZOOM_SPEED * dt; // oddálit
+      const newDist = Math.max(MIN_DIST, dist - delta);
+      cam.position.copy(target).addScaledVector(dir, -newDist);
+    }
   }
 
   // marker mezi vozy: pozice ve středu rozteče, barva dle režimu spřáhla

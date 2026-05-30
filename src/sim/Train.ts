@@ -10,6 +10,9 @@ const MAX_REVERSE = 1;     // stupňů vzad (couvání slabší)
 const V_POWER = 1.0;       // m/s — pod tím drží konstantní max síla (jinak P/v → ∞)
 const V_PLUGGING = 1.0;    // m/s — nad tím je reverz proti pohybu protiproudé brzdění, ne couvání
 
+const COAL_IDLE_FRACTION = 0.1; // oheň hoří i naprázdno: idle spotřeba = 10 % plné (jen uhlí)
+const STEAM_RESERVE = 0.15;     // pod 15 % menší zásoby klesá parní tlak → tah (vlak dojíždí)
+
 /**
  * Souprava = řetězec {@link Body} propojený {@link Coupler}y, v čele lokomotiva.
  *
@@ -27,6 +30,8 @@ export class Train {
   private readonly restGaps: number[];
   private throttle = 0; // −MAX_REVERSE..MAX_FORWARD
   private braking = false;
+  coal = 0;  // zásoba uhlí (kg) — čte UI
+  water = 0; // zásoba vody (kg) — čte UI
 
   constructor(
     private readonly track: Track,
@@ -119,6 +124,24 @@ export class Train {
     return ((this.params.trackGauge / 2) / this.params.comHeight) * this.params.gravity;
   }
 
+  /** Podíl zbývajícího uhlí / vody (0..1) — pro UI. Prázdná kapacita → 0 (bez NaN). */
+  get coalFraction(): number {
+    return this.params.coalCapacity > 0 ? this.coal / this.params.coalCapacity : 0;
+  }
+  get waterFraction(): number {
+    return this.params.waterCapacity > 0 ? this.water / this.params.waterCapacity : 0;
+  }
+
+  /**
+   * Parní tlak (0..1) — škáluje tažnou sílu. Drží se na 1, dokud menší ze zásob
+   * neklesne pod rezervu (STEAM_RESERVE); pod ní lineárně padá k 0, takže vlak
+   * postupně ztrácí tah, dojede setrvačností a zastaví na odporech (původní vize).
+   * Limituje ta zásoba, která dojde dřív (uhlí i voda jsou nutné pro páru).
+   */
+  get steamPressure(): number {
+    return Math.min(Math.min(this.coalFraction, this.waterFraction) / STEAM_RESERVE, 1);
+  }
+
   /** Souprava do klidu, vozy v klidové rozteči za lokomotivou, řízení vynulováno. */
   reset(): void {
     let s = this.startS;
@@ -138,10 +161,13 @@ export class Train {
     this.slipping = false;
     this.derailed = false;
     this.derailSpeed = 0;
+    this.coal = this.params.coalCapacity;   // doplnit zásoby (R = nabrat uhlí i vodu)
+    this.water = this.params.waterCapacity;
   }
 
   update(dt: number): void {
     if (this.derailed) return; // vykolejená souprava leží — žádná dynamika, čeká na reset (R)
+    this.consumeFuel(dt);      // uhlí + voda → klesající parní tlak (čte applyLocomotive)
     const h = dt / SUBSTEPS;
     for (let i = 0; i < SUBSTEPS; i++) this.step(h);
 
@@ -196,6 +222,17 @@ export class Train {
     return index === 0 ? this.params.locomotiveMass : this.params.carMass;
   }
 
+  /**
+   * Spotřeba zásob úměrná otevření regulátoru (kolik páry teče). Uhlí hoří i na
+   * volnoběh (idle — udržování ohně), voda se spotřebovává jen tvorbou páry. Obě
+   * clampnuté na 0; po vyčerpání klesá parní tlak (viz {@link steamPressure}).
+   */
+  private consumeFuel(dt: number): void {
+    const demand = Math.abs(this.throttle) / MAX_FORWARD; // 0..1 — otevření regulátoru
+    this.coal = Math.max(0, this.coal - this.params.coalRate * (COAL_IDLE_FRACTION + demand) * dt);
+    this.water = Math.max(0, this.water - this.params.waterRate * demand * dt);
+  }
+
   // tah omezený výkonem (P/v) i adhezí (μ·N). Brzda je řízené tření (DD-09), řeší se
   // v applyFriction — tah a brzda se tak perou ve společném akumulátoru sil.
   // Tah proti směru pohybu = protiproudé brzdění (plugging): limit jen adheze, ne P/v (DD-08).
@@ -226,7 +263,8 @@ export class Train {
           this.params.tractiveForceMax,
           this.params.maxPower / Math.max(Math.abs(loco.v), V_POWER),
         );
-    const requested = dir * fraction * available;
+    // parní tlak škáluje tah v obou směrech (pára žene písty); při vyčerpání zásob → 0
+    const requested = dir * fraction * available * this.steamPressure;
 
     // adheze: nad limitem kola prokluzují (i při brzdění reverzem = skid), přenese se jen μ·N
     this.slipping = Math.abs(requested) > adhesionLimit;

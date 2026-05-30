@@ -93,6 +93,17 @@ const SECTIONS: Section[] = [
       { key: 'suspensionDamping', label: 'Tlumení kývání', min: 0, max: 1, step: 0.05, unit: 'ζ' },
     ],
   },
+  {
+    // zásoby tendru: menší (poměrově) určuje parní tlak. Vyšší spotřeba = dřív dojede.
+    // Po vyčerpání tah → 0, vlak dojede setrvačností. R doplní obě zásoby.
+    title: 'Palivo',
+    sliders: [
+      { key: 'coalCapacity', label: 'Kapacita uhlí', min: 0, max: 4000, step: 100, unit: 'kg' },
+      { key: 'waterCapacity', label: 'Kapacita vody', min: 0, max: 12000, step: 200, unit: 'kg' },
+      { key: 'coalRate', label: 'Spotřeba uhlí', min: 1, max: 30, step: 1, unit: 'kg/s' },
+      { key: 'waterRate', label: 'Spotřeba vody', min: 1, max: 100, step: 1, unit: 'kg/s' },
+    ],
+  },
 ];
 
 /**
@@ -148,9 +159,16 @@ export function createControlPanel(
   // nápověda kláves i tlačítka se generují ze stejného seznamu akcí (single source)
   const keys = document.createElement('div');
   keys.style.cssText = 'margin-top:10px;opacity:0.78;font-size:12px;line-height:1.7';
-  keys.innerHTML = ['<b>Klávesy</b>', ...actions.map(
-    (a) => `${a.hint} &nbsp;—&nbsp; ${a.label}`,
-  )].join('<br>');
+  keys.innerHTML = [
+    '<b>Klávesy</b>',
+    ...actions.map((a) => `${a.hint} &nbsp;—&nbsp; ${a.label}`),
+    // ovládání kamery žije v Rendereru (held-key model), tady jen popis
+    '<b>Kamera</b>',
+    'WASD &nbsp;—&nbsp; posun',
+    'Q / E &nbsp;—&nbsp; výška',
+    'Z / X &nbsp;—&nbsp; zoom',
+    'myš &nbsp;—&nbsp; orbit',
+  ].join('<br>');
   body.appendChild(keys);
 
   for (const a of actions) body.appendChild(makeButton(`${a.label}  (${a.hint})`, a.run));
@@ -177,12 +195,18 @@ export function createControlPanel(
     const flags =
       (train.derailed ? ` · VYKOLEJENO při ${train.derailSpeed.toFixed(1)} m/s` : '') +
       (train.isBraking ? ' · BRZDA' : '') +
-      (train.slipping ? ' · PROKLUZ' : '');
+      (train.slipping ? ' · PROKLUZ' : '') +
+      // klesající/nulový parní tlak — vidět jen při otevřeném regulátoru (jinak tah neřešíme)
+      (train.notch !== 0 && train.steamPressure === 0 ? ' · BEZ PÁRY'
+        : train.notch !== 0 && train.steamPressure < 1 ? ' · DOCHÁZÍ PÁRA' : '');
     // příčné (odstředivé) zrychlení / práh převrácení — blízkost meze je vidět v čísle
     const lat = train.lateralAcceleration.toFixed(1);
     const limit = train.overturnThreshold.toFixed(1);
+    const coal = (train.coalFraction * 100).toFixed(0);
+    const water = (train.waterFraction * 100).toFixed(0);
     status.textContent =
-      `Regulátor ${notch} · ${train.speed.toFixed(1)} m/s · příč ${lat}/${limit} m/s²${flags}`;
+      `Regulátor ${notch} · ${train.speed.toFixed(1)} m/s · příč ${lat}/${limit} m/s²` +
+      ` · uhlí ${coal} % · voda ${water} %${flags}`;
   };
 }
 

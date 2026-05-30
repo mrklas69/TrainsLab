@@ -21,8 +21,8 @@ const audio = new AudioView(train);
 
 // Klávesové akce — single source pro keydown handler, nápovědu i tlačítka panelu.
 const actions: KeyAction[] = [
-  { codes: ['KeyW', 'ArrowUp'], hint: 'W / ↑', label: 'Stupeň +', preventDefault: true, run: () => train.notchUp() },
-  { codes: ['KeyS', 'ArrowDown'], hint: 'S / ↓', label: 'Stupeň −', preventDefault: true, run: () => train.notchDown() },
+  { codes: ['ArrowUp'], hint: '↑', label: 'Stupeň +', preventDefault: true, run: () => train.notchUp() },
+  { codes: ['ArrowDown'], hint: '↓', label: 'Stupeň −', preventDefault: true, run: () => train.notchDown() },
   { codes: ['KeyB', 'Space'], hint: 'B / mezerník', label: 'Brzda', preventDefault: true, run: () => train.toggleBrake() },
   { codes: ['KeyM'], hint: 'M', label: 'Zvuk', run: () => audio.toggleMute() },
   { codes: ['KeyR'], hint: 'R', label: 'Reset', run: () => train.reset() },
@@ -55,7 +55,7 @@ function frame(): void {
   train.update(dt);
   audio.update(train, dt);
   updatePanel(train);
-  renderer.render(train);
+  renderer.render(train, dt);
   requestAnimationFrame(frame);
 }
 frame();
