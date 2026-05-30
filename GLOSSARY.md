@@ -65,8 +65,15 @@ Termíny projektu. Anglické identifikátory v kódu, české vysvětlení.
 - **průměr hnacího kola (driver diameter)** — velikost hnacího kola je **převod**: při dané mezi
   pístové rychlosti větší kolo = vyšší maximální rychlost vlaku.
 - **adheze (μ)** — součinitel tření kolo-kolej; strop přenositelné síly `μ·N`
-  (`N` = adhezní tíha lokomotivy). Sucho ≈ 0,30, mokro ≈ 0,15.
-- **prokluz (wheel slip)** — požadovaná TE > `μ·N`; kola se protáčejí, tah se zhroutí.
+  (`N` = adhezní tíha lokomotivy). Suchá adheze (`adhesionCoeff`) ≈ 0,30; **efektivní** adheze
+  ji škáluje stavem koleje (viz **stav koleje**) — mokro/listí výrazně níž (herně ~0,1 pro
+  zřetelný kontrast, ať je efekt písku vidět). Jeden strop (`adhesionLimit`) pro tah i brzdu (S14).
+- **stav koleje (railFactor)** — počasí/povrch koleje jako násobitel adheze `∈ [0,1]`: sucho = 1,
+  mokro/listí níž → efektivní μ = `adhesionCoeff·railFactor` (DD-17). Stav světa (jako sklon),
+  ladí se sliderem. Pod prahem začne loko prokluzovat/klouzat → smysl pro **písek**.
+- **prokluz / skid (wheel slip / slide)** — kola ztratí adhezi: při **tahu** požadovaná TE > `μ·N`
+  (protáčejí se, tah se zhroutí); při **brzdě** požadovaná brzda > `μ·N` (kloužou, delší dráha, DD-16).
+  Oboje indikováno týmž `slipping` flagem (oranžová loko + `PROKLUZ`) — izomorfní směr tam i zpět.
 - **notch (stupeň regulátoru)** — diskrétní poloha regulátoru tahu (3 vpřed · 0 · 1 vzad).
 - **reverzér / cutoff** — u parní lokomotivy plnění válce + směr (zatím nemodelováno; notch
   je hratelné zjednodušení).
@@ -90,8 +97,11 @@ Termíny projektu. Anglické identifikátory v kódu, české vysvětlení.
 - **parní tlak (steamPressure)** — `∈ [0,1]`, odvozený z menší ze zásob: drží 1 nad rezervou
   (15 %), pod ní lineárně klesá k 0. Škáluje tažnou sílu v obou směrech (pára žene písty).
   Po vyčerpání → tah 0 → vlak dojede setrvačností a zastaví na odporech. Brzda nezávisí (vzduchová).
-- **pískování (sanding)** — *(odloženo, DD-14)* sypání písku pod hnací kola zvyšuje adhezi μ.
-  Smysl má jen při nízké adhezi (mokro/listí); na suché koleji neviditelný → čeká na mokrou kolej.
+- **pískování (sanding)** — *(DD-17)* sypání písku pod hnací kola vrací adhezi na suchou hodnotu
+  (`isSanding ? adhesionCoeff : adhesionCoeff·railFactor`). **Písek** = spotřební zásoba (jako uhlí/voda):
+  `sandCapacity`, spotřeba `sandRate` jen po dobu sypání, `R` doplní. Ovládání **held-key** (drž P /
+  drž tlačítko). Smysl má jen při nízké adhezi (mokro/listí) — na suchu je tah pod stropem, písek
+  neviditelný. Zachrání rozjezd (prokluz) i brzdění (skid).
 
 ## Zvuk
 - **chuff (výfuk páry)** — nárazový výdech páry komínem při otevřeném regulátoru; hustota

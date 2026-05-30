@@ -14,7 +14,8 @@ se rozjede a zhustí. Při rozjezdu kola prokluzují, na svahu drží parkovací
 na **ostré laloky**: vletíš-li do zatáčky moc rychle, odstředivka soupravu **převrátí**
 (vykolejení) — skříně se přitom **kývají** (naklánějí ven ze zatáčky, kývnou při trhu) a
 blízkost meze **žhne** na skříni. A hlídej **uhlí a vodu**: až dojdou (voda dřív), lokomotiva
-ztratí páru a vlak dojede setrvačností. Všechny fyzikální parametry jsou živé slidery.
+ztratí páru a vlak dojede setrvačností. Na **mokré koleji** kola hrabou (prokluz) a brzda
+klouže — **pískuj** (drž `P`), ať se rozjedeš a zabrzdíš. Všechny fyzikální parametry jsou živé slidery.
 
 ---
 
@@ -39,21 +40,24 @@ TrainsLab je jeden roh **mřížky experimentů** (měřítko × věrnost) — z
 | `↑` | přidat stupeň regulátoru |
 | `↓` | ubrat stupeň (notch −1 = reverz / protiproudé brzdění) |
 | `B` / mezerník | brzda lokomotivy |
-| `R` | reset (doplní i palivo) |
+| `P` (drž) | pískování — vrací adhezi na mokré koleji (drž klávesu/tlačítko) |
+| `R` | reset (doplní i palivo a písek) |
 | `M` | zvuk on/off |
 | `W` `A` `S` `D` | posun kamery v rovině |
 | `Q` / `E` | výška kamery (dolů / nahoru) |
 | `Z` / `X` | zoom kamery (přiblížit / oddálit) |
 
 Notch regulátoru: **3 vpřed · 0 · 1 vzad**. Kamerou lze otáčet i myší (OrbitControls).
-Akce lokomotivy jsou i jako tlačítka v panelu.
+Akce lokomotivy jsou i jako tlačítka v **dolním baru** (vč. ⚙ Nastavení); pískování drž.
 
 ## Lab knoby
 
-Levý panel ladí fyziku **za běhu** (single source of truth, [`src/sim/params.ts`](src/sim/params.ts)):
+Dialog **⚙ Nastavení** (tlačítko v dolním baru) ladí fyziku **za běhu** (single source of truth,
+[`src/sim/params.ts`](src/sim/params.ts)):
 hmotnosti (lokomotiva = adhezní tíha), odpory (gravitace, valivý, rozběhový faktor, vzduch),
-spřáhlo (vůle / tuhost / tlumení), trakce (výkon, max tažná síla, adheze μ, brzda, průměr
-hnacího kola a mez pístové rychlosti = otáčkový strop), příčnou
+spřáhlo (vůle / tuhost / tlumení), trakce (výkon, max tažná síla, adheze μ, **stav koleje** =
+sucho/mokro, brzda, průměr hnacího kola a mez pístové rychlosti = otáčkový strop), **pískování**
+(kapacita / spotřeba písku), příčnou
 dynamiku (rozchod koleje, výška těžiště — určují práh převrácení; výška mostu = sklon najezdu),
 vypružení skříně (frekvence / tlumení kývání) a palivo (kapacity a spotřeby uhlí / vody).
 
@@ -65,7 +69,7 @@ vypružení skříně (frekvence / tlumení kývání) a palivo (kapacity a spot
 | **F1** | ★ slack action — spřáhla s vůlí, run-out vlna | ✅ (vizuální „aha" se dolaďuje) |
 | **F2** | trakce & adheze — notch, prokluz, brzda jako řízené tření | ✅ |
 | **F6** | příčná dynamika — esíčko (osmička), most/podjezd, převrácení/vykolejení, kývání skříně, gradient meze | ✅ |
-| **F3** | palivo — uhlí/voda, tah dle zásob (parní tlak) | 🔶 uhlí + voda ✅, písek (s mokrou kolejí) ⬜ |
+| **F3** | palivo & zásoby — uhlí/voda (parní tlak), proměnná adheze + písek | ✅ |
 | **F4** | záclony — lowpoly terén, modely (zvuk: prototyp ✅) | ⬜ |
 | **F5** | sloshing kapaliny v cisterně → posun těžiště | ⬜ |
 

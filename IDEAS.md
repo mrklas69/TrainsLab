@@ -37,14 +37,10 @@ Koncept a kontext: viz `docs/diary/2026-05-29.md`.
   (Brzda lokomotivy hotová v F2; v S3 přepsána na řízené tření — souboj sil, DD-09.)
 - **Dynamický prokluz** → TODO (rozšíření F2) — kolo s vlastní setrvačností + creep křivka
   (μ roste do ~1–2 % skluzu, pak padá). Doslovné „roztáčení kol", ne jen clamp. Pak písek.
-- **Mokrá kolej + písek** (S10, DD-14 — odloženo z F3) — písek dává smysl **jen ve dvojici
-  s proměnnou adhezí**. Mechanika: slider/stav „adheze" (počasí — sucho ≈0.3, mokro/listí ≈0.1)
-  sníží `μ` → při rozjezdu kola hrabou (prokluz), při brzdění kloužou (wheel slide, delší dráha).
-  **Písek** = spotřební zásoba (jako uhlí/voda) → po dobu pískování dočasně zvedne `μ` zpět (~0.3+).
-  Bez nízké adheze je písek neviditelný knob (na suché koleji je tah pod adhezním stropem).
-  Foundations: nejdřív proměnná adheze, pak písek.
-  *Hodnota `μ` při mokru k doladění až při implementaci* (zde ≈0.1, GLOSSARY uvádí ≈0.15) —
-  sjednotit na jeden zdroj podle herního citu (dost velký kontrast vůči suchu 0.3, ať je písek vidět).
+- **Mokrá kolej + písek** → DONE (S14, DD-17) — `railFactor` (stav koleje) škáluje adhezi, písek
+  (spotřební zásoba, held-key P) ji vrací na suchou. Sdílený `adhesionLimit` → platí pro tah i
+  brzdu; skid při brzdě indikován (DD-16). Mokrá μ sjednocena herně na ~0,1 (kontrast vůči suchu).
+  *Otevřené (nezralé):* **dynamický prokluz** (creep křivka, viz výše) by dal písku ještě hlubší smysl.
 - **Otáčkový / mechanický strop rychlosti** → DONE (S11, DD-15) — `v_mech = maxPistonSpeed·π·D
   /(2·zdvih)`; tah plný do 0,75·v_mech, pak lineárně k 0. Velikost kola `D` = převod (větší →
   vyšší v_max). Default ~23 m/s místo ~67 (čistě `P/v`). Násobí tah jako další faktor (izomorfní
@@ -66,7 +62,9 @@ Udělat z A2 měřitelné hypotézy, ne filozofování (proto Lab):
 - Každý experiment testuje jednu hypotézu.
 
 ## Vizualizace
-- Kamera „sledující" konkrétní vagon vs. nadhled celé smyčky.
+- Kamera „sledující" konkrétní vagon vs. nadhled celé smyčky. → **TODO** (S14, F4) —
+  konkretizováno jako **auto-kamera „dron"**: stabilizuje se za+nad zadním vozem, míří na čelní,
+  při reverzu přeletí na druhý konec. Rozpis (hystereze směru, lerp přelet, Lab knoby) v TODO.
 - Vizuální zvýraznění napětí ve spřáhlech (barva / deformace) — fyzika viditelná.
   → DONE (S5) — koule-marker mezi vozy, barva dle `Coupler.mode`, jas ∝ `force`.
 - Stavový semafor lokomotivy (prokluz / brzda / tah / volnoběh barvou). → DONE (S5).

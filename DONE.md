@@ -172,3 +172,32 @@ Dokončené úkoly. Detaily a rozhodnutí: `docs/diary/`.
 - **K2:** opraven zastaralý příklad v komentáři `KeyAction.hint` (`'W / ↑'` → `'B / mezerník'`).
 - **K3:** `Renderer` drží `train` jako field (symetrie s `track`), `render(dt)` místo `render(train, dt)`.
 - **K4 (README číslování fází):** ponecháno (volba a) — `F6` = pořadí vzniku konceptu, pozice = tématická návaznost. Vědomé.
+
+## Sezení 13 (2026-05-31)
+
+### `%AUDIT:DOCS` + IDEAS/TODO pruning (údržbové, bez kódu)
+- `%AUDIT:DOCS` (poprvé samostatně): D1 zastaralý poloměr laloků `r≈33 m` v GLOSSARY, K1–K3 drobnosti. Dokumentace v dobré kondici.
+- IDEAS/TODO pruning (P1–P4): narovnání DRY mezi TODO a IDEAS — nezralé nápady mají single source v IDEAS, TODO drží jen aktivní úkoly. Oba audit prahy resetovány.
+
+## Sezení 14 (2026-05-31)
+
+### F3 — proměnná adheze + písek (DD-17, realizace odloženého DD-14)
+- `params` — `railFactor` (stav koleje 0..1: sucho 1 → mokro/listí), `sandCapacity`/`sandRate` (písek jako spotřební zásoba).
+- `Train` — `effectiveAdhesion` getter (`isSanding ? adhesionCoeff : adhesionCoeff·railFactor`), přepojen `adhesionLimit` → proměnná adheze platí pro **tah i brzdu** (jeden strop). Stav `sand`, `setSanding`/`isSanding`/`sandFraction`, spotřeba jen při pískování, `R` doplní.
+- `main.ts` — `KeyAction.onRelease` + keyup/blur handler (held-key model); klávesa **P** (drž = sype).
+- `ControlPanel` — slider „Stav koleje", sekce „Pískování", status `písek %` + flag `PÍSEK`.
+- Ověřeno v prohlížeči: mokro (railFactor 0,3) + tah → prokluz na místě; písek → rozjezd na 4,1 m/s; zásoba klesá. Loko oranžová → zelená.
+
+### Skid při provozní brzdě (DD-16) — dotažení izomorfismu tah ↔ brzda
+- `brakeForce()` nastaví sdílený `slipping` flag, když `brakeForceMax > adhesionLimit·BRAKE_SKID_TOLERANCE` (1,1) a vlak jede (`V_SKID`). Nepřepisuje prokluz z tahu na false (jen zvedá).
+- Tolerance drží plnou brzdu na suchu (180 vs 177 kN) bez falešného blikání. Indikace = oranžová loko + `PROKLUZ` (Renderer priorita slipping > brzda).
+- Ověřeno: sucho NE · mokro ANO (z 8 m/s nezastaví ani za 12 s vs 5,8 s s pískem) · mokro+písek NE.
+
+### Oprava: tlačítko „Písek" v panelu (bug)
+- Tlačítka panelu volala jen `a.run` → klik na held-key akci pískování zapnul a nikdy nevypnul (sype donekonečna).
+- `makeButton` dostává celou `KeyAction`; má-li `onRelease` → **press-and-hold** (pointerdown → run, pointerup/pointerleave/pointercancel → onRelease). Jednorázové akce zůstaly na click.
+
+### UX redesign ovládání (DD-18)
+- Monolitický overlay rozdělen podle role (hraní vs laboratoř): **status bar** nahoře (centr.), **dolní bar** s tlačítky řízení + ⚙ Nastavení (centr., flex-wrap, touch-friendly), **modální dialog** se slidery.
+- Modal: CSS Grid `repeat(auto-fill, minmax(16rem, 1fr))` → 3 sloupce na wide, 1 na mobilu, bez media-queries. Nutný `width` (ne `max-width`) na dialogu, jinak shrink-to-fit → 1 sloupec. Zavírá OK / klik na pozadí / Esc.
+- Nahradil minimalizační toggle (S9). Ověřeno na 1400×800 i 390×780, žádné page errors.

@@ -47,12 +47,28 @@ Kontext a rozhodnutí: viz `docs/diary/2026-05-29.md`.
 - [x] Voda dochází dřív než uhlí (věrný detail) — `waterRate` doladěn na 38 kg/s
 - [x] **Otáčkový/mechanický strop rychlosti** *(S11, DD-15)* — `v_mech = maxPistonSpeed·π·D/(2·zdvih)`,
       tah padá k mezní rychlosti (kolo = převod); ustálí ~22 m/s místo ~67. Slidery kolo + mez pístu.
+- [x] **Proměnná adheze + písek** *(S14, DD-17)* — `railFactor` (stav koleje: sucho 1 → mokro/listí),
+      efektivní μ = `adhesionCoeff·railFactor`; písek = spotřební zásoba (`sand`), held-key P vrací
+      suchou adhezi. Sdílený `adhesionLimit` → platí pro tah i brzdu. Slidery stav koleje + pískování.
+- [x] **Skid při provozní brzdě** *(S14, DD-16)* — brzda nad adhezí (mokro) → kola kloužou, indikováno
+      sdíleným `slipping` flagem (PROKLUZ + oranžová loko), s tolerancí (sucho neblikne). Izomorfní s tahem.
 
 ### F4 — záclony  *(bývalé F3)*
 - [ ] Lowpoly terén
 - [ ] Stromy, kameny (instancing)
 - [ ] Modely lokomotivy a vagonů (jeden cisterna)
 - [ ] Kamera/osvětlení pro „uspokojivé" pozorování
+- [ ] **Auto-kamera „dron"** *(S14, návrh — experiment, izomorfní s held-key kamerou)* —
+      toggle režimu (klávesa), vypne OrbitControls/WASD a každý frame řídí kameru autonomně:
+      - **Pozice:** za + nad *zadním* vozem soupravy (vzhledem ke směru jízdy) = `track.at(rearBody.s)`
+        posunuté proti tečně (odstup) a nahoru (výška). Kamera `lookAt` *čelní* vůz.
+      - **Směr jízdy:** `sign(v)` lokomotivy s **hysterezí u `v≈0`** (drž poslední směr, jinak se
+        dron u stojícího/houpajícího vlaku roztřese — slack action couvá).
+      - **Reverz:** přední/zadní vůz se prohodí → dron *přeletí* na druhý konec. Plynule (lerp pozice
+        k cíli), ne teleport; doladit, ať to není leták přes mapu ani cuknutí.
+      - **Stabilizace:** lerp/damp dohánění cílové pozice (ne tvrdé skoky).
+      - **Lab knoby:** výška, odstup, tuhost dohánění (izomorfní s vypružením skříně).
+      - Patří k „uspokojivému pozorování" (záclona, ne foundation) — vlastní iterace s vizuálním laděním.
 - [~] Zvuk: prototyp `AudioView` hotový (procedurální) *(S3, vědomě předsunuto)*
 - [ ] Zvuk: vyměnit procedurální generátor za nahrané samply (zdroje + licence v IDEAS)
 
@@ -81,6 +97,10 @@ Kontext a rozhodnutí: viz `docs/diary/2026-05-29.md`.
 - [x] Minimalizace ovládacího panelu — hlavička (titulek + přepínač + status) oddělená od těla *(S9)*
 - [x] Klávesové ovládání kamery — WASD posun, QE výška, ZX zoom; held-key model v Rendereru,
       regulátor přesunut jen na šipky ↑/↓ *(S10)*
+- [x] **UX redesign ovládání** *(S14, DD-18)* — monolitický panel rozdělen podle role: status nahoře
+      (centr.), dolní bar s tlačítky řízení + ⚙ Nastavení (centr., flex-wrap), modální dialog
+      „Nastavení" se slidery (CSS Grid auto-fill = multi-column na wide, 1 na mobilu). Mobilně použitelné.
+      Nahradilo minimalizační toggle. Tlačítko písku jako press-hold (pointer events, drž = sype).
 
 ## Backlog / později
 - [ ] Davisův lineární člen odporu `B·v`; křivkový odpor v obloucích
