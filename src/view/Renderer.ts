@@ -58,7 +58,7 @@ export class Renderer {
   constructor(
     canvas: HTMLCanvasElement,
     private readonly track: Track,
-    train: Train,
+    private readonly train: Train, // živý sim, čtený per-frame (symetrie s track)
   ) {
     this.gl = new THREE.WebGLRenderer({ canvas, antialias: true });
     this.gl.setPixelRatio(window.devicePixelRatio);
@@ -93,7 +93,8 @@ export class Renderer {
   }
 
   // čte sim stav a promítá ho do scény — žádný zápis do modelu.
-  render(train: Train, dt: number): void {
+  render(dt: number): void {
+    const train = this.train;
     this.updateCamera(dt);
     train.bodies.forEach((body, i) => {
       const { position, tangent } = this.track.at(body.s);

@@ -55,7 +55,7 @@ function frame(): void {
   train.update(dt);
   audio.update(train, dt);
   updatePanel(train);
-  renderer.render(train, dt);
+  renderer.render(dt);
   requestAnimationFrame(frame);
 }
 frame();

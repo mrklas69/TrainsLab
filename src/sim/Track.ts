@@ -44,6 +44,14 @@ export class Track {
   }
 
   /**
+   * s → jen 3D bod (bez tečny). Lehčí cesta než {@link at} pro výpočty, které
+   * tečnu nepotřebují (křivost z diferencí polohy) — ušetří getTangentAt navíc.
+   */
+  positionAt(s: number): Vector3 {
+    return this.curve.getPointAt(this.wrap(s) / this.length);
+  }
+
+  /**
    * Sklon trati v `s`: sin(θ) = dy/ds = y-složka jednotkové tečny.
    * > 0 do kopce (ve směru rostoucího s), < 0 z kopce. Vstup pro gravitaci.
    */
@@ -52,32 +60,21 @@ export class Track {
   }
 
   /**
-   * Lokální poloměr oblouku v `s` (m) — z křivosti **horizontálního** průmětu trati.
+   * Znaménková křivost **horizontálního** průmětu trati (1/m) v `s` — primitiv příčné dynamiky.
    *
-   * Izomorfní s {@link grade}: grade bere svislou složku tečny (kopec → podélná
-   * gravitace), radius bere zakřivení v půdorysu (zatáčka → příčná odstředivka v²/r).
-   * Svislé zvlnění (přejezd kopce/údolí) dává nadlehčení, ne boční převrácení —
-   * proto jen XZ, ne plná 3D křivost.
+   * Izomorfní s {@link grade}: grade bere svislou složku tečny (kopec → podélná gravitace),
+   * křivost bere zakřivení v půdorysu (zatáčka → příčná odstředivka v²·κ). Svislé zvlnění
+   * (přejezd kopce/údolí) dává nadlehčení, ne boční převrácení — proto jen XZ, ne plná 3D křivost.
    *
-   * Rovný úsek → `Infinity` (κ → 0; odstředivka v²/r → 0). Křivost κ z konečných
-   * diferencí polohy (vzorec křivosti rovinné křivky: |x'·z'' − z'·x''| / |r'|³).
-   */
-  radius(s: number): number {
-    const k = Math.abs(this.signedCurvature(s));
-    return k < 1e-6 ? Infinity : 1 / k;
-  }
-
-  /**
-   * Znaménková křivost půdorysu (1/m) v `s`. Magnituda = 1/poloměr (vstup pro odstředivku),
-   * **znaménko** rozlišuje stranu zatáčky — to potřebuje náklon skříně (roll), aby se vyklonila
-   * na správnou stranu (ven z oblouku). Rovinka → ~0. Vzorec křivosti rovinné křivky:
-   * (x'·z'' − z'·x'') / |r'|³, z centrálních diferencí polohy v XZ.
+   * Magnituda = 1/poloměr oblouku (rovinka → ~0, tj. r → ∞); **znaménko** rozlišuje stranu
+   * zatáčky — to potřebuje náklon skříně (roll), aby se vyklonila ven z oblouku. Vzorec křivosti
+   * rovinné křivky: (x'·z'' − z'·x'') / |r'|³, z centrálních diferencí polohy v XZ.
    */
   signedCurvature(s: number): number {
     const ds = 0.5; // m — krok centrální diference (kompromis přesnost × hladkost)
-    const p0 = this.at(s - ds).position;
-    const p1 = this.at(s).position;
-    const p2 = this.at(s + ds).position;
+    const p0 = this.positionAt(s - ds);
+    const p1 = this.positionAt(s);
+    const p2 = this.positionAt(s + ds);
 
     // 1. a 2. derivace polohy v půdorysu (XZ), centrální diference
     const d1x = (p2.x - p0.x) / (2 * ds);

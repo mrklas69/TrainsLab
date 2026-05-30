@@ -5,7 +5,7 @@ import type { Train } from '../sim/Train';
 // v panelu (hint) i tlačítko (label). Dřív bylo mapování rozeseté na 3 místa.
 export interface KeyAction {
   codes: string[];          // e.code hodnoty, na které akce reaguje (víc = aliasy)
-  hint: string;             // popis kláves pro nápovědu/tlačítko, např. 'W / ↑'
+  hint: string;             // popis kláves pro nápovědu/tlačítko, např. 'B / mezerník'
   label: string;            // co akce dělá, např. 'Stupeň +'
   preventDefault?: boolean; // šipky/mezerník jinak scrollují stránku
   run: () => void;

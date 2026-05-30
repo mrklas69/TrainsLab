@@ -100,10 +100,19 @@ export class Train {
     return max;
   }
 
-  /** Příčné (odstředivé) zrychlení vozu `index` (m/s²): v²/r v jeho aktuální pozici. */
-  lateralAccelerationOf(index: number): number {
+  /**
+   * Znaménkové příčné (odstředivé) zrychlení vozu `index` (m/s²): v²·κ v jeho pozici.
+   * Znaménko = strana oblouku (vstup pro náklon skříně, roll). Jediný zdroj příčného
+   * zrychlení — magnitudu (kritérium převrácení, gradient) z něj bere {@link lateralAccelerationOf}.
+   */
+  signedLateralAccelerationOf(index: number): number {
     const body = this.bodies[index];
-    return (body.v * body.v) / this.track.radius(body.s);
+    return body.v * body.v * this.track.signedCurvature(body.s);
+  }
+
+  /** Velikost příčného (odstředivého) zrychlení vozu `index` (m/s²): |v²·κ|. */
+  lateralAccelerationOf(index: number): number {
+    return Math.abs(this.signedLateralAccelerationOf(index));
   }
 
   /**
@@ -160,10 +169,11 @@ export class Train {
    * lineárně k 0 při vMechMax → vlak fyzicky nepřekročí mezní rychlost. Čte se v tahu.
    */
   get tractionDerating(): number {
-    const knee = RPM_KNEE * this.vMechMax;
+    const vMax = this.vMechMax; // jednou — getter jinak počítá v_mech dvakrát za volání
+    const knee = RPM_KNEE * vMax;
     const v = Math.abs(this.bodies[0].v);
     if (v <= knee) return 1;
-    return Math.max(0, 1 - (v - knee) / (this.vMechMax - knee));
+    return Math.max(0, 1 - (v - knee) / (vMax - knee));
   }
 
   /** Souprava do klidu, vozy v klidové rozteči za lokomotivou, řízení vynulováno. */
@@ -223,10 +233,9 @@ export class Train {
 
     // vypružení skříně (DD-02: rotace, nemění s/v) — buzení z příčného (v²·κ se znaménkem)
     // a podélného (dv/dt) zrychlení; integruje se ve stejných substepech jako zbytek
-    for (const body of this.bodies) {
-      const latSigned = body.v * body.v * this.track.signedCurvature(body.s);
-      body.updateSuspension(this.params, latSigned, body.accel, h);
-    }
+    this.bodies.forEach((body, i) => {
+      body.updateSuspension(this.params, this.signedLateralAccelerationOf(i), body.accel, h);
+    });
   }
 
   // adhezní strop μ·N (tíha lokomotivy = adhezní tíha N) — max přenositelná síla
