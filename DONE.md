@@ -116,3 +116,24 @@ Dokončené úkoly. Detaily a rozhodnutí: `docs/diary/`.
 
 ### Reality check vykolejení
 - Reportované „vykolejuje nad 3 m/s" ověřeno **věrnou node-replikou celé simulace** → vykolejení až při **12.7 m/s** (fyzika správně). Dojem vznikl tím, že fail state nuluje `v` → rychlost nárazu mizela ze statusu; opraveno `derailSpeed`. Uživatel potvrdil 12.7 m/s.
+
+## Sezení 9 (2026-05-30)
+
+### Kývání skříně (DD-13)
+- Rotační stav na `Body` (`roll`/`pitch` + úhlové rychlosti) — **rotace nemění `s`/`v`**, drží DD-02.
+- Tlumený torzní oscilátor `θ'' = ω²(θ_cíl − θ) − 2ζω·θ'`; rovnovážný úhel `θ = gain·a/(ω²·h)` (měkčí vypružení = větší výchylka i pomalejší kmit).
+- Roll z příčného `v²·κ` (znaménková křivost → strana náklonu), pitch z podélného `dv/dt`.
+- `Track.signedCurvature(s)` — znaménková křivost půdorysu (strana); `radius()` refaktorován na ni (DRY).
+- Slidery v nové sekci **Vypružení** (frekvence Hz + tlumení ζ). Amplitudy laděny realisticky (`ROLL_GAIN=0.2`, `PITCH_GAIN=0.1`); pitch poloviční — vlaky klovou vpřed/vzad minimálně.
+- Kritérium převrácení záměrně oddělené od rollu (roll = spojitá předzvěst, převrácení = tvrdá mez).
+
+### Gradient blízkosti meze
+- Žár skříně (emissive) ∝ `tipRatio = (v²/r)/práh` daného vozu; `Train.tipRatio(i)` + `lateralAccelerationOf(i)` (DRY z `lateralAcceleration`).
+- Per-vůz → výstraha „cestuje" soupravou. Smoothstep náběh od ~30 % rezervy, vykolejení = plný žár.
+- Pozorování (uživatel): gradient = **osciloskop slack action** — `v²·κ` zviditelní podélné kmity jen v oblouku; couvání budí odrážející se vlnu. → IDEAS.
+
+### Tuning vykolejení
+- Těžiště `comHeight` 1.8 → 1.2 m (práh 3.9 → 5.9 m/s²); esíčko rozvolněno (`A,B` 120 → 150, laloky r≈26 → 33 m). Bezpečná rychlost na laloku ~10 → ~14 m/s.
+
+### Minimalizace panelu
+- Hlavička (titulek + přepínač −/+ + živý status) oddělená od těla (slidery + nápověda + tlačítka). Klik na hlavičku sbalí tělo, telemetrie zůstane vidět.

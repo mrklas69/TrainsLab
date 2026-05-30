@@ -37,6 +37,19 @@ Termíny projektu. Anglické identifikátory v kódu, české vysvětlení.
 - **vykolejení (derailment)** — fail state po překročení kritéria převrácení: souprava se
   zastaví, zrudne, čeká na reset (`R`). První fail state projektu (homomorfní s budoucím
   přetržením vlaku).
+- **znaménková křivost (signed curvature)** — křivost půdorysu `κ` se znaménkem; magnituda
+  `1/r` (odstředivka), znaménko rozlišuje stranu zatáčky (na kterou se skříň naklání).
+- **gradient blízkosti meze** — vizuální předzvěst převrácení: skříň žhne (emissive) úměrně
+  `tipRatio = a_lat/práh` daného vozu. Per-vůz → výstraha „cestuje" soupravou; vykolejení = plný žár.
+
+## Kývání skříně (DOF skříně)
+- **kývání skříně (carbody sway)** — rotace skříně na vypružení (roll + pitch); diagnostika nad
+  1D modelem, **nemění** `s`/`v` (drží DD-02, Úr. 1 žebříku opuštění monorailu). Mez = převrácení.
+- **náklon (roll)** — naklonění skříně kolem podélné osy; v oblouku ven z něj (z příčného `v²·κ`).
+- **klování (pitch)** — naklonění skříně kolem příčné osy z podélného zrychlení `dv/dt` (slack-trh).
+  U vlaků reálně minimální (malá zrychlení + tuhé vypružení), proto v modelu utlumené (poloviční gain).
+- **vypružení (suspension)** — pružné uložení skříně; zde tlumený torzní oscilátor řízený
+  frekvencí (Hz) a poměrným tlumením ζ. Měkčí (nižší ω) = větší výchylka i pomalejší kmit.
 
 ## Trakce a adheze
 - **tractive effort (tažná síla, TE)** — síla, kterou lokomotiva žene soupravu.
