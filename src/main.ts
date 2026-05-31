@@ -18,7 +18,7 @@ const track = new Track(makeLoopControlPoints(params.trackAmplitude));
 const train = new Train(track, params, [8, 6, 6, 6, 6]);
 // dron = view parametry kamery (mimo fyziku), sdílená instance pro slidery (live ladění)
 const drone = { ...DEFAULT_DRONE };
-const renderer = new Renderer(canvas, track, train, drone);
+const renderer = new Renderer(canvas, track, train, drone, params.trackAmplitude);
 const audio = new AudioView(train);
 
 // Klávesové akce — single source pro keydown handler, nápovědu i tlačítka panelu.
@@ -34,10 +34,12 @@ const actions: KeyAction[] = [
 ];
 
 const updatePanel = createControlPanel(params, drone, actions, {
-  // slider sklonu: přestav křivku (sim) i geometrii tubu (view); souprava jede dál
+  // slider sklonu: terén vede trať (DD-20) → přestav terén i křivku (sim) i kolejnice (view);
+  // souprava jede dál (s je v metrech, wrap přes novou délku)
   onAmplitudeChange: () => {
     track.rebuild(makeLoopControlPoints(params.trackAmplitude));
-    renderer.rebuildTrack();
+    renderer.rebuildTerrain(params.trackAmplitude);
+    renderer.rebuildTrack(params.trackAmplitude);
   },
 });
 

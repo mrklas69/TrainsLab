@@ -1,22 +1,34 @@
 import { Vector3 } from 'three';
+import { terrainHeight } from './terrain';
+
+const BRIDGE_HEIGHT = 8;  // m — výška mostu nad podjezdem; clearance > výška vozu (~5,8 m)
+const BRIDGE_WIDTH = 0.5; // rad — pološířka náběhu mostu v parametru t (rampa stoupání/klesání)
 
 /**
- * Kontrolní body ležaté osmičky (Bernoulliho lemniskáta) v rovině XZ s mostem ve Y.
+ * Hrb mostu kolem `t=π/2`: jedna větev křížení se zvedne na estakádu, druhá (`t=3π/2`)
+ * zůstane na terénu = podjezd pod mostem. Gaussovský náběh = plynulá rampa (žádný zlom).
+ * Fixní výška (mimo slider sklonu) — clearance je inženýrská konstanta, ne věc krajiny.
+ */
+function bridgeLift(t: number): number {
+  let d = t - Math.PI / 2;
+  // kruhová vzdálenost do [−π, π] — most je periodický v t
+  if (d > Math.PI) d -= 2 * Math.PI;
+  if (d < -Math.PI) d += 2 * Math.PI;
+  return BRIDGE_HEIGHT * Math.exp(-(d * d) / (BRIDGE_WIDTH * BRIDGE_WIDTH));
+}
+
+/**
+ * Kontrolní body ležaté osmičky (Bernoulliho lemniskáta) v rovině XZ; výšku `Y` diktuje terén.
  *
  * Osmička dělá dvě věci jedním tahem:
- *  - **esíčko** — laloky jsou zatáčky (r ≈ 33 m), střed je inflexe (r → ∞);
- *    souprava zatáčí doleva, projede rovinkou ve středu, pak doprava. Proměnný poloměr
- *    dává příčné dynamice (odstředivka v²/r) co počítat — na lalocích hrozí převrácení.
- *  - **most** — trať se v půdorysu kříží ve středu osmičky. `Y = amplitude·sin(t)` posadí
- *    jeden průchod středem nahoru (most, t=π/2), druhý dolů (podjezd, t=3π/2).
+ *  - **esíčko** — laloky jsou zatáčky (r ≈ 33 m), střed je inflexe (r → ∞); souprava zatáčí
+ *    doleva, projede středem, pak doprava. Proměnný poloměr živí příčnou dynamiku (odstředivka).
+ *  - **křížení** — trať se v půdorysu protne ve středu osmičky (`t=π/2` i `t=3π/2` → bod (0,0)).
+ *    Řeší se **mostem** ({@link bridgeLift}): větev u `t=π/2` jde po estakádě nad druhou.
  *
- * Tím se domény čistě oddělí (izomorfně s grade/radius ze S7): most leží na inflexi
- * (velký r, malá odstředivka) → tam jen podélná dynamika (stoupání k mostu natáhne
- * soupravu, klesání pod most zhustí = slack action). Ostré laloky leží v rovině (Y=0)
- * → tam jen příčná dynamika (riziko převrácení).
- *
- * `amplitude` = výška mostu nad/pod střednicí (m); clearance mostu = 2·amplitude.
- * Laditelná za běhu (slider sklonu → Track.rebuild).
+ * **Výška `Y = terrainHeight(x,z) + most`** (DD-20): koleje vedou po povrchu krajiny, sklony
+ * pro slack action vznikají z terénu (emergence, ne skript). `amplitude` škáluje terénní vlny
+ * (slider sklonu → Track.rebuild + Renderer.rebuildTerrain); most zůstává fixní.
  */
 export function makeLoopControlPoints(amplitude: number): Vector3[] {
   const points: Vector3[] = [];
@@ -26,13 +38,9 @@ export function makeLoopControlPoints(amplitude: number): Vector3[] {
   for (let i = 0; i < count; i++) {
     const t = (i / count) * Math.PI * 2;
     const denom = 1 + Math.sin(t) * Math.sin(t); // Bernoulli — kulaté laloky místo špičatých (Gerono)
-    points.push(
-      new Vector3(
-        (A * Math.cos(t)) / denom,
-        amplitude * Math.sin(t), // most (t=π/2) nahoře, podjezd (t=3π/2) dole
-        (B * Math.sin(t) * Math.cos(t)) / denom,
-      ),
-    );
+    const x = (A * Math.cos(t)) / denom;
+    const z = (B * Math.sin(t) * Math.cos(t)) / denom;
+    points.push(new Vector3(x, terrainHeight(x, z, amplitude) + bridgeLift(t), z));
   }
   return points;
 }
