@@ -254,3 +254,21 @@ křivosti. Sjednoceno do **jednoho balíku** „rázy z trati" — impulsy do ex
 - `ControlPanel` — slidery „Rozteč spár" + „Síla rázů (kvalita trati)" (sekce Trať). `main.ts` — `AudioView(train, params)`.
 - Emergence: per-vůz `s` → klikot i trh proběhnou soupravou jako vlna (homomorfně se slack action).
 - `tsc` + build zelené. Ověřeno uživatelem v prohlížeči: **„Působí to věrně."**
+
+## Sezení 20 (2026-05-31)
+
+### Doladění rázů z trati — rozštěp typů, kvalita přechodnic, zvuk (dotažení DD-21)
+
+- **`PerturbationKind = 'transition' | 'switch'`** (`trackData.ts`) — bodové perturbace dostaly typ;
+  skok křivosti (chybějící přechodnice) vs. výhybka/křížení jsou teď fyzikálně rozlišené.
+- **`transitionQuality ∈ [0,1]`** (`params.ts`, default 0,3) — „kvalita přechodnic": tlumí roll-trh
+  jen u `transition` faktorem `(1−quality)` (1 = dokonalá klotoida → 0 trh); spáry/výhybky nezávislé.
+  Realizováno jako **spojitý slider** (volba uživatele místo toggle ze zadání) — izomorfní s Lab knoby.
+- **Zvuk rozštěpen** (`AudioView.ts`) — `pointImpulseFired` → dva flagy: `switchFired` → clunk (beze
+  změny), `transitionJerkFired` → nový `playArcJerk` (krátké skřípnutí se sklouznutím frekvence dolů,
+  příbuzné trvalému skřípění oblouku). Odlišuje boční trh od tupého kovového nárazu výhybky.
+- **Pozice ověřeny objektivně** — jednorázová diagnostika profilu `signedCurvature(s)` ukázala, že
+  `u=0.25/0.75` jsou **střed křížení** osmičky (κ≈0), ne „vrchol laloku" (omyl komentářů S19); `transition`
+  na `u=0.10/0.40/0.60/0.90` sedí na strmých úsecích κ. Pozice ponechány, opravena sémantika komentářů.
+- `Train.ts` — větvení dle `kind` v `applyTrackImpulses` (`scale≤0` přeskočí ráz i jeho zvuk).
+  `ControlPanel.ts` — slider „Přechodnice (kvalita oblouků)". `tsc` + build zelené; smoke test bez JS chyb.

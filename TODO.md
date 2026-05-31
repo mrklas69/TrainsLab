@@ -101,8 +101,9 @@ Sjednocený balík: nespojitosti trati → impulsy do **existujících** roll/pi
 - [x] **Zvuk** — tikot spár (self-timed `railLength/v`), skřípění oblouku (`LevelVoice` ∝ příčné
       zrychlení), clunk výhybky (`pointImpulseFired`). AudioView dostal `params`.
 - [x] Slider „Síla rázů (kvalita trati)" + „Rozteč spár" (sekce Trať); `trackImpulse=0` = ideální trať
-- [ ] *(volitelné)* dedikovaný toggle „přechodnice on/off" — vypne jen κ-trh, zachová tikot spár
-      (dnes oboje škáluje společný `trackImpulse`); doladit pozice/sílu perturbací, zvuk výhybky vs. spáry
+- [x] **Doladění rázů z trati** *(S20)* — `PerturbationKind` (`transition`/`switch`); slider „kvalita
+      přechodnic" (`transitionQuality`, tlumí jen κ-trh, default 0,3 — místo toggle); zvuk rozštěpen
+      (`switchFired` clunk vs. `transitionJerkFired` skřípnutí); pozice ověřeny profilem κ (u=0.25/0.75 = křížení)
 
 ## Dokumentace / infra
 - [x] Deploy dema na GitHub Pages (Actions, base `/TrainsLab/`) *(S4)*

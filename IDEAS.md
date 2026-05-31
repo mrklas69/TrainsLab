@@ -46,6 +46,8 @@ Koncept a kontext: viz `docs/diary/2026-05-29.md`.
   je jen jejich periodická varianta. Emergence: per-vůz `s` → klikot/trh proběhne soupravou **jako vlna**
   (homomorfní se slack action). Zvuk (AudioView, DD-01): tikot spár, skřípění oblouku ∝ `v²·|κ|`, clunk
   výhybky — izomorfní s chuff/clank.
+  **Doladěno S20:** typy rozštěpeny (`transition`/`switch`), „kvalita přechodnic" jako slider (tlumí jen
+  κ-trh), zvuk výhybky (clunk) odlišen od trhu přechodnice (skřípnutí). Pozice ověřeny profilem κ.
 - **Brzdy soupravy** — pneumatická soustava, prodleva šíření tlaku soupravou (další vlna).
   (Brzda lokomotivy hotová v F2; v S3 přepsána na řízené tření — souboj sil, DD-09.)
 - **Dynamický prokluz** → TODO (rozšíření F2) — kolo s vlastní setrvačností + creep křivka

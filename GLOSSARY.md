@@ -66,12 +66,15 @@ Termíny projektu. Anglické identifikátory v kódu, české vysvětlení.
   ≈ 20 m). Kolo přes ni přejede → svislý ráz → **pitch** impuls se střídavou paritou = **klikot**
   („klikety-klak"); frekvence i hlasitost rostou s rychlostí. `trackImpulse=0` / svařovaná = ticho.
 - **přechodnice (transition curve / klotoida)** — vkládaný úsek, kde křivost roste lineárně z 0 na
-  `1/r`, aby odstředivka `v²·κ` nenastoupila skokem. Chybí-li → **skok křivosti**.
+  `1/r`, aby odstředivka `v²·κ` nenastoupila skokem. Chybí-li → **skok křivosti**. Kvalita je laditelná
+  (`transitionQuality ∈ [0,1]`, slider „Přechodnice"): 1 = dokonalá (trh rozetřen na 0), 0 = žádná (plný trh).
 - **skok křivosti (curvature jump)** — nespojitá změna `κ` → skok příčného zrychlení = **boční trh**
-  (jerk). V modelu **fenomenologicky** (DD-21, A4 b): roll-impuls ve směru oblouku na nábězích laloků
-  (`TRACK_PERTURBATIONS`), ne přepis geometrie hladké lemniskáty.
-- **výhybka (jako bodový ráz)** — zde **bodová perturbace** na smyčce (roll+pitch clunk), ne topologický
-  uzel (síť/větvení = Úr. 4 žebříku, jiný roh mřížky). Týž mechanismus jako skok křivosti, jiná váha.
+  (jerk). V modelu **fenomenologicky** (DD-21, A4 b): perturbace `kind:'transition'` = roll-impuls ve směru
+  oblouku na nábězích/výjezdech laloků (`TRACK_PERTURBATIONS`), ne přepis geometrie hladké lemniskáty.
+  Sílu tlumí **kvalita přechodnice** (`1−transitionQuality`) — jen tenhle typ, spáry/výhybky nezávisle.
+- **výhybka (jako bodový ráz)** — perturbace `kind:'switch'` u **křížení** osmičky (`u≈0.25/0.75`, inflexe
+  κ≈0, kde se větve protínají = most/podjezd): **bodový** roll+pitch clunk, ne topologický uzel (síť/větvení =
+  Úr. 4 žebříku, jiný roh mřížky). Týž `crossed()` mechanismus jako skok křivosti, na přechodnici nezávislá.
 
 ## Trakce a adheze
 - **tractive effort (tažná síla, TE)** — síla, kterou lokomotiva žene soupravu.
@@ -129,9 +132,12 @@ Termíny projektu. Anglické identifikátory v kódu, české vysvětlení.
   jako chuff — AudioView čte stav, negeneruje z eventů simu). Hlasitost mírá, vypne `trackImpulse=0`.
 - **skřípění oblouku (flange squeal)** — kvílení okolků v zatáčce; trvalý hlas s hlasitostí plynule
   řízenou příčným zrychlením (`v²·κ`) — sílí v ostřejším oblouku. ≠ on/off skřípění brzd.
+- **clunk výhybky vs. trh přechodnice** — odlišené zvuky bodových perturbací (S20): výhybka/křížení
+  (`switchFired`) = tupý kovový clunk; skok křivosti (`transitionJerkFired`) = krátké skřípnutí
+  (`playArcJerk`, sklouznutí frekvence dolů — příbuzné trvalému skřípění oblouku, ale jednorázové).
 - **AudioView** — zvuk jako další „view" nad simem (DD-01): čte stav, ozvučuje události (chuff,
-  clank/náraz spřáhla, sykot prokluzu, skřípění brzd, tikot spár, skřípění oblouku, clunk výhybky).
-  Procedurální, bez souborů.
+  clank/náraz spřáhla, sykot prokluzu, skřípění brzd, tikot spár, skřípění oblouku, clunk výhybky,
+  trh přechodnice). Procedurální, bez souborů.
 
 ## Kamera (view)
 - **dron (auto-kamera)** — *(DD-19)* režim kamery (toggle `C`), který sleduje soupravu zezadu-shora

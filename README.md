@@ -63,7 +63,7 @@ spřáhlo (vůle / tuhost / tlumení), trakce (výkon, max tažná síla, adheze
 sucho/mokro, brzda, průměr hnacího kola a mez pístové rychlosti = otáčkový strop), **pískování**
 (kapacita / spotřeba písku), příčnou
 dynamiku (rozchod koleje, výška těžiště — určují práh převrácení; amplituda terénních vln = sklon trati;
-rozteč dilatačních spár a síla rázů z trati = kvalita trati), vypružení skříně (frekvence / tlumení kývání)
+rozteč dilatačních spár, síla rázů z trati a kvalita přechodnic oblouků = kvalita trati), vypružení skříně (frekvence / tlumení kývání)
 a palivo (kapacity a spotřeby uhlí / vody).
 Sekce **Dron** ladí kameru (výška / odstup / tuhost dohánění) — to je view, ne fyzika, takže žije
 mimo `params.ts` (drží DD-01).
