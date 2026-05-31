@@ -111,6 +111,6 @@ a nasazuje demo na GitHub Pages ([`.github/workflows/deploy.yml`](.github/workfl
 ## Dokumentace
 
 - [`GLOSSARY.md`](GLOSSARY.md) — termíny (slack action, adheze, trakce, …).
+- [`docs/DESIGN_DECISIONS.md`](docs/DESIGN_DECISIONS.md) — rejstřík rozhodnutí (DD-NN); narativ v diáři.
 - [`docs/DIARY.md`](docs/DIARY.md) — index sezení; záznamy v [`docs/diary/`](docs/diary/).
 - [`IDEAS.md`](IDEAS.md) — nápady a výzkumné hypotézy.
-- Design decisions (DD-NN) — v diáři u příslušného sezení.
