@@ -43,7 +43,9 @@ function crossed(sBefore: number, sNow: number, sI: number, period: number): boo
 export class Train {
   readonly bodies: Body[];
   slipping = false; // prokluz hnacích kol — čte renderer (DD-01)
-  pointImpulseFired = false; // bodová perturbace (výhybka/skok křivosti) v posledním update — čte AudioView (clunk)
+  // bodové perturbace v posledním update — čte AudioView (odlišný zvuk dle typu, DD-01):
+  switchFired = false;         // výhybka/křížení → tupý clunk
+  transitionJerkFired = false; // skok křivosti (chybějící přechodnice) → krátké skřípnutí
   derailed = false; // vykolejeno převrácením — fail state, čeká na reset (čte renderer)
   derailSpeed = 0;  // rychlost lokomotivy v okamžiku vykolejení (m/s) — diagnostika do UI
 
@@ -286,15 +288,19 @@ export class Train {
    *  - **bodové perturbace** ({@link TRACK_PERTURBATIONS}, perioda = délka smyčky): skok
    *    křivosti → **roll** ve směru oblouku (`sign(κ)` → trh dosedne do náklonu) + výhybka → pitch.
    *
-   * Síla ∝ rychlost (rychleji → tvrdší ráz) × `trackImpulse` (kvalita trati; 0 = hladká).
+   * Síla ∝ rychlost (rychleji → tvrdší ráz) × `trackImpulse` (kvalita trati; 0 = hladká). Skok
+   * křivosti (`kind:'transition'`) navíc škáluje `(1−transitionQuality)` — přechodnice (klotoida)
+   * boční trh rozetře (kvalita 1 → 0 trh). Výhybky/spáry jsou na přechodnici nezávislé.
    * Nemění `s`/`v` (DD-02). Per-vůz `s` → ráz proběhne soupravou jako vlna (emergence).
    */
   private applyTrackImpulses(sBefore: number[]): void {
-    this.pointImpulseFired = false;
+    this.switchFired = false;
+    this.transitionJerkFired = false;
     const strength = this.params.trackImpulse;
     if (strength <= 0) return;
     const railLength = this.params.railLength;
     const loop = this.track.length;
+    const transitionFactor = 1 - this.params.transitionQuality; // přechodnice tlumí κ-trh
 
     for (let i = 0; i < this.bodies.length; i++) {
       const body = this.bodies[i];
@@ -309,11 +315,14 @@ export class Train {
 
       // bodové perturbace: roll ve směru oblouku (skok křivosti) + pitch (výhybka)
       for (const p of TRACK_PERTURBATIONS) {
-        if (crossed(sBefore[i], body.s, p.u * loop, loop)) {
-          const rollDir = Math.sign(this.track.signedCurvature(body.s)) || 1;
-          body.applyImpulse(rollDir * p.roll * strength * speed, p.pitch * strength * speed);
-          this.pointImpulseFired = true; // pro zvukový clunk (DD-01)
-        }
+        if (!crossed(sBefore[i], body.s, p.u * loop, loop)) continue;
+        // přechodnice rozetře jen skok křivosti; výhybka/křížení je radiální závada (nezávislá)
+        const scale = p.kind === 'transition' ? transitionFactor : 1;
+        if (scale <= 0) continue; // dokonalá přechodnice → transition ráz zmizí (i jeho zvuk)
+        const rollDir = Math.sign(this.track.signedCurvature(body.s)) || 1;
+        body.applyImpulse(rollDir * p.roll * strength * speed * scale, p.pitch * strength * speed * scale);
+        if (p.kind === 'switch') this.switchFired = true;
+        else this.transitionJerkFired = true;
       }
     }
   }

@@ -45,25 +45,36 @@ export function makeLoopControlPoints(amplitude: number): Vector3[] {
   return points;
 }
 
+/** Typ bodové nespojitosti — rozlišuje fyzikálně různé jevy (zvuk i škálování v {@link Train}). */
+export type PerturbationKind =
+  | 'transition' // skok křivosti / chybějící přechodnice → boční trh (tlumí slider „kvalita přechodnic")
+  | 'switch';    // výhybka / křížení → radiální clunk (na kvalitě přechodnic nezávisí)
+
 /** Bodová nespojitost trati — zdroj rázu do kývání skříně (zpracuje {@link Train}). */
 export interface TrackPerturbation {
-  u: number;     // pozice na trati jako zlomek délky [0,1) — přežije rebuild (s = u·délka)
-  roll: number;  // relativní váha bočního trhu (skok křivosti / chybějící přechodnice); znaménko dá Train ze strany oblouku
-  pitch: number; // relativní váha svislého rázu (výhybka / radiální ráz)
+  u: number;             // pozice na trati jako zlomek délky [0,1) — přežije rebuild (s = u·délka)
+  kind: PerturbationKind;
+  roll: number;          // relativní váha bočního trhu; znaménko dá Train ze strany oblouku
+  pitch: number;         // relativní váha svislého rázu
 }
 
 /**
- * Bodové nespojitosti osmičky — **fenomenologický** skok křivosti (A4 b): místo přepisu
- * geometrie hladké lemniskáty se na náběhy/výjezdy laloků (kde by reálná trať potřebovala
- * přechodnici) posadí roll-ráz = boční trh. „Výhybky" u vrcholů laloků přidají svislý clunk.
+ * Bodové nespojitosti osmičky — dva fyzikálně různé jevy ({@link PerturbationKind}):
+ *  - **transition** — **fenomenologický** skok křivosti (A4 b): místo přepisu geometrie hladké
+ *    lemniskáty se na náběhy/výjezdy laloků (kde by reálná trať potřebovala přechodnici) posadí
+ *    roll-ráz = boční trh. Pozice ověřeny profilem `signedCurvature` — leží na strmých úsecích κ
+ *    mezi inflexí (křížení) a vrcholem laloku (max |κ|, r≈33 m).
+ *  - **switch** — výhybka/srdcovka u **křížení** osmičky (`u≈0.25` i `0.75` = inflexe κ≈0, kde se
+ *    větve protínají = most/podjezd) → svislý radiální clunk + lehký roll.
+ *
  * Sjednoceno s dilatačními spárami: {@link Train} obě řeší týmž `crossed()` testem (jen jiná perioda).
  * Pozice jako zlomky délky → přežijí slider sklonu (Track.rebuild mění délku trati).
  */
 export const TRACK_PERTURBATIONS: TrackPerturbation[] = [
-  { u: 0.10, roll: 1.0, pitch: 0.0 }, // náběh do 1. laloku — skok křivosti (boční trh)
-  { u: 0.25, roll: 0.5, pitch: 0.9 }, // výhybka u vrcholu 1. laloku — radiální clunk
-  { u: 0.40, roll: 1.0, pitch: 0.0 }, // výjezd z 1. laloku
-  { u: 0.60, roll: 1.0, pitch: 0.0 }, // náběh do 2. laloku
-  { u: 0.75, roll: 0.5, pitch: 0.9 }, // výhybka u vrcholu 2. laloku
-  { u: 0.90, roll: 1.0, pitch: 0.0 }, // výjezd z 2. laloku
+  { u: 0.10, kind: 'transition', roll: 1.0, pitch: 0.0 }, // výjezd z pravého laloku
+  { u: 0.25, kind: 'switch',     roll: 0.5, pitch: 0.9 }, // křížení (horní větev / most) — radiální clunk
+  { u: 0.40, kind: 'transition', roll: 1.0, pitch: 0.0 }, // náběh do levého laloku
+  { u: 0.60, kind: 'transition', roll: 1.0, pitch: 0.0 }, // výjezd z levého laloku
+  { u: 0.75, kind: 'switch',     roll: 0.5, pitch: 0.9 }, // křížení (dolní větev / podjezd)
+  { u: 0.90, kind: 'transition', roll: 1.0, pitch: 0.0 }, // náběh do pravého laloku
 ];

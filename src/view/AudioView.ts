@@ -27,7 +27,8 @@ interface LevelVoice {
  *  - skřípění brzd: trvalý pískot při brzdění za jízdy
  *  - tikot spár: „klikety-klak" na dilatačních spárách, interval = railLength / rychlost
  *  - skřípění oblouku: trvalý kvílivý tón v zatáčce, hlasitost ∝ příčné zrychlení (v²·κ)
- *  - clunk výhybky: tupý náraz na bodové perturbaci trati (pointImpulseFired)
+ *  - clunk výhybky: tupý náraz na výhybce/křížení (switchFired)
+ *  - trh přechodnice: krátké skřípnutí na skoku křivosti (transitionJerkFired)
  */
 export class AudioView {
   private readonly ctx: AudioContext;
@@ -73,7 +74,8 @@ export class AudioView {
     this.updateChuff(train, dt);
     this.updateCouplers(train);
     this.updateRailJoints(train, dt);
-    if (train.pointImpulseFired) this.playClunk(0.7); // bodová perturbace (výhybka / skok křivosti)
+    if (train.switchFired) this.playClunk(0.7);     // výhybka / křížení — tupý náraz
+    if (train.transitionJerkFired) this.playArcJerk(); // skok křivosti — krátké boční skřípnutí
     this.slip.setActive(train.slipping);
     this.squeal.setActive(train.isBraking && Math.abs(train.speed) > 0.3);
     // skřípění oblouku ∝ příčné zrychlení (v²·κ); práh převrácení ≈ 6 m/s² → /4 doplna před mezí
@@ -124,6 +126,28 @@ export class AudioView {
 
   private playRailTick(): void {
     this.metalHit([90, 150, 240], 0.05, 0.45); // nízký tupý „klak" — krátký, kovově temný
+  }
+
+  // boční trh na skoku křivosti (chybějící přechodnice): krátké skřípnutí okolku, příbuzné
+  // trvalému skřípění oblouku (sawtooth/bandpass ~2,2 kHz), ale jednorázové se sklouznutím
+  // frekvence dolů („škríp") — odlišuje κ-trh od tupého kovového clunku výhybky.
+  private playArcJerk(): void {
+    const t = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(2400, t);
+    osc.frequency.exponentialRampToValueAtTime(1500, t + 0.12); // sklouznutí dolů = kvílivý trh
+    const band = this.ctx.createBiquadFilter();
+    band.type = 'bandpass';
+    band.frequency.value = 2200;
+    band.Q.value = 6;
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.0001, t);
+    gain.gain.exponentialRampToValueAtTime(0.2, t + 0.008); // ostrý nástup
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.14); // rychlé doznění
+    osc.connect(band).connect(gain).connect(this.master);
+    osc.start(t);
+    osc.stop(t + 0.16);
   }
 
   private playChuff(): void {

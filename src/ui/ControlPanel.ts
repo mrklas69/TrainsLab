@@ -48,9 +48,11 @@ const SECTIONS: Section[] = [
         action: (h) => h.onAmplitudeChange() },
       // rázy z trati (rozšíření kývání skříně): dilatační spáry (klikot ∝ rychlost) + skok křivosti
       // / výhybky (boční trh). railLength = rozteč spár (vyšší = řidší tik, „svařovaná" na maximu);
-      // trackImpulse = síla rázů (0 = ideální hladká trať: svařeno + přechodnice).
+      // trackImpulse = master síla všech rázů (0 = ideální hladká trať); transitionQuality tlumí
+      // jen κ-trh (přechodnice/klotoida → boční trh rozetřen; nezávislé na spárách a výhybkách).
       { key: 'railLength', label: 'Rozteč spár', min: 5, max: 50, step: 1, unit: 'm' },
       { key: 'trackImpulse', label: 'Síla rázů (kvalita trati)', min: 0, max: 0.05, step: 0.002, unit: '' },
+      { key: 'transitionQuality', label: 'Přechodnice (kvalita oblouků)', min: 0, max: 1, step: 0.05, unit: '' },
     ],
   },
   {
