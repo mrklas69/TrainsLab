@@ -102,6 +102,17 @@ Udělat z A2 měřitelné hypotézy, ne filozofování (proto Lab):
   - prokluz: freesound „wheel slip" CC0.
   - **Licenční hygiena:** držet CC0/CC-BY, vyhnout se NC (mřížka míří i k publikovatelnému).
     Freesound vyžaduje login ke stažení → soubory musí přinést uživatel.
+  - **Manifest k sehnání (S21)** — 8 souborů 1:1 s hlasy `AudioView` (žádné nové → izomorfismus).
+    Formát `.ogg`/`.mp3`, mono, 44,1 kHz, bez clippingu. Cíl `public/audio/`. Fallback = **hybrid**
+    (chybí/nenačte se → padni na procedurální generátor, vždy zní něco). One-shoty:
+    `chuff` (0,2–0,4 s, výdech páry), `clank` (0,1–0,3 s, tah spřáhla — jasné), `clunk` (0,2–0,4 s,
+    nárazník + výhybka — tupé), `rail-tick` (0,05–0,15 s, spára), `arc-jerk` (0,15–0,3 s, trh přechodnice).
+    Loopy (⚠ **seamless**, jinak lupají): `slip-loop` / `brake-squeal-loop` / `arc-squeal-loop` (á 1–2 s).
+  - **Knihovny (S21):** primárně **Pixabay** (licence ≈ CC0, bez atribuce — nejmíň starostí) a
+    **Freesound** s filtrem licence na CC0/Attribution (login → soubory nese uživatel). Parní výfuk PD na
+    **Wikimedia Commons**; herní balíčky na **OpenGameArt**. ⚠ **vyhnout se:** BBC Sound Effects (RemArc =
+    jen osobní/vzdělávací), Orange Free Sounds (NC), Zapsplat/SoundSnap (atribuční/redistribuční háčky).
+    Loopy stříhat z delší stacionární nahrávky (Audacity → Crossfade Loop).
 
 ## Lab knoby & nástroje
 - **Slider sklonu tratě** → DONE (S5) — `trackAmplitude` v params, `Track.rebuild()`

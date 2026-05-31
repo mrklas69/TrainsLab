@@ -72,7 +72,8 @@ Kontext a rozhodnutí: viz `docs/diary/2026-05-29.md`.
       cíl skočí, tlumení `α=1−exp(−tuhost·dt)` doletí plynule; snap při zapnutí = bez letáku přes mapu).
       Params mimo fyziku (`DroneParams` ve view, DD-01), slidery Dron: výška / odstup / tuhost dohánění.
 - [~] Zvuk: prototyp `AudioView` hotový (procedurální) *(S3, vědomě předsunuto)*
-- [ ] Zvuk: vyměnit procedurální generátor za nahrané samply (zdroje + licence v IDEAS)
+- [~] Zvuk: vyměnit procedurální generátor za nahrané samply *(S21: manifest 8 zvuků + knihovny + hybrid
+      fallback rozhodnuty → IDEAS; čeká na soubory v `public/audio/`, pak loader + `SamplePlayer`/`SampleLoop`)*
 
 ## Příčná dynamika — oblouky & vykolejení  *(S6, Úroveň A — drží DD-02; F-osu doladit v README)*
 - [x] `Track.radius(s)` — lokální poloměr oblouku z křivosti **horizontálního průmětu** (XZ);
