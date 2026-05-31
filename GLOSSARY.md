@@ -56,6 +56,23 @@ Termíny projektu. Anglické identifikátory v kódu, české vysvětlení.
 - **vypružení (suspension)** — pružné uložení skříně; zde tlumený torzní oscilátor řízený
   frekvencí (Hz) a poměrným tlumením ζ. Měkčí (nižší ω) = větší výchylka i pomalejší kmit.
 
+## Rázy z trati (track impulses)
+- **rázy z trati (track impulses)** — *(DD-21)* nespojitosti trati budí kývání skříně **impulsem**
+  (ťuk do úhlové rychlosti oscilátoru, `Body.applyImpulse`), ne spojitým rovnovážným úhlem. Tři zdroje
+  (spáry / skok křivosti / výhybky) = **jeden mechanismus**: `Train.crossed()` (floor-trik na
+  arc-length) detekuje přejezd, síla ∝ rychlost × `trackImpulse`. Per-vůz `s` → ráz proběhne soupravou
+  jako vlna. Mění jen rotaci (drží DD-02), rozšiřuje DD-13.
+- **dilatační spára (rail joint)** — mezera mezi kolejnicemi (nesvařovaná trať, rozteč `railLength`
+  ≈ 20 m). Kolo přes ni přejede → svislý ráz → **pitch** impuls se střídavou paritou = **klikot**
+  („klikety-klak"); frekvence i hlasitost rostou s rychlostí. `trackImpulse=0` / svařovaná = ticho.
+- **přechodnice (transition curve / klotoida)** — vkládaný úsek, kde křivost roste lineárně z 0 na
+  `1/r`, aby odstředivka `v²·κ` nenastoupila skokem. Chybí-li → **skok křivosti**.
+- **skok křivosti (curvature jump)** — nespojitá změna `κ` → skok příčného zrychlení = **boční trh**
+  (jerk). V modelu **fenomenologicky** (DD-21, A4 b): roll-impuls ve směru oblouku na nábězích laloků
+  (`TRACK_PERTURBATIONS`), ne přepis geometrie hladké lemniskáty.
+- **výhybka (jako bodový ráz)** — zde **bodová perturbace** na smyčce (roll+pitch clunk), ne topologický
+  uzel (síť/větvení = Úr. 4 žebříku, jiný roh mřížky). Týž mechanismus jako skok křivosti, jiná váha.
+
 ## Trakce a adheze
 - **tractive effort (tažná síla, TE)** — síla, kterou lokomotiva žene soupravu.
 - **výkonový limit** — `TE = min(F_max, P/v)`; při vyšší rychlosti omezuje výkon (hyperbola).
@@ -108,8 +125,13 @@ Termíny projektu. Anglické identifikátory v kódu, české vysvětlení.
 ## Zvuk
 - **chuff (výfuk páry)** — nárazový výdech páry komínem při otevřeném regulátoru; hustota
   roste s rychlostí. V `AudioView` rytmický burst šumu.
-- **AudioView** — zvuk jako další „view" nad simem (DD-01): čte stav, ozvučuje události
-  (chuff, clank/náraz spřáhla, sykot prokluzu, skřípění brzd). Procedurální, bez souborů.
+- **tikot spár** — „klikety-klak" na dilatačních spárách; self-timed (interval `railLength/v`,
+  jako chuff — AudioView čte stav, negeneruje z eventů simu). Hlasitost mírá, vypne `trackImpulse=0`.
+- **skřípění oblouku (flange squeal)** — kvílení okolků v zatáčce; trvalý hlas s hlasitostí plynule
+  řízenou příčným zrychlením (`v²·κ`) — sílí v ostřejším oblouku. ≠ on/off skřípění brzd.
+- **AudioView** — zvuk jako další „view" nad simem (DD-01): čte stav, ozvučuje události (chuff,
+  clank/náraz spřáhla, sykot prokluzu, skřípění brzd, tikot spár, skřípění oblouku, clunk výhybky).
+  Procedurální, bez souborů.
 
 ## Kamera (view)
 - **dron (auto-kamera)** — *(DD-19)* režim kamery (toggle `C`), který sleduje soupravu zezadu-shora

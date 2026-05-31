@@ -15,7 +15,8 @@ na **ostré laloky**: vletíš-li do zatáčky moc rychle, odstředivka soupravu
 (vykolejení) — skříně se přitom **kývají** (naklánějí ven ze zatáčky, kývnou při trhu) a
 blízkost meze **žhne** na skříni. A hlídej **uhlí a vodu**: až dojdou (voda dřív), lokomotiva
 ztratí páru a vlak dojede setrvačností. Na **mokré koleji** kola hrabou (prokluz) a brzda
-klouže — **pískuj** (drž `P`), ať se rozjedeš a zabrzdíš. Všechny fyzikální parametry jsou živé slidery.
+klouže — **pískuj** (drž `P`), ať se rozjedeš a zabrzdíš. Na **dilatačních spárách** to klikotá (rychleji = hustěji), v **ostrém
+oblouku** skříň cukne (skok křivosti) a okolky kvílí. Všechny fyzikální parametry jsou živé slidery.
 
 ---
 
@@ -61,8 +62,9 @@ hmotnosti (lokomotiva = adhezní tíha), odpory (gravitace, valivý, rozběhový
 spřáhlo (vůle / tuhost / tlumení), trakce (výkon, max tažná síla, adheze μ, **stav koleje** =
 sucho/mokro, brzda, průměr hnacího kola a mez pístové rychlosti = otáčkový strop), **pískování**
 (kapacita / spotřeba písku), příčnou
-dynamiku (rozchod koleje, výška těžiště — určují práh převrácení; amplituda terénních vln = sklon trati),
-vypružení skříně (frekvence / tlumení kývání) a palivo (kapacity a spotřeby uhlí / vody).
+dynamiku (rozchod koleje, výška těžiště — určují práh převrácení; amplituda terénních vln = sklon trati;
+rozteč dilatačních spár a síla rázů z trati = kvalita trati), vypružení skříně (frekvence / tlumení kývání)
+a palivo (kapacity a spotřeby uhlí / vody).
 Sekce **Dron** ladí kameru (výška / odstup / tuhost dohánění) — to je view, ne fyzika, takže žije
 mimo `params.ts` (drží DD-01).
 
@@ -73,7 +75,7 @@ mimo `params.ts` (drží DD-01).
 | **F0** | jednotělesová dynamika (gravitace, odpory, integrátor) | ✅ |
 | **F1** | ★ slack action — spřáhla s vůlí, run-out vlna | ✅ (vizuální „aha" se dolaďuje) |
 | **F2** | trakce & adheze — notch, prokluz, brzda jako řízené tření | ✅ |
-| **F6** | příčná dynamika — esíčko (osmička), most/podjezd, převrácení/vykolejení, kývání skříně, gradient meze | ✅ |
+| **F6** | příčná dynamika — esíčko (osmička), most/podjezd, převrácení/vykolejení, kývání skříně, gradient meze, rázy z trati (spáry / skok křivosti) | ✅ |
 | **F3** | palivo & zásoby — uhlí/voda (parní tlak), proměnná adheze + písek | ✅ |
 | **F4** | záclony — lowpoly terén/most/stromy ✅, párové koleje ✅ (zvuk: prototyp ✅); modely vozů + samply ⬜ | 🚧 |
 | **F5** | sloshing kapaliny v cisterně → posun těžiště | ⬜ |

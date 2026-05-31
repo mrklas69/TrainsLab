@@ -233,3 +233,24 @@ Dokončené úkoly. Detaily a rozhodnutí: `docs/diary/`.
 - `main.ts` — amplituda předána rendereru; `onAmplitudeChange` přestaví terén + trať + dekoraci.
 - Build + `tsc` zelené. Ověřeno v prohlížeči (Playwright + Edge): trať na povrchu, most s pilíři čitelný,
   faceting vidět, stromy/kameny na svazích, žádné JS chyby. Most clearance ověřena i node-výpisem (9.42 vs 1.42).
+
+## Sezení 19 (2026-05-31)
+
+### Rázy z trati — dilatační spáry + skok křivosti (DD-21, rozšíření DD-13)
+
+Nápad uživatele (místo nabídnutých řezů F4): drsné impulsy dilatačních spár + skoková změna poloměru
+křivosti. Sjednoceno do **jednoho balíku** „rázy z trati" — impulsy do existujících kývacích oscilátorů
+(roll/pitch), bez nového DOF; drží DD-02 (mění jen rotaci).
+
+- `Body.applyImpulse(roll, pitch)` — ťuk do `rollVel`/`pitchVel`; oscilátor (DD-13) kmit dotlumí.
+- `params` — `railLength` (20 m, rozteč spár), `trackImpulse` (0,012; master síla rázů, 0 = ideální trať).
+- `trackData` — `TRACK_PERTURBATIONS` (4 skoky křivosti + 2 výhybky jako zlomky délky → přežijí rebuild);
+  κ-skok řešen **fenomenologicky** (A4 b) na nábězích laloků, ne přepisem geometrie lemniskáty.
+- `Train` — `crossed()` (floor-trik na nezabaleném `s`: spáry `period=railLength`, perturbace `period=délka`;
+  jeden test pro oba), `JOINT_WEIGHT` (0,4), `applyTrackImpulses(sBefore)` (spáry → pitch se střídavou
+  paritou = klikot, perturbace → roll ve směru oblouku `sign(κ)` + pitch), `pointImpulseFired` flag.
+- `AudioView` (dostal `params`) — tikot spár (self-timed `railLength/v`, jako chuff), skřípění oblouku
+  (`LevelVoice`, gain ∝ `lateralAcceleration`), clunk výhybky z flagu.
+- `ControlPanel` — slidery „Rozteč spár" + „Síla rázů (kvalita trati)" (sekce Trať). `main.ts` — `AudioView(train, params)`.
+- Emergence: per-vůz `s` → klikot i trh proběhnou soupravou jako vlna (homomorfně se slack action).
+- `tsc` + build zelené. Ověřeno uživatelem v prohlížeči: **„Působí to věrně."**

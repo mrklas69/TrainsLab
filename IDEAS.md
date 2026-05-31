@@ -33,6 +33,19 @@ Koncept a kontext: viz `docs/diary/2026-05-29.md`.
     monorail** — vzniká příčná výchylka `y` dvojkolí, boří DD-02 = Úroveň B z DD-11.
     Slouží jiné nice (vedení kola), ne slack action → **jiný roh mřížky, vědomě, ne plíživě.**
   - **Úr. 4 — síť, výhybky**: graf místo smyčky (viz Topologie sítě výše), makro osa.
+- **Rázy z trati (track impulses)** → DONE (S19, DD-21) — sjednocený balík nespojitostí buzení kývání
+  skříně (rozšíření Úr. 1 / DD-13, drží DD-02: impuls do roll/pitch, **nemění `s`/`v`**). Tři zdroje,
+  jeden mechanismus = kick do **existujících** oscilátorů (recyklace, žádný nový bounce DOF — volba A2):
+  - **rail joints** (dilatační spáry) — periodická nespojitost `s mod railLength` → **pitch** ráz,
+    pravidelný tikot ∝ rychlost (klikety-klak). Detekce přes ujetou vzdálenost (frame-rate indep.).
+  - **κ-skok / chybějící přechodnice** — **fenomenologický** roll-kick v místech velké `|dκ/ds|`
+    (náběhy laloků; volba A4 b — ne přepis geometrie lemniskáty) → boční trh. „Přechodnice on/off" = Lab knob.
+  - **výhybky / radiální rázy** — bodové perturbace `{s_i, rollKick, pitchKick}` v `trackData` → clunk.
+    Pozn.: „výhybka" tu = **bodový ráz na smyčce**, ne topologický uzel (síť = Úr. 4, jiný roh mřížky).
+  Klíč: κ-skok, výhybka i radiální ráz jsou **týž mechanismus** (bodová perturbace na `s_i`); rail joint
+  je jen jejich periodická varianta. Emergence: per-vůz `s` → klikot/trh proběhne soupravou **jako vlna**
+  (homomorfní se slack action). Zvuk (AudioView, DD-01): tikot spár, skřípění oblouku ∝ `v²·|κ|`, clunk
+  výhybky — izomorfní s chuff/clank.
 - **Brzdy soupravy** — pneumatická soustava, prodleva šíření tlaku soupravou (další vlna).
   (Brzda lokomotivy hotová v F2; v S3 přepsána na řízené tření — souboj sil, DD-09.)
 - **Dynamický prokluz** → TODO (rozšíření F2) — kolo s vlastní setrvačností + creep křivka

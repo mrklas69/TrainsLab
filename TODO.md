@@ -90,6 +90,20 @@ Kontext a rozhodnutí: viz `docs/diary/2026-05-29.md`.
       oscilátory (rotační stav na `Body`). Zviditelní slack-trh (pitch) i zatáčku (roll). Params:
       frekvence + tlumení vypružení (sekce „Vypružení"). Kritérium převrácení zatím oddělené (roll = předzvěst).
 
+## Rázy z trati (track impulses)  *(S19, DD-21 — rozšíření kývání skříně DD-13, drží DD-02)*
+Sjednocený balík: nespojitosti trati → impulsy do **existujících** roll/pitch oscilátorů (recyklace,
+žádný nový DOF). Kontext: `docs/diary/2026-05-31.md` (S19); koncept v `IDEAS.md`.
+- [x] `Body.applyImpulse(rollKick, pitchKick)` — ťuknutí do úhlové rychlosti roll/pitch oscilátoru
+- [x] **Rail joints** — `railLength` v params; `Train.crossed()` detekuje přejezd spáry přes ujetou
+      vzdálenost (floor-trik, frame-rate indep.) → pitch kick ∝ rychlost, znaménko střídá (klikot)
+- [x] **Bodové perturbace** — `TRACK_PERTURBATIONS` v `trackData` (zlomky délky); κ-skok = roll-kick
+      ve směru oblouku (`sign(κ)`, A4 b fenomenologicky), výhybky = roll+pitch. Týž `crossed()` test.
+- [x] **Zvuk** — tikot spár (self-timed `railLength/v`), skřípění oblouku (`LevelVoice` ∝ příčné
+      zrychlení), clunk výhybky (`pointImpulseFired`). AudioView dostal `params`.
+- [x] Slider „Síla rázů (kvalita trati)" + „Rozteč spár" (sekce Trať); `trackImpulse=0` = ideální trať
+- [ ] *(volitelné)* dedikovaný toggle „přechodnice on/off" — vypne jen κ-trh, zachová tikot spár
+      (dnes oboje škáluje společný `trackImpulse`); doladit pozice/sílu perturbací, zvuk výhybky vs. spáry
+
 ## Dokumentace / infra
 - [x] Deploy dema na GitHub Pages (Actions, base `/TrainsLab/`) *(S4)*
 - [x] `README.md` — identita projektu, ovládání, stav fází, architektura, demo *(S5)*
