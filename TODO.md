@@ -107,5 +107,7 @@ Kontext a rozhodnutí: viz `docs/diary/2026-05-29.md`.
 ## Backlog / později
 - [ ] Davisův lineární člen odporu `B·v`; křivkový odpor v obloucích
 - [ ] Rotační setrvačnost hmot (rotating mass factor)
+- [ ] **Split `Renderer.ts`** *(S18, KO3)* — 567 ř. mísí kameru (orbit/dron/WASD) + stavbu světa
+      (terén/scenérie/trať/pilíře) + render aktérů; SLAP kandidát na `CameraController`. Až poroste s modely vozů.
 - Dlouhodobé / nezralé nápady (sloshing F5, průběžná brzda, jiskry, hypotézy o „uspokojení",
   dynamický prokluz) → **IDEAS.md** (single source pro nezralé).
