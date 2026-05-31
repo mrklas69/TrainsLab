@@ -41,9 +41,10 @@ const SECTIONS: Section[] = [
   {
     title: 'Trať',
     sliders: [
-      // výška mostu přestaví geometrii (action) — strmější najezd = výraznější slack action
-      // (k mostu draft, pod most buff); zároveň clearance mostu = 2× tahle hodnota
-      { key: 'trackAmplitude', label: 'Sklon (výška mostu)', min: 0, max: 8, step: 0.2, unit: 'm',
+      // amplituda terénních vln pod tratí (DD-20) — vyšší = strmější krajina = výraznější slack
+      // action (do kopce draft, z kopce buff). Přestaví terén i trať (action). Most je fixní (clearance
+      // = inženýrská konstanta, ne věc slideru), proto se s ním nemění.
+      { key: 'trackAmplitude', label: 'Sklon (vlny terénu)', min: 0, max: 8, step: 0.2, unit: 'm',
         action: (h) => h.onAmplitudeChange() },
     ],
   },
@@ -211,8 +212,8 @@ export function createControlPanel(
 }
 
 /**
- * Modální dialog „Nastavení": slidery parametrů v multi-column layoutu (CSS columns
- * → 1 sloupec na mobilu, víc na wide; sekce se netrhá díky break-inside) a nápověda
+ * Modální dialog „Nastavení": slidery parametrů v multi-column layoutu (CSS Grid
+ * auto-fill → 1 sloupec na mobilu, víc na wide bez media-queries, DD-18) a nápověda
  * kláves. Zavírá tlačítko OK, klik na pozadí i Esc. Vrací backdrop + open().
  */
 function buildSettingsModal(

@@ -54,9 +54,12 @@ export class Track {
   /**
    * Sklon trati v `s`: sin(θ) = dy/ds = y-složka jednotkové tečny.
    * > 0 do kopce (ve směru rostoucího s), < 0 z kopce. Vstup pro gravitaci.
+   *
+   * Bere jen tečnu (ne {@link at}) — lehčí cesta bez getPointAt navíc, jako {@link positionAt}.
+   * Volá se hustě (per-vůz × substep), takže ušetřený výpočet pozice stojí za to.
    */
   grade(s: number): number {
-    return this.at(s).tangent.y;
+    return this.curve.getTangentAt(this.wrap(s) / this.length).y;
   }
 
   /**

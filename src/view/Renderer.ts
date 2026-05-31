@@ -536,9 +536,11 @@ export class Renderer {
 
   // jeden malý marker na spřáhlo (N−1 pro N vozů); barvu řídí renderCouplers().
   private buildCouplers(train: Train): THREE.Mesh[] {
+    // sdílená geometrie (všechny markery stejný tvar); materiál per kus — každý nese vlastní
+    // barvu/jas napětí, který renderCouplers() mutuje podle režimu spřáhla.
+    const geo = new THREE.SphereGeometry(0.7, 12, 8);
     const meshes: THREE.Mesh[] = [];
     for (let i = 0; i < train.couplers.length; i++) {
-      const geo = new THREE.SphereGeometry(0.7, 12, 8);
       const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: SLACK_COLOR }));
       this.scene.add(mesh);
       meshes.push(mesh);
@@ -546,7 +548,7 @@ export class Renderer {
     return meshes;
   }
 
-  // kvádr na vůz; lokomotiva (index 0) červená, vozy modré.
+  // kvádr na vůz; lokomotiva (index 0) šedá (volnoběh — semafor řídí render), vozy modré.
   private buildCars(train: Train): THREE.Mesh[] {
     return train.bodies.map((body, i) => {
       const geo = new THREE.BoxGeometry(CAR_WIDTH, CAR_HEIGHT, body.length);
