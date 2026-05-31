@@ -43,12 +43,15 @@ TrainsLab je jeden roh **mřížky experimentů** (měřítko × věrnost) — z
 | `P` (drž) | pískování — vrací adhezi na mokré koleji (drž klávesu/tlačítko) |
 | `R` | reset (doplní i palivo a písek) |
 | `M` | zvuk on/off |
+| `C` | auto-kamera „dron" — toggle sledování soupravy (vypne ruční ovládání kamery) |
 | `W` `A` `S` `D` | posun kamery v rovině |
 | `Q` / `E` | výška kamery (dolů / nahoru) |
 | `Z` / `X` | zoom kamery (přiblížit / oddálit) |
 
 Notch regulátoru: **3 vpřed · 0 · 1 vzad**. Kamerou lze otáčet i myší (OrbitControls).
-Akce lokomotivy jsou i jako tlačítka v **dolním baru** (vč. ⚙ Nastavení); pískování drž.
+**Dron** (`C`) sleduje soupravu zezadu-shora a při reverzu přeletí na druhý konec; ruční ovládání
+kamery je při něm vypnuté (vypni dron a vrátíš se k orbitu). Akce jsou i jako tlačítka v **dolním
+baru** (vč. ⚙ Nastavení); pískování drž.
 
 ## Lab knoby
 
@@ -60,6 +63,8 @@ sucho/mokro, brzda, průměr hnacího kola a mez pístové rychlosti = otáčkov
 (kapacita / spotřeba písku), příčnou
 dynamiku (rozchod koleje, výška těžiště — určují práh převrácení; výška mostu = sklon najezdu),
 vypružení skříně (frekvence / tlumení kývání) a palivo (kapacity a spotřeby uhlí / vody).
+Sekce **Dron** ladí kameru (výška / odstup / tuhost dohánění) — to je view, ne fyzika, takže žije
+mimo `params.ts` (drží DD-01).
 
 ## Stav
 

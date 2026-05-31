@@ -19,3 +19,4 @@ Více sezení v jednom dni = sekce `## Sezení N` v témže souboru.
 | 2026-05-30 | 12 | `%AUDIT:CODE` (0 kritických) — sjednocení příčné dynamiky na `signedCurvature` (radius odstraněn), `positionAt`, drobný úklid (R1/R2/K1–K3). K4 README číslování ponecháno (volba a) |
 | 2026-05-31 | 13 | `%AUDIT:DOCS` (0 kritických) — D1 zastaralý `r≈33 m`, K1–K3 drobnosti; IDEAS/TODO pruning (P1–P4) — narovnání DRY TODO×IDEAS, nezralé nápady single-source v IDEAS. Údržbové, bez kódu |
 | 2026-05-31 | 14 | Písek + mokrá kolej (`railFactor`, písek = spotřební zásoba, held-key P) — proměnná adheze pro tah i brzdu. Skid při brzdě (izomorfismus tah↔brzda). UX redesign (status/bar/modal, CSS grid). Auto-kamera „dron" → TODO. DD-16, DD-17, DD-18 |
+| 2026-05-31 | 15 | Auto-kamera „dron" (toggle `C`) — sleduje soupravu zezadu-shora, lookAt střed, přelet při reverzu z tlumeného dohánění, hystereze směru u v≈0. Dron params mimo fyziku (DD-19), slider dvouzdrojový. První kus F4 |

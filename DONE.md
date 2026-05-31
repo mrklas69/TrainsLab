@@ -201,3 +201,12 @@ Dokončené úkoly. Detaily a rozhodnutí: `docs/diary/`.
 - Monolitický overlay rozdělen podle role (hraní vs laboratoř): **status bar** nahoře (centr.), **dolní bar** s tlačítky řízení + ⚙ Nastavení (centr., flex-wrap, touch-friendly), **modální dialog** se slidery.
 - Modal: CSS Grid `repeat(auto-fill, minmax(16rem, 1fr))` → 3 sloupce na wide, 1 na mobilu, bez media-queries. Nutný `width` (ne `max-width`) na dialogu, jinak shrink-to-fit → 1 sloupec. Zavírá OK / klik na pozadí / Esc.
 - Nahradil minimalizační toggle (S9). Ověřeno na 1400×800 i 390×780, žádné page errors.
+
+## Sezení 15 (2026-05-31)
+
+### F4 — auto-kamera „dron" (DD-19), první kus „uspokojivého pozorování"
+- `Renderer` — `DroneParams` (výška / odstup / tuhost) + `DEFAULT_DRONE`; stav dronu (`droneDir` s hysterezí, tlumené `dronePos`/`droneLook`). `toggleDrone` (snap na cíl, `controls.enabled=false`, návrat `controls.target` ← pohled dronu), `updateDroneCamera` (hystereze + `lerp` tuhostí `α=1−exp(−stiffness·dt)`), `computeDroneTarget` (přední/zadní vůz dle směru, pozice za zadním vozem proti tečně + výška, lookAt = střed soupravy + výška skříně), `applyDrone`. Přepnutí v `render()`.
+- `main.ts` — sdílená `drone` instance (mimo `params`, drží DD-01), předaná rendereru i panelu; akce `C`.
+- `ControlPanel` — slider zobecněn na dva zdroje (`SliderDef.source?: 'drone'`, `buildSlider` nad `Record<string, number>`), sekce „Dron (kamera)".
+- **Reverz = přelet zdarma**: cíl se překlopí na druhý konec, tlumení doletí plynule (žádný zvláštní kód). lookAt = střed soupravy (volba uživatele proti návrhu „čelní vůz" — klidnější).
+- Ověřeno v prohlížeči (Playwright + Edge): snap při zapnutí, sledování za rozjezdu, přelet při reverzu, návrat k orbitu bez skoku, žádné JS chyby.

@@ -58,17 +58,11 @@ Kontext a rozhodnutí: viz `docs/diary/2026-05-29.md`.
 - [ ] Stromy, kameny (instancing)
 - [ ] Modely lokomotivy a vagonů (jeden cisterna)
 - [ ] Kamera/osvětlení pro „uspokojivé" pozorování
-- [ ] **Auto-kamera „dron"** *(S14, návrh — experiment, izomorfní s held-key kamerou)* —
-      toggle režimu (klávesa), vypne OrbitControls/WASD a každý frame řídí kameru autonomně:
-      - **Pozice:** za + nad *zadním* vozem soupravy (vzhledem ke směru jízdy) = `track.at(rearBody.s)`
-        posunuté proti tečně (odstup) a nahoru (výška). Kamera `lookAt` *čelní* vůz.
-      - **Směr jízdy:** `sign(v)` lokomotivy s **hysterezí u `v≈0`** (drž poslední směr, jinak se
-        dron u stojícího/houpajícího vlaku roztřese — slack action couvá).
-      - **Reverz:** přední/zadní vůz se prohodí → dron *přeletí* na druhý konec. Plynule (lerp pozice
-        k cíli), ne teleport; doladit, ať to není leták přes mapu ani cuknutí.
-      - **Stabilizace:** lerp/damp dohánění cílové pozice (ne tvrdé skoky).
-      - **Lab knoby:** výška, odstup, tuhost dohánění (izomorfní s vypružením skříně).
-      - Patří k „uspokojivému pozorování" (záclona, ne foundation) — vlastní iterace s vizuálním laděním.
+- [x] **Auto-kamera „dron"** *(S15, DD-19)* — toggle `C` vypne OrbitControls/WASD a každý frame řídí
+      kameru: pozice za+nad *zadním* vozem (dle směru jízdy), `lookAt` **střed soupravy** (volba uživatele,
+      klidnější než čelo). Směr `sign(v)` s **hysterezí u `v≈0`**. **Reverz = přelet** (prohození konců →
+      cíl skočí, tlumení `α=1−exp(−tuhost·dt)` doletí plynule; snap při zapnutí = bez letáku přes mapu).
+      Params mimo fyziku (`DroneParams` ve view, DD-01), slidery Dron: výška / odstup / tuhost dohánění.
 - [~] Zvuk: prototyp `AudioView` hotový (procedurální) *(S3, vědomě předsunuto)*
 - [ ] Zvuk: vyměnit procedurální generátor za nahrané samply (zdroje + licence v IDEAS)
 

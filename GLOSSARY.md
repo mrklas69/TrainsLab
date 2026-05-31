@@ -109,6 +109,14 @@ Termíny projektu. Anglické identifikátory v kódu, české vysvětlení.
 - **AudioView** — zvuk jako další „view" nad simem (DD-01): čte stav, ozvučuje události
   (chuff, clank/náraz spřáhla, sykot prokluzu, skřípění brzd). Procedurální, bez souborů.
 
+## Kamera (view)
+- **dron (auto-kamera)** — *(DD-19)* režim kamery (toggle `C`), který sleduje soupravu zezadu-shora
+  ve směru jízdy a kouká na její střed. Vypne ruční ovládání (myš + WASD/QE/ZX). Pozice i bod pohledu
+  se **tlumeně dohánějí** k cíli (`α = 1−exp(−tuhost·dt)`, nezávislé na FPS) → při **reverzu** se cíl
+  překlopí na druhý konec a kamera plynule *přeletí*. **Hystereze** směru u `v≈0` (drží poslední, jinak
+  slack-couvání třese dronem). Ryze view — parametry (`DroneParams`: výška/odstup/tuhost) mimo `PhysicsParams`,
+  sim o kameře neví (DD-01).
+
 ## Numerika a architektura
 - **semi-implicitní Euler** — integrátor: nejdřív rychlost z aktuálních sil, pak poloha.
 - **substepping** — dělení časového kroku; nutné pro stabilitu tuhých pružin (spřáhel).
