@@ -3,7 +3,7 @@ import { Track } from './sim/Track';
 import { makeLoopControlPoints } from './sim/trackData';
 import { Train } from './sim/Train';
 import { DEFAULT_PARAMS } from './sim/params';
-import { Renderer } from './view/Renderer';
+import { Renderer, DEFAULT_DRONE } from './view/Renderer';
 import { AudioView } from './view/AudioView';
 import { createControlPanel, type KeyAction } from './ui/ControlPanel';
 
@@ -16,7 +16,9 @@ const params = { ...DEFAULT_PARAMS };
 const track = new Track(makeLoopControlPoints(params.trackAmplitude));
 // lokomotiva (čelo) + 4 vagony
 const train = new Train(track, params, [8, 6, 6, 6, 6]);
-const renderer = new Renderer(canvas, track, train);
+// dron = view parametry kamery (mimo fyziku), sdílená instance pro slidery (live ladění)
+const drone = { ...DEFAULT_DRONE };
+const renderer = new Renderer(canvas, track, train, drone);
 const audio = new AudioView(train);
 
 // Klávesové akce — single source pro keydown handler, nápovědu i tlačítka panelu.
@@ -27,10 +29,11 @@ const actions: KeyAction[] = [
   // held-key: drž P → sype písek (zvedne adhezi), pusť → přestane. blur to taky vypne.
   { codes: ['KeyP'], hint: 'P (drž)', label: 'Písek', run: () => train.setSanding(true), onRelease: () => train.setSanding(false) },
   { codes: ['KeyM'], hint: 'M', label: 'Zvuk', run: () => audio.toggleMute() },
+  { codes: ['KeyC'], hint: 'C', label: 'Dron', run: () => renderer.toggleDrone() },
   { codes: ['KeyR'], hint: 'R', label: 'Reset', run: () => train.reset() },
 ];
 
-const updatePanel = createControlPanel(params, actions, {
+const updatePanel = createControlPanel(params, drone, actions, {
   // slider sklonu: přestav křivku (sim) i geometrii tubu (view); souprava jede dál
   onAmplitudeChange: () => {
     track.rebuild(makeLoopControlPoints(params.trackAmplitude));

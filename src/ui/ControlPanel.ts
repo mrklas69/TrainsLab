@@ -1,4 +1,5 @@
 import type { PhysicsParams } from '../sim/params';
+import type { DroneParams } from '../view/Renderer';
 import type { Train } from '../sim/Train';
 
 // Jeden zdroj pravdy o klávesové akci: pohání keydown handler (codes), nápovědu
@@ -18,12 +19,13 @@ export interface PanelHandlers {
 }
 
 interface SliderDef {
-  key: keyof PhysicsParams;
+  key: string;        // klíč v cílovém objektu params (PhysicsParams nebo DroneParams dle `source`)
   label: string;
   min: number;
   max: number;
   step: number;
   unit: string;
+  source?: 'drone';   // odkud/kam slider čte/zapisuje — výchozí fyzika, 'drone' = view kamera
   // volitelná akce po posunu (vedle zápisu do params) — např. přestavba tratě.
   // Většina sliderů jen mutuje sdílenou params; tahle hrstka má i side effect.
   action?: (h: PanelHandlers) => void;
@@ -109,6 +111,16 @@ const SECTIONS: Section[] = [
     ],
   },
   {
+    // auto-kamera „dron" (klávesa C): sleduje soupravu zezadu-shora; tuhost = jak ostře dohání cíl
+    // (izomorfní s vypružením skříně). Ryze view → zapisuje do DroneParams, ne do fyziky.
+    title: 'Dron (kamera)',
+    sliders: [
+      { key: 'height', label: 'Výška dronu', min: 5, max: 60, step: 1, unit: 'm', source: 'drone' },
+      { key: 'distance', label: 'Odstup dronu', min: 10, max: 100, step: 2, unit: 'm', source: 'drone' },
+      { key: 'stiffness', label: 'Tuhost dohánění', min: 0.3, max: 6, step: 0.1, unit: '1/s', source: 'drone' },
+    ],
+  },
+  {
     // zásoby tendru: menší (poměrově) určuje parní tlak. Vyšší spotřeba = dřív dojede.
     // Po vyčerpání tah → 0, vlak dojede setrvačností. R doplní obě zásoby.
     title: 'Palivo',
@@ -138,6 +150,7 @@ const BTN_CSS = [
  */
 export function createControlPanel(
   params: PhysicsParams,
+  drone: DroneParams,
   actions: KeyAction[],
   handlers: PanelHandlers,
 ): (train: Train) => void {
@@ -153,7 +166,7 @@ export function createControlPanel(
   document.body.appendChild(status);
 
   // --- modální dialog „Nastavení" (slidery + nápověda); otevírá tlačítko dole ---
-  const settings = buildSettingsModal(params, actions, handlers);
+  const settings = buildSettingsModal(params, drone, actions, handlers);
   document.body.appendChild(settings.backdrop);
 
   // --- dolní bar (centrovaný): řízení soupravy + vstup do nastavení ---
@@ -204,6 +217,7 @@ export function createControlPanel(
  */
 function buildSettingsModal(
   params: PhysicsParams,
+  drone: DroneParams,
   actions: KeyAction[],
   handlers: PanelHandlers,
 ): { backdrop: HTMLElement; open: () => void } {
@@ -237,7 +251,12 @@ function buildSettingsModal(
     head.textContent = section.title;
     head.style.cssText = 'margin:8px 0 2px;opacity:0.6;font-size:11px;text-transform:uppercase';
     sec.appendChild(head);
-    for (const def of section.sliders) sec.appendChild(buildSlider(params, def, handlers));
+    for (const def of section.sliders) {
+      // cast přes unknown: oba params objekty mají jen number pole, ale bez index signatury
+      // (slider klíč je string — deklarativní mapování nedrží typovou vazbu na konkrétní interface)
+      const target = (def.source === 'drone' ? drone : params) as unknown as Record<string, number>;
+      sec.appendChild(buildSlider(target, def, handlers));
+    }
     grid.appendChild(sec);
   }
   dialog.appendChild(grid);
@@ -296,8 +315,9 @@ function makeButton(label: string, action: KeyAction): HTMLButtonElement {
   return btn;
 }
 
-// Jeden řádek: popisek + živá hodnota + slider, obousměrně svázaný s params[key].
-function buildSlider(params: PhysicsParams, def: SliderDef, handlers: PanelHandlers): HTMLElement {
+// Jeden řádek: popisek + živá hodnota + slider, obousměrně svázaný s target[key].
+// target = sdílený params objekt (fyzika nebo dron); oba jsou Record<string, number>.
+function buildSlider(target: Record<string, number>, def: SliderDef, handlers: PanelHandlers): HTMLElement {
   const row = document.createElement('label');
   row.style.cssText = 'display:block;margin:4px 0';
 
@@ -314,14 +334,14 @@ function buildSlider(params: PhysicsParams, def: SliderDef, handlers: PanelHandl
   input.min = String(def.min);
   input.max = String(def.max);
   input.step = String(def.step);
-  input.value = String(params[def.key]);
+  input.value = String(target[def.key]);
   input.style.width = '100%';
 
   const show = (): void => {
-    value.textContent = `${params[def.key]}${def.unit ? ' ' + def.unit : ''}`;
+    value.textContent = `${target[def.key]}${def.unit ? ' ' + def.unit : ''}`;
   };
   input.addEventListener('input', () => {
-    params[def.key] = Number(input.value);
+    target[def.key] = Number(input.value);
     show();
     def.action?.(handlers); // side effect navíc (např. přestavba tratě), pokud slider má
   });
