@@ -1,5 +1,6 @@
 import { Body } from './Body';
 import { Coupler } from './Coupler';
+import { TRACK_PERTURBATIONS } from './trackData';
 import type { Track } from './Track';
 import type { PhysicsParams } from './params';
 
@@ -20,6 +21,18 @@ const BRAKE_SKID_TOLERANCE = 1.1; // brzda smí přesáhnout adhezi o 10 %, než
                                   // leží plná brzda těsně nad adhezí (180 vs 177 kN), ať to neblikne
 const V_SKID = 0.1;               // m/s — pod tím vůz stojí; skid (klouzání kol) dává smysl jen za jízdy
 
+const JOINT_WEIGHT = 0.4; // spárový ráz je jemnější než bodová perturbace (časté tiknutí, ne trh)
+
+/**
+ * Přejel-li vůz „fázový" bod `sI` s periodou `period` mezi pozicemi `sBefore` a `sNow`?
+ * Floor-trik na **nezabaleném** (monotónním) arc-length `s`: funguje pro oba směry jízdy
+ * i přes smyčku, beze stavu. Sjednocuje detekci dilatačních spár (`sI=0, period=railLength`)
+ * i bodových perturbací (`sI=u·délka, period=délka`) — jádro „jednoho balíku" rázů z trati.
+ */
+function crossed(sBefore: number, sNow: number, sI: number, period: number): boolean {
+  return Math.floor((sBefore - sI) / period) !== Math.floor((sNow - sI) / period);
+}
+
 /**
  * Souprava = řetězec {@link Body} propojený {@link Coupler}y, v čele lokomotiva.
  *
@@ -30,6 +43,7 @@ const V_SKID = 0.1;               // m/s — pod tím vůz stojí; skid (klouzá
 export class Train {
   readonly bodies: Body[];
   slipping = false; // prokluz hnacích kol — čte renderer (DD-01)
+  pointImpulseFired = false; // bodová perturbace (výhybka/skok křivosti) v posledním update — čte AudioView (clunk)
   derailed = false; // vykolejeno převrácením — fail state, čeká na reset (čte renderer)
   derailSpeed = 0;  // rychlost lokomotivy v okamžiku vykolejení (m/s) — diagnostika do UI
 
@@ -225,8 +239,11 @@ export class Train {
     this.consumeFuel(dt);      // uhlí + voda → klesající parní tlak (čte applyLocomotive)
     // písek se spotřebovává jen při aktivním pískování (zvyšuje adhezi, viz effectiveAdhesion)
     if (this.sanding) this.sand = Math.max(0, this.sand - this.params.sandRate * dt);
+    // pozice před krokem — z ujeté vzdálenosti se pak detekují přejezdy spár/perturbací
+    const sBefore = this.bodies.map((b) => b.s);
     const h = dt / SUBSTEPS;
     for (let i = 0; i < SUBSTEPS; i++) this.step(h);
+    this.applyTrackImpulses(sBefore); // rázy z trati → kick do kývání skříně (DD-02)
 
     // kritérium převrácení (DD-11): odstředivka na nejostřejším oblouku překoná rameno
     // báze kol → vůz se přetočí přes vnější kolo. Tvrdý fail state — souprava se zastaví.
@@ -259,6 +276,46 @@ export class Train {
     this.bodies.forEach((body, i) => {
       body.updateSuspension(this.params, this.signedLateralAccelerationOf(i), body.accel, h);
     });
+  }
+
+  /**
+   * Rázy z trati → impulsy do kývání skříně (rozšíření DD-13). Jeden balík, dva zdroje
+   * nespojitosti řešené týmž {@link crossed} testem nad ujetou vzdáleností (`sBefore`→`s`):
+   *  - **dilatační spáry** (perioda `railLength`): svislý ráz → **pitch**, znaménko střídá
+   *    podle parity spáry (klikety-klak); jemnější ({@link JOINT_WEIGHT}).
+   *  - **bodové perturbace** ({@link TRACK_PERTURBATIONS}, perioda = délka smyčky): skok
+   *    křivosti → **roll** ve směru oblouku (`sign(κ)` → trh dosedne do náklonu) + výhybka → pitch.
+   *
+   * Síla ∝ rychlost (rychleji → tvrdší ráz) × `trackImpulse` (kvalita trati; 0 = hladká).
+   * Nemění `s`/`v` (DD-02). Per-vůz `s` → ráz proběhne soupravou jako vlna (emergence).
+   */
+  private applyTrackImpulses(sBefore: number[]): void {
+    this.pointImpulseFired = false;
+    const strength = this.params.trackImpulse;
+    if (strength <= 0) return;
+    const railLength = this.params.railLength;
+    const loop = this.track.length;
+
+    for (let i = 0; i < this.bodies.length; i++) {
+      const body = this.bodies[i];
+      const speed = Math.abs(body.v);
+      if (speed === 0) continue; // stojící vůz spáru „nepřejede" — žádný ráz
+
+      // dilatační spáry: pitch ráz, znaménko podle parity přejeté spáry (poskok nahoru/dolů)
+      if (railLength > 0 && crossed(sBefore[i], body.s, 0, railLength)) {
+        const parity = (Math.floor(body.s / railLength) & 1) === 0 ? 1 : -1;
+        body.applyImpulse(0, parity * JOINT_WEIGHT * strength * speed);
+      }
+
+      // bodové perturbace: roll ve směru oblouku (skok křivosti) + pitch (výhybka)
+      for (const p of TRACK_PERTURBATIONS) {
+        if (crossed(sBefore[i], body.s, p.u * loop, loop)) {
+          const rollDir = Math.sign(this.track.signedCurvature(body.s)) || 1;
+          body.applyImpulse(rollDir * p.roll * strength * speed, p.pitch * strength * speed);
+          this.pointImpulseFired = true; // pro zvukový clunk (DD-01)
+        }
+      }
+    }
   }
 
   /**

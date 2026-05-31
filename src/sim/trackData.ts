@@ -44,3 +44,26 @@ export function makeLoopControlPoints(amplitude: number): Vector3[] {
   }
   return points;
 }
+
+/** Bodová nespojitost trati — zdroj rázu do kývání skříně (zpracuje {@link Train}). */
+export interface TrackPerturbation {
+  u: number;     // pozice na trati jako zlomek délky [0,1) — přežije rebuild (s = u·délka)
+  roll: number;  // relativní váha bočního trhu (skok křivosti / chybějící přechodnice); znaménko dá Train ze strany oblouku
+  pitch: number; // relativní váha svislého rázu (výhybka / radiální ráz)
+}
+
+/**
+ * Bodové nespojitosti osmičky — **fenomenologický** skok křivosti (A4 b): místo přepisu
+ * geometrie hladké lemniskáty se na náběhy/výjezdy laloků (kde by reálná trať potřebovala
+ * přechodnici) posadí roll-ráz = boční trh. „Výhybky" u vrcholů laloků přidají svislý clunk.
+ * Sjednoceno s dilatačními spárami: {@link Train} obě řeší týmž `crossed()` testem (jen jiná perioda).
+ * Pozice jako zlomky délky → přežijí slider sklonu (Track.rebuild mění délku trati).
+ */
+export const TRACK_PERTURBATIONS: TrackPerturbation[] = [
+  { u: 0.10, roll: 1.0, pitch: 0.0 }, // náběh do 1. laloku — skok křivosti (boční trh)
+  { u: 0.25, roll: 0.5, pitch: 0.9 }, // výhybka u vrcholu 1. laloku — radiální clunk
+  { u: 0.40, roll: 1.0, pitch: 0.0 }, // výjezd z 1. laloku
+  { u: 0.60, roll: 1.0, pitch: 0.0 }, // náběh do 2. laloku
+  { u: 0.75, roll: 0.5, pitch: 0.9 }, // výhybka u vrcholu 2. laloku
+  { u: 0.90, roll: 1.0, pitch: 0.0 }, // výjezd z 2. laloku
+];

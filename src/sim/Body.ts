@@ -115,4 +115,15 @@ export class Body {
     this.pitchVel += pitchAcc * h;
     this.pitch += this.pitchVel * h;
   }
+
+  /**
+   * Vnější impuls do kývání skříně — ťuknutí do úhlové rychlosti oscilátoru (rázy z trati:
+   * dilatační spáry → pitch, skok křivosti / výhybky → roll). Mění **jen rotaci, ne `s`/`v`**
+   * (drží DD-02). Oscilátor v {@link updateSuspension} kmit následně dotlumí — tak vznikne
+   * klikot (periodické spáry) i boční trh (bodová nespojitost), emergentně jako vlna soupravou.
+   */
+  applyImpulse(rollKick: number, pitchKick: number): void {
+    this.rollVel += rollKick;
+    this.pitchVel += pitchKick;
+  }
 }

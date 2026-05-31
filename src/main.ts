@@ -19,7 +19,7 @@ const train = new Train(track, params, [8, 6, 6, 6, 6]);
 // dron = view parametry kamery (mimo fyziku), sdílená instance pro slidery (live ladění)
 const drone = { ...DEFAULT_DRONE };
 const renderer = new Renderer(canvas, track, train, drone, params.trackAmplitude);
-const audio = new AudioView(train);
+const audio = new AudioView(train, params);
 
 // Klávesové akce — single source pro keydown handler, nápovědu i tlačítka panelu.
 const actions: KeyAction[] = [

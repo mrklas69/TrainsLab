@@ -1,4 +1,5 @@
 import type { Train } from '../sim/Train';
+import type { PhysicsParams } from '../sim/params';
 import type { CouplerMode } from '../sim/Coupler';
 
 const MASTER_VOLUME = 0.35;
@@ -6,6 +7,11 @@ const MASTER_VOLUME = 0.35;
 /** Trvalý hlas (loop), který se jen plynule zapíná/vypíná — prokluz, skřípění brzd. */
 interface SustainVoice {
   setActive(on: boolean): void;
+}
+
+/** Trvalý hlas s plynule řízenou hlasitostí (0..1) — skřípění oblouku ∝ příčné zrychlení. */
+interface LevelVoice {
+  setLevel(level: number): void;
 }
 
 /**
@@ -19,6 +25,9 @@ interface SustainVoice {
  *  - clank / náraz: přechod spřáhla do draft (tah) / buff (nárazníky), hlasitost ∝ relVel
  *  - sykot prokluzu: trvalý šum, dokud loko prokluzuje
  *  - skřípění brzd: trvalý pískot při brzdění za jízdy
+ *  - tikot spár: „klikety-klak" na dilatačních spárách, interval = railLength / rychlost
+ *  - skřípění oblouku: trvalý kvílivý tón v zatáčce, hlasitost ∝ příčné zrychlení (v²·κ)
+ *  - clunk výhybky: tupý náraz na bodové perturbaci trati (pointImpulseFired)
  */
 export class AudioView {
   private readonly ctx: AudioContext;
@@ -26,12 +35,14 @@ export class AudioView {
   private readonly noise: AudioBuffer;
   private readonly slip: SustainVoice;
   private readonly squeal: SustainVoice;
+  private readonly arc: LevelVoice;
 
   private prevModes: CouplerMode[];
   private chuffTimer = 0;
+  private railTimer = 0; // odpočet do dalšího tiku spáry (self-timed jako chuff)
   private muted = false;
 
-  constructor(train: Train) {
+  constructor(train: Train, private readonly params: PhysicsParams) {
     this.ctx = new AudioContext();
     this.master = this.ctx.createGain();
     this.master.gain.value = MASTER_VOLUME;
@@ -40,6 +51,7 @@ export class AudioView {
     this.noise = this.makeNoise();
     this.slip = this.makeSlipVoice();
     this.squeal = this.makeSquealVoice();
+    this.arc = this.makeArcSquealVoice();
     this.prevModes = train.couplers.map((c) => c.mode);
   }
 
@@ -60,8 +72,12 @@ export class AudioView {
   update(train: Train, dt: number): void {
     this.updateChuff(train, dt);
     this.updateCouplers(train);
+    this.updateRailJoints(train, dt);
+    if (train.pointImpulseFired) this.playClunk(0.7); // bodová perturbace (výhybka / skok křivosti)
     this.slip.setActive(train.slipping);
     this.squeal.setActive(train.isBraking && Math.abs(train.speed) > 0.3);
+    // skřípění oblouku ∝ příčné zrychlení (v²·κ); práh převrácení ≈ 6 m/s² → /4 doplna před mezí
+    this.arc.setLevel(Math.min(train.lateralAcceleration / 4, 1));
   }
 
   // --- jednorázové události ---
@@ -88,6 +104,26 @@ export class AudioView {
       }
       this.prevModes[i] = coupler.mode;
     });
+  }
+
+  // tikot dilatačních spár: interval = railLength / rychlost (rychleji → hustší „klikety-klak").
+  // Self-timed jako chuff — AudioView čte stav (rychlost + params), negeneruje z eventů simu.
+  // Vypnuté rázy (trackImpulse 0), svařovaná kolej (railLength 0) nebo stání → ticho.
+  private updateRailJoints(train: Train, dt: number): void {
+    const speed = Math.abs(train.speed);
+    const L = this.params.railLength;
+    if (this.params.trackImpulse <= 0 || L <= 0 || speed < 0.5) {
+      this.railTimer = 0;
+      return;
+    }
+    this.railTimer -= dt;
+    if (this.railTimer > 0) return;
+    this.railTimer = L / speed; // čas na ujetí jedné rozteče spár
+    this.playRailTick();
+  }
+
+  private playRailTick(): void {
+    this.metalHit([90, 150, 240], 0.05, 0.45); // nízký tupý „klak" — krátký, kovově temný
   }
 
   private playChuff(): void {
@@ -177,6 +213,34 @@ export class AudioView {
     return {
       setActive: (on) =>
         gain.gain.setTargetAtTime(on ? 0.25 : 0, this.ctx.currentTime, 0.04),
+    };
+  }
+
+  // skřípění okolků v oblouku (flange squeal): vysoký kvílivý tón s pomalou modulací,
+  // hlasitost plynule řízená příčným zrychlením (≠ on/off brzd) — sílí v ostřejší zatáčce
+  private makeArcSquealVoice(): LevelVoice {
+    const osc = this.ctx.createOscillator();
+    osc.type = 'sawtooth';
+    osc.frequency.value = 2200;
+
+    const lfo = this.ctx.createOscillator();
+    lfo.frequency.value = 8;       // pomalejší než brzdový pískot → „kvílení", ne „skřípot"
+    const lfoGain = this.ctx.createGain();
+    lfoGain.gain.value = 120;
+    lfo.connect(lfoGain).connect(osc.frequency);
+
+    const band = this.ctx.createBiquadFilter();
+    band.type = 'bandpass';
+    band.frequency.value = 2200;
+    band.Q.value = 7;
+    const gain = this.ctx.createGain();
+    gain.gain.value = 0;
+    osc.connect(band).connect(gain).connect(this.master);
+    osc.start();
+    lfo.start();
+    return {
+      setLevel: (level) =>
+        gain.gain.setTargetAtTime(Math.max(0, Math.min(level, 1)) * 0.18, this.ctx.currentTime, 0.08),
     };
   }
 

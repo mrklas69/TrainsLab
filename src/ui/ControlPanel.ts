@@ -46,6 +46,11 @@ const SECTIONS: Section[] = [
       // = inženýrská konstanta, ne věc slideru), proto se s ním nemění.
       { key: 'trackAmplitude', label: 'Sklon (vlny terénu)', min: 0, max: 8, step: 0.2, unit: 'm',
         action: (h) => h.onAmplitudeChange() },
+      // rázy z trati (rozšíření kývání skříně): dilatační spáry (klikot ∝ rychlost) + skok křivosti
+      // / výhybky (boční trh). railLength = rozteč spár (vyšší = řidší tik, „svařovaná" na maximu);
+      // trackImpulse = síla rázů (0 = ideální hladká trať: svařeno + přechodnice).
+      { key: 'railLength', label: 'Rozteč spár', min: 5, max: 50, step: 1, unit: 'm' },
+      { key: 'trackImpulse', label: 'Síla rázů (kvalita trati)', min: 0, max: 0.05, step: 0.002, unit: '' },
     ],
   },
   {

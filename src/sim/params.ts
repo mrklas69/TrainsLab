@@ -23,6 +23,8 @@ export interface PhysicsParams {
   sandRate: number;          // spotřeba písku při pískování (kg/s)
   brakeForceMax: number;     // max brzdná síla lokomotivy (N)
   trackAmplitude: number;    // amplituda terénních vln pod tratí (m) — sklon pro slack action (DD-20); most fixní
+  railLength: number;        // m — rozteč dilatačních spár (klikot ∝ rychlost); velká = svařovaná kolej (bez tiku)
+  trackImpulse: number;      // bezrozm. síla rázů z trati (spáry + skok křivosti/výhybky); 0 = ideální hladká trať
   trackGauge: number;        // rozchod koleje (m) — báze kol, polovina = rameno proti převrácení
   comHeight: number;         // výška těžiště vozu nad kolejí (m) — páka odstředivky při převrácení
   suspensionFreq: number;    // Hz — vlastní frekvence kývání skříně (nižší = měkčí, víc se klopí)
@@ -53,6 +55,8 @@ export const DEFAULT_PARAMS: PhysicsParams = {
   sandRate: 5,
   brakeForceMax: 180_000,
   trackAmplitude: 4,
+  railLength: 20,       // klasická kolejnice ~18–25 m → tikot „klikety-klak" se škáluje rychlostí
+  trackImpulse: 0.012,  // jemné cuknutí skříně; 0 = dokonalá trať (svařovaná + přechodnice)
   trackGauge: 1.435, // normální rozchod
   comHeight: 1.2,    // těžiště níže posazeného vozu — práh převrácení výš, méně náchylné k vykolejení
   suspensionFreq: 0.6,     // pomalé houpání skříně (Hz)
