@@ -38,11 +38,12 @@ K obecným bodům globálního `%THINK` přidej:
 |--------|--------|-------|
 | sim | `sim/params.ts` | `PhysicsParams` — laditelné parametry, single source of truth |
 | sim | `sim/Track.ts` | arc-length křivka, `grade(s)`, `signedCurvature(s)`, `positionAt`, `rebuild` |
-| sim | `sim/trackData.ts` | ležatá osmička (Bernoulliho lemniskáta) + most (DD-12) |
+| sim | `sim/trackData.ts` | ležatá osmička (Bernoulliho lemniskáta); výška `Y` z terénu + most u křížení (DD-20) |
+| sim | `sim/terrain.ts` | `terrainHeight` — výšková matematika, single source pro sim (trať) i view (mesh), DD-20 |
 | sim | `sim/Body.ts` | 1D hmota (`s`,`v`), tření, rotační stav (kývání skříně, DD-13) |
 | sim | `sim/Coupler.ts` | pružina s vůlí — draft/buff, `mode`/`relVel`/`force` |
 | sim | `sim/Train.ts` | řetězec těles, integrace, trakce/adheze/brzda, palivo, příčná diagnostika |
-| view | `view/Renderer.ts` | Three.js — čistá funkce stavu → obraz; `DroneParams` (DD-19) |
+| view | `view/Renderer.ts` | Three.js — čistá funkce stavu → obraz; lowpoly terén/dekorace, párové koleje, most+pilíře (DD-20); `DroneParams` (DD-19) |
 | view | `view/AudioView.ts` | procedurální Web Audio — view nad simem (DD-01) |
 | ui | `ui/ControlPanel.ts` | slidery (dvouzdrojové params/drone) + status + tlačítka |
 | — | `main.ts` | skládá sim + view + ui, drží render loop |

@@ -27,6 +27,7 @@ jedna „proč", odkaz kam pro detaily. Nové DD přidávej sem i do diáře té
 | DD-17 | S14 | **Proměnná adheze + písek** — `railFactor` škáluje μ, písek (spotřební zásoba, held-key `P`) vrací suchou adhezi; sdílený `adhesionLimit`. | Jediné místo vstupu μ → platí pro tah i brzdu (jeden strop). |
 | DD-18 | S14 | **UX redesign ovládání** — status / dolní bar / modální dialog, CSS Grid `auto-fill`. | Ovládání se nevešlo na obrazovku, mobilně nepoužitelné. |
 | DD-19 | S15 | **Dron params jako `DroneParams` ve view**, ne v `PhysicsParams`. | Kamera je ryze view, nikdy nevstupuje do simu → drží DD-01 (precedent vypružení neplatí, to se počítá v simu). |
+| DD-20 | S17 | **Trať vede po povrchu terénu** — `Y = terrainHeight(x,z) + most(s)`; `sim/terrain.ts` = single source výšky pro sim i view. Nahrazuje most-profil `Y=amplitude·sin` z DD-12. Most u křížení je estakáda s **emergentními pilíři** (kde se trať odlepí od terénu). | Sklony pro slack action vznikají z krajiny (emergence > skript = nika projektu). Čistá projekce na terén neumí křížení (stejné (x,z) → kolize) → výška je funkce `s`, most ji u křížení zvedne. Pilíře emergentní = bez znalosti „kde je most". |
 
 *Pozn.: některá rozhodnutí v diáři nemají číslo DD (deploy přes Actions, slider sklonu, …) —
 nejsou architekturní, žijí jen v diáři.*

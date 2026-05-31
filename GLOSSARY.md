@@ -24,9 +24,11 @@ Termíny projektu. Anglické identifikátory v kódu, české vysvětlení.
 - **ležatá osmička (lemniskáta)** — tvar tratě (DD-12): křivka s jedním půdorysným křížením.
   Použita **Bernoulliho** (kulaté laloky) místo Gerono (špičaté, `r_min≈5 m` = nehratelné).
   Laloky = ostré zatáčky (`r≈33 m`), střed = inflexe (`r→∞`) → proměnný poloměr (esíčko).
-- **most / podjezd** — místo, kde se trať v půdorysu kříží: profil `Y=amplitude·sin(t)` vede
-  jeden průchod středem nahoře (most), druhý dole (podjezd). Most leží na inflexi osmičky
-  (podélná dynamika / slack), ostré laloky v rovině (příčná dynamika / převrácení).
+- **most / podjezd** — místo, kde se trať v půdorysu kříží (`t=π/2` i `t=3π/2` → týž bod (0,0)).
+  Trať jinak **vede po povrchu terénu** (`Y=terrainHeight`, DD-20); u křížení `bridgeLift(s)`
+  zvedne jednu větev na **most** (estakáda s pilíři), druhá zůstane na terénu = **podjezd** pod ním.
+  Výška je funkce `s` (ne (x,z)) — jinak by se obě větve ve středu protnuly. Most leží na inflexi
+  osmičky (podélná dynamika / slack), ostré laloky v rovině (příčná dynamika / převrácení).
 - **rozchod koleje (gauge)** — vzdálenost kolejnic (normální 1,435 m); polovina = rameno tíhy
   proti převrácení.
 - **výška těžiště (comHeight)** — výška těžiště vozu nad kolejí; páka, na kterou tlačí
@@ -116,6 +118,24 @@ Termíny projektu. Anglické identifikátory v kódu, české vysvětlení.
   překlopí na druhý konec a kamera plynule *přeletí*. **Hystereze** směru u `v≈0` (drží poslední, jinak
   slack-couvání třese dronem). Ryze view — parametry (`DroneParams`: výška/odstup/tuhost) mimo `PhysicsParams`,
   sim o kameře neví (DD-01).
+
+## Krajina a trať (view)
+- **lowpoly terén (heightfield)** — *(DD-20)* zvlněná deska, jejíž výšku dává `terrainHeight(x,z)`
+  (deterministický šum, amplituda vln roste se vzdáleností od středu — pod tratí mírné, na horizontu
+  kopce). **Single source** v `sim/terrain.ts` — čte ji sim (výška trati) i view (mesh). Barvení facet
+  podle výšky (louka → les → skála) je ryze view.
+- **faceting (flat shading)** — lowpoly vzhled = ostré ploché facety. Vzniká z `flatShading` +
+  `toNonIndexed`, ale **viditelný je až směrovým kontrastem světla** (nízký ambient + silné slunce);
+  rovnoměrné světlo facety setře, i kdyby byla geometrie zubatá.
+- **párové kolejnice / pražce** — vizuální ztvárnění tratě: dvě trubky offsetnuté ±rozchod/2 do
+  horizontální kolmice + příčné pražce (`InstancedMesh`). Sim zná jen osu koleje (`track.curve`, DD-02);
+  kolejnice jsou ryze vizuální offset.
+- **mostní pilíře** — *(DD-20)* svislé podpěry tam, kde se trať odlepí od terénu (most nad podjezdem).
+  **Emergentní**: žádná znalost „kde je most", staví se podle skutečného převýšení trati nad terénem
+  (`trackY − terrainHeight > práh`) → fungují i pro budoucí estakády/náspy.
+- **dekorace (stromy / kameny)** — faceted lowpoly: strom = kužel (koruna) + válec (kmen), kámen =
+  ikosaedr. `InstancedMesh`, deterministické rozmístění (`hash` z indexu) mimo zónu trati (`r > 180 m`).
+  Sedí na terénu, přestaví se se sliderem sklonu.
 
 ## Numerika a architektura
 - **semi-implicitní Euler** — integrátor: nejdřív rychlost z aktuálních sil, pak poloha.

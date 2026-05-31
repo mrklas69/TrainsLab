@@ -210,3 +210,26 @@ Dokončené úkoly. Detaily a rozhodnutí: `docs/diary/`.
 - `ControlPanel` — slider zobecněn na dva zdroje (`SliderDef.source?: 'drone'`, `buildSlider` nad `Record<string, number>`), sekce „Dron (kamera)".
 - **Reverz = přelet zdarma**: cíl se překlopí na druhý konec, tlumení doletí plynule (žádný zvláštní kód). lookAt = střed soupravy (volba uživatele proti návrhu „čelní vůz" — klidnější).
 - Ověřeno v prohlížeči (Playwright + Edge): snap při zapnutí, sledování za rozjezdu, přelet při reverzu, návrat k orbitu bez skoku, žádné JS chyby.
+
+## Sezení 17 (2026-05-31)
+
+### F4 — svět: lowpoly terén, párové koleje, trať na terénu, most s pilíři, stromy/kameny
+
+- **Lowpoly terén** — nový `sim/terrain.ts`: `terrainHeight(x,z,amplitude)` z deterministického šumu
+  (3 siny), amplituda vln roste se vzdáleností od středu (pod tratí mírné, na horizontu kopce HILL_H=45).
+  `Renderer.buildTerrain` — `PlaneGeometry` 48×48, `toNonIndexed` + `flatShading`, barva per-facetu dle výšky.
+- **Faceting** — vyšel hladký i přes flat shading; příčina = silný `HemisphereLight` (rovnoměrné světlo).
+  Oprava: ambient 1.0→0.55, slunce 1.5→2.0, segmenty 80→48 → lowpoly vzhled bez změny geometrie vln.
+- **Párové kolejnice + pražce** — `populateTrack`: dvě `TubeGeometry` po offset křivkách (±RAIL_GAUGE/2
+  do `tangent×UP`) + pražce `InstancedMesh`. `RAIL_RADIUS` 0.3→0.12 (štíhlé). `trackMesh`→`trackGroup`.
+- **DD-20 — trať vede po povrchu terénu** — `makeLoopControlPoints` počítá `Y=terrainHeight(x,z,amplitude)+
+  bridgeLift(t)`. Sklony pro slack action z krajiny (emergence). `bridgeLift` = gaussovský hrb kolem `t=π/2`
+  (most, clearance 8 m); `t=3π/2` zůstane na terénu (podjezd). `trackAmplitude` přemapován na amplitudu vln.
+- **Mostní pilíře** (`buildPiers`) — emergentní: kde `trackY − terrainHeight > 1.2 m`, postaví svislý
+  `InstancedMesh` box (scale Y = převýšení) od terénu ke kolejím. Žádná znalost „kde je most".
+- **Stromy + kameny** (`buildScenery`/`addTrees`/`addRocks`) — faceted lowpoly (Cone+Cylinder / Icosahedron),
+  `InstancedMesh`, deterministický `hash` rozmístění na mřížce s jitterem, jen `r∈(180,340)` (mimo trať),
+  nad `y>34` kameny. Přestaví se se sliderem sklonu (`rebuildTerrain` dispose+rebuild terén i dekoraci).
+- `main.ts` — amplituda předána rendereru; `onAmplitudeChange` přestaví terén + trať + dekoraci.
+- Build + `tsc` zelené. Ověřeno v prohlížeči (Playwright + Edge): trať na povrchu, most s pilíři čitelný,
+  faceting vidět, stromy/kameny na svazích, žádné JS chyby. Most clearance ověřena i node-výpisem (9.42 vs 1.42).

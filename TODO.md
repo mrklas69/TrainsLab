@@ -54,10 +54,18 @@ Kontext a rozhodnutí: viz `docs/diary/2026-05-29.md`.
       sdíleným `slipping` flagem (PROKLUZ + oranžová loko), s tolerancí (sucho neblikne). Izomorfní s tahem.
 
 ### F4 — záclony  *(bývalé F3)*
-- [ ] Lowpoly terén
-- [ ] Stromy, kameny (instancing)
-- [ ] Modely lokomotivy a vagonů (jeden cisterna)
-- [ ] Kamera/osvětlení pro „uspokojivé" pozorování
+- [x] **Lowpoly terén** *(S17)* — zvlněný heightfield (`sim/terrain.ts`), faceted flat shading
+      (směrový kontrast světla), barvení dle výšky (louka/les/skála). Single source výšky pro sim i view.
+- [x] **Párové kolejnice + pražce** *(S17)* — dvě trubky ±rozchod/2 + příčné pražce (`InstancedMesh`);
+      sim zná jen osu koleje (DD-02).
+- [x] **Trať vede po povrchu terénu** *(S17, DD-20)* — `Y=terrainHeight(x,z)+most(s)`; sklony pro slack
+      action vznikají z krajiny (emergence). `trackAmplitude` = amplituda terénních vln (slider sklonu).
+- [x] **Most u křížení + pilíře** *(S17, DD-20)* — `bridgeLift(s)` zvedne jednu větev (clearance 8 m);
+      **emergentní pilíře** tam, kde se trať odlepí od terénu (i pro budoucí estakády/náspy).
+- [x] **Stromy + kameny** *(S17)* — faceted lowpoly (kužel+kmen / ikosaedr), `InstancedMesh`,
+      deterministické rozmístění mimo zónu trati (`r>180`), sedí na terénu.
+- [ ] Modely lokomotivy a vagonů (jeden cisterna) — zatím kvádry
+- [~] Osvětlení doladěno pro lowpoly (S17); kamera „dron" hotová (S15). Volitelně: mostovka, mlha na horizontu
 - [x] **Auto-kamera „dron"** *(S15, DD-19)* — toggle `C` vypne OrbitControls/WASD a každý frame řídí
       kameru: pozice za+nad *zadním* vozem (dle směru jízdy), `lookAt` **střed soupravy** (volba uživatele,
       klidnější než čelo). Směr `sign(v)` s **hysterezí u `v≈0`**. **Reverz = přelet** (prohození konců →

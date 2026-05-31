@@ -62,9 +62,12 @@ Udělat z A2 měřitelné hypotézy, ne filozofování (proto Lab):
 - Každý experiment testuje jednu hypotézu.
 
 ## Vizualizace
-- Kamera „sledující" konkrétní vagon vs. nadhled celé smyčky. → **TODO** (S14, F4) —
-  konkretizováno jako **auto-kamera „dron"**: stabilizuje se za+nad zadním vozem, míří na čelní,
-  při reverzu přeletí na druhý konec. Rozpis (hystereze směru, lerp přelet, Lab knoby) v TODO.
+- Kamera „sledující" konkrétní vagon vs. nadhled celé smyčky. → **DONE** (S15) — **auto-kamera „dron"**
+  (toggle `C`): za+nad zadním vozem, lookAt střed soupravy, přelet při reverzu, hystereze směru (DD-19).
+- **Svět (F4)** → **DONE** (S17): lowpoly terén (heightfield, faceted), párové kolejnice + pražce,
+  **trať vede po povrchu** (sklony z krajiny, DD-20), most u křížení s emergentními pilíři, stromy + kameny.
+  *Otevřené (nezralé) doladění:* mostovka mezi pilíři; mlha na horizontu pro hloubku; hustota/velikost stromů;
+  barevná pásma terénu. *Modely lokomotivy/vagonů místo kvádrů* a *zvukové samply* zůstávají hlavní zbytek F4.
 - Vizuální zvýraznění napětí ve spřáhlech (barva / deformace) — fyzika viditelná.
   → DONE (S5) — koule-marker mezi vozy, barva dle `Coupler.mode`, jas ∝ `force`.
 - Stavový semafor lokomotivy (prokluz / brzda / tah / volnoběh barvou). → DONE (S5).

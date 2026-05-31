@@ -8,9 +8,9 @@ ignorují: nárazníky, vůli ve spřáhle, podélnou dynamiku.
 
 ### ▶ [Živé demo](https://mrklas69.github.io/TrainsLab/)
 
-Řiď parní lokomotivu se čtyřmi vagony po **ležaté osmičce** — trať se uprostřed kříží,
-jednou po mostě, podruhé pod ním. Ke svahu mostu se souprava natáhne a zpomalí, z klesání
-se rozjede a zhustí. Při rozjezdu kola prokluzují, na svahu drží parkovací brzda. A pozor
+Řiď parní lokomotivu se čtyřmi vagony po **ležaté osmičce** vedoucí **zvlněnou lowpoly krajinou**
+(les, balvany) — trať se uprostřed kříží, jednou po mostě (estakáda na pilířích), podruhé pod ním.
+Na stoupání krajiny se souprava natáhne a zpomalí, z klesání se rozjede a zhustí. Při rozjezdu kola prokluzují, na svahu drží parkovací brzda. A pozor
 na **ostré laloky**: vletíš-li do zatáčky moc rychle, odstředivka soupravu **převrátí**
 (vykolejení) — skříně se přitom **kývají** (naklánějí ven ze zatáčky, kývnou při trhu) a
 blízkost meze **žhne** na skříni. A hlídej **uhlí a vodu**: až dojdou (voda dřív), lokomotiva
@@ -61,7 +61,7 @@ hmotnosti (lokomotiva = adhezní tíha), odpory (gravitace, valivý, rozběhový
 spřáhlo (vůle / tuhost / tlumení), trakce (výkon, max tažná síla, adheze μ, **stav koleje** =
 sucho/mokro, brzda, průměr hnacího kola a mez pístové rychlosti = otáčkový strop), **pískování**
 (kapacita / spotřeba písku), příčnou
-dynamiku (rozchod koleje, výška těžiště — určují práh převrácení; výška mostu = sklon najezdu),
+dynamiku (rozchod koleje, výška těžiště — určují práh převrácení; amplituda terénních vln = sklon trati),
 vypružení skříně (frekvence / tlumení kývání) a palivo (kapacity a spotřeby uhlí / vody).
 Sekce **Dron** ladí kameru (výška / odstup / tuhost dohánění) — to je view, ne fyzika, takže žije
 mimo `params.ts` (drží DD-01).
@@ -75,7 +75,7 @@ mimo `params.ts` (drží DD-01).
 | **F2** | trakce & adheze — notch, prokluz, brzda jako řízené tření | ✅ |
 | **F6** | příčná dynamika — esíčko (osmička), most/podjezd, převrácení/vykolejení, kývání skříně, gradient meze | ✅ |
 | **F3** | palivo & zásoby — uhlí/voda (parní tlak), proměnná adheze + písek | ✅ |
-| **F4** | záclony — lowpoly terén, modely (zvuk: prototyp ✅) | ⬜ |
+| **F4** | záclony — lowpoly terén/most/stromy ✅, párové koleje ✅ (zvuk: prototyp ✅); modely vozů + samply ⬜ | 🚧 |
 | **F5** | sloshing kapaliny v cisterně → posun těžiště | ⬜ |
 
 Aktuální úkoly: [`TODO.md`](TODO.md) · hotové: [`DONE.md`](DONE.md).
@@ -88,7 +88,7 @@ vzniká až při renderu (DD-02).
 
 ```
 src/
-  sim/    fyzika — Track, trackData, params, Body, Coupler, Train
+  sim/    fyzika — Track, trackData, terrain, params, Body, Coupler, Train
   view/   výstupy — Renderer (Three.js), AudioView (procedurální Web Audio)
   ui/     ControlPanel (slidery + status + tlačítka)
   main.ts skládá sim + view + ui, drží render loop
