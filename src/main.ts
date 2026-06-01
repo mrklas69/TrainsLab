@@ -35,6 +35,7 @@ const actions: KeyAction[] = [
   { codes: ['KeyB', 'Space'], hint: 'B / mezerník', label: 'Brzda', preventDefault: true, run: () => train.toggleBrake() },
   // held-key: drž P → sype písek (zvedne adhezi), pusť → přestane. blur to taky vypne.
   { codes: ['KeyP'], hint: 'P (drž)', label: 'Písek', run: () => train.setSanding(true), onRelease: () => train.setSanding(false) },
+  { codes: ['KeyH'], hint: 'H', label: 'Houkačka', run: () => audio.playHorn() },
   { codes: ['KeyM'], hint: 'M', label: 'Zvuk', run: () => audio.toggleMute() },
   { codes: ['KeyC'], hint: 'C', label: 'Dron', run: () => renderer.toggleDrone() },
   { codes: ['KeyR'], hint: 'R', label: 'Reset', run: () => train.reset() },

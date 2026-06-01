@@ -4,10 +4,16 @@ import type { CouplerMode } from '../sim/Coupler';
 import type { ExhaustClock } from './ExhaustClock';
 
 const MASTER_VOLUME = 0.35;
+const BRAKE_REF_SPEED = 12; // m/s — rychlost, při níž hraje brzdová smyčka nominálně (playbackRate 1)
 
 /** Trvalý hlas (loop), který se jen plynule zapíná/vypíná — prokluz, skřípění brzd. */
 interface SustainVoice {
   setActive(on: boolean): void;
+}
+
+/** Trvalý hlas se zapínáním + řízenou rychlostí přehrávání (sample smyčka brzd ∝ otáčení kol). */
+interface RateVoice extends SustainVoice {
+  setRate(rate: number): void;
 }
 
 /** Trvalý hlas s plynule řízenou hlasitostí (0..1) — skřípění oblouku ∝ příčné zrychlení. */
@@ -47,6 +53,17 @@ export class AudioView {
   // se nedekóduje → playChuff padne na procedurální generátor (vždy zní něco).
   private chuffSample: AudioBuffer | null = null;
 
+  // trvalý hlas úniku páry (sample loop): syčí kotel pod tlakem — hraje, dokud je pára
+  // (steamPressure > 0), umlkne po vyčerpání zásob. Vznikne až po načtení samplu.
+  private steamLeak: SustainVoice | null = null;
+
+  // houkačka (one-shot na vyžádání) — null dokud se nenačte; bez fallbacku (procedurální houkačka není)
+  private hornSample: AudioBuffer | null = null;
+
+  // brzdy (sample smyčka s náhodnými hranicemi): hraje za jízdy, dokud se brzdí; rychlost
+  // přehrávání ∝ rychlost (= otáčení kol). Hybrid — chybí sample → procedurální skřípění. null do načtení.
+  private brakeLoop: RateVoice | null = null;
+
   constructor(train: Train, private readonly params: PhysicsParams, private readonly exhaust: ExhaustClock) {
     this.ctx = new AudioContext();
     this.master = this.ctx.createGain();
@@ -61,6 +78,21 @@ export class AudioView {
 
     // asynchronně natáhni samply (fire-and-forget; do načtení hraje procedurální fallback)
     void this.loadSample('steam_chuff.wav').then((buf) => (this.chuffSample = buf));
+    // únik páry: loop 1.–11. s na 1/3 hlasitosti, řízený stavem páry (viz update)
+    void this.loadSample('steam_leak.wav').then((buf) => {
+      if (buf) this.steamLeak = this.makeSampleLoop(buf, 1 / 3, 1, 11);
+    });
+    void this.loadSample('horn_on.wav').then((buf) => (this.hornSample = buf));
+    // brzdy: smyčka s náhodnými hranicemi (loopStart ∈ [0,1; 0,3], loopEnd ∈ [0,6; 0,9] délky),
+    // přenastavovanými po každém průchodu → rozbije periodicky slyšitelný šev pevné smyčky.
+    void this.loadSample('brakes_on.wav').then((buf) => {
+      if (buf) this.brakeLoop = this.makeRandomizedLoop(buf, 0.8, [0.1, 0.3], [0.6, 0.9]);
+    });
+  }
+
+  /** Zahoukání (one-shot) — vyvolané tlačítkem/klávesou. Bez samplu se nic nestane. */
+  playHorn(): void {
+    if (this.hornSample) this.playSample(this.hornSample, 2.7); // hlasitá houkačka (3× proti běžným hlasům)
   }
 
   /**
@@ -88,6 +120,80 @@ export class AudioView {
     src.start();
   }
 
+  /**
+   * Trvalý hlas ze smyčky samplu (analogie procedurálních SustainVoice, jen z nahrávky):
+   * zdroj běží pořád, slyšitelnost řídí jen gain (0 ↔ `volume`). Loopuje úsek
+   * [`loopStart`, `loopEnd`] sekund. `start()` lze volat jen jednou — voice se proto
+   * vytvoří jednou (po načtení bufferu); na suspended kontextu se rozběhne až po `resume`.
+   */
+  private makeSampleLoop(buffer: AudioBuffer, volume: number, loopStart: number, loopEnd: number): SustainVoice {
+    const src = this.ctx.createBufferSource();
+    src.buffer = buffer;
+    src.loop = true;
+    src.loopStart = loopStart;
+    src.loopEnd = loopEnd;
+    const gain = this.ctx.createGain();
+    gain.gain.value = 0; // start zticha, update ho zapne podle stavu
+    src.connect(gain).connect(this.master);
+    src.start();
+    return {
+      setActive: (on) => gain.gain.setTargetAtTime(on ? volume : 0, this.ctx.currentTime, 0.15),
+    };
+  }
+
+  /**
+   * Sample smyčka s **náhodnými hranicemi**, přenastavovanými po každém průchodu. Loop běží
+   * plynule (`loop=true`, bez gapů), ale `loopStart`/`loopEnd` se po době jednoho průchodu
+   * přelosují v zadaných rozsazích (zlomky délky) → smyčka nemá pevnou periodu, takže šev
+   * není slyšet jako pravidelné lupnutí. Timer ladí přenastavení do rytmu segmentů.
+   * `setActive` vytvoří/zruší zdroj na hranách (lze volat každý frame).
+   */
+  private makeRandomizedLoop(buffer: AudioBuffer, volume: number, startRange: [number, number], endRange: [number, number]): RateVoice {
+    const dur = buffer.duration;
+    const rand = (lo: number, hi: number): number => lo + Math.random() * (hi - lo);
+    let src: AudioBufferSourceNode | null = null;
+    let gain: GainNode | null = null;
+    let timer: number | undefined;
+
+    // přelosuj hranice a naplánuj další přelosování po délce právě nastaveného úseku
+    const reshuffle = (): void => {
+      if (!src) return;
+      const ls = rand(startRange[0], startRange[1]) * dur;
+      const le = rand(endRange[0], endRange[1]) * dur;
+      src.loopStart = ls;
+      src.loopEnd = le;
+      timer = window.setTimeout(reshuffle, (le - ls) * 1000);
+    };
+
+    return {
+      setActive: (on) => {
+        if (on && !src) {
+          src = this.ctx.createBufferSource();
+          src.buffer = buffer;
+          src.loop = true;
+          const ls = rand(startRange[0], startRange[1]) * dur;
+          src.loopStart = ls;
+          src.loopEnd = rand(endRange[0], endRange[1]) * dur;
+          gain = this.ctx.createGain();
+          gain.gain.value = volume;
+          src.connect(gain).connect(this.master);
+          src.start(0, ls); // začni od první náhodné hranice
+          timer = window.setTimeout(reshuffle, (src.loopEnd - ls) * 1000);
+        } else if (!on && src) {
+          if (timer !== undefined) clearTimeout(timer);
+          gain!.gain.setTargetAtTime(0, this.ctx.currentTime, 0.08); // fade out, ať konec nelupne
+          src.stop(this.ctx.currentTime + 0.3);
+          src = null; // uvolni → příští zabrzdění začne znovu
+          gain = null;
+        }
+      },
+      // rychlost přehrávání ∝ otáčení kol (skřípění zrychluje/zpomaluje s vlakem); plynule, ať netrhá
+      setRate: (rate) => {
+        if (src) src.playbackRate.setTargetAtTime(rate, this.ctx.currentTime, 0.05);
+      },
+    };
+  }
+
   /** Prohlížeč povolí zvuk až po interakci uživatele — voláno z prvního vstupu. */
   resume(): void {
     if (this.ctx.state === 'suspended') void this.ctx.resume();
@@ -110,7 +216,18 @@ export class AudioView {
     if (train.switchFired) this.playClunk(0.7);     // výhybka / křížení — tupý náraz
     if (train.transitionJerkFired) this.playArcJerk(); // skok křivosti — krátké boční skřípnutí
     this.slip.setActive(train.slipping);
-    this.squeal.setActive(train.isBraking && Math.abs(train.speed) > 0.3);
+    // brzdy skřípou jen za jízdy (tření kolo↔špalík) — stojící vlak s brzdou je tichý.
+    // Sample smyčka má přednost (rychlost přehrávání ∝ otáčení kol), jinak procedurální skřípění.
+    const speed = Math.abs(train.speed);
+    const braking = train.isBraking && speed > 0.3;
+    if (this.brakeLoop) {
+      this.brakeLoop.setActive(braking);
+      // playbackRate ∝ rychlost; clamp ať při krajních rychlostech nezní extrémně hluboce/pištivě
+      this.brakeLoop.setRate(Math.min(2.2, Math.max(0.4, speed / BRAKE_REF_SPEED)));
+    } else {
+      this.squeal.setActive(braking);
+    }
+    this.steamLeak?.setActive(train.steamPressure > 0); // syčí, dokud je kotel pod párou
     // skřípění oblouku ∝ příčné zrychlení (v²·κ); práh převrácení ≈ 6 m/s² → /4 doplna před mezí
     this.arc.setLevel(Math.min(train.lateralAcceleration / 4, 1));
   }
@@ -239,30 +356,37 @@ export class AudioView {
     };
   }
 
-  // skřípění brzd: vysoký pilový tón s lehkou modulací (ne čistý tón) přes bandpass
+  // skřípění brzd: skřípání kovu o kov složené ze **tří neharmonických** vysokých frekvencí
+  // (disonance = „skříp", ne hudební tón), každá s vlastním pomalým jitterem frekvence →
+  // nestabilní, neperiodické škrundání. Složky sečtené přes společný bandpass; hlasitost on/off.
   private makeSquealVoice(): SustainVoice {
-    const osc = this.ctx.createOscillator();
-    osc.type = 'sawtooth';
-    osc.frequency.value = 3200;
-
-    const lfo = this.ctx.createOscillator();
-    lfo.frequency.value = 30;
-    const lfoGain = this.ctx.createGain();
-    lfoGain.gain.value = 220; // hloubka kmitání frekvence → „skřípání"
-    lfo.connect(lfoGain).connect(osc.frequency);
-
-    const band = this.ctx.createBiquadFilter();
-    band.type = 'bandpass';
-    band.frequency.value = 3200;
-    band.Q.value = 5;
     const gain = this.ctx.createGain();
     gain.gain.value = 0;
-    osc.connect(band).connect(gain).connect(this.master);
-    osc.start();
-    lfo.start();
+    const band = this.ctx.createBiquadFilter();
+    band.type = 'bandpass';
+    band.frequency.value = 3000;
+    band.Q.value = 1.2; // širší pásmo než u jednoho tónu — projdou všechny tři složky
+    band.connect(gain).connect(this.master);
+
+    // neharmonické poměry (ne celočíselné násobky základní) → kovová disonance místo tónu
+    const freqs = [2150, 3070, 4350];
+    const lfoRates = [24, 31, 39]; // různé rychlosti jitteru → složitá modulace bez slyšitelné periody
+    freqs.forEach((f, i) => {
+      const osc = this.ctx.createOscillator();
+      osc.type = 'sawtooth';
+      osc.frequency.value = f;
+      const lfo = this.ctx.createOscillator();
+      lfo.frequency.value = lfoRates[i];
+      const lfoGain = this.ctx.createGain();
+      lfoGain.gain.value = f * 0.04; // hloubka kmitání ∝ frekvence → výraznější „skřípání"
+      lfo.connect(lfoGain).connect(osc.frequency);
+      osc.connect(band);
+      osc.start();
+      lfo.start();
+    });
     return {
       setActive: (on) =>
-        gain.gain.setTargetAtTime(on ? 0.25 : 0, this.ctx.currentTime, 0.04),
+        gain.gain.setTargetAtTime(on ? 0.2 : 0, this.ctx.currentTime, 0.04), // 3 zdroje → mírně níž
     };
   }
 
