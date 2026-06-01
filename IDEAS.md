@@ -95,10 +95,11 @@ Udělat z A2 měřitelné hypotézy, ne filozofování (proto Lab):
   Web Audio. Mapuje události: chuff (výfuk páry ∝ rychlost), clank/náraz spřáhla (∝ relVel),
   sykot prokluzu, skřípění brzd. → DONE (prototyp); samply jsou F4.
 - **Vyměnit generátor za nahrané samply** (F4) — izomorfně s vyměnitelným rendererem.
-  **Hybrid vrstva realizována S23** (`loadSample` přes `BASE_URL` + `decodeAudioData`, `playSample`,
-  fallback na procedurální). První sample `steam_chuff.wav` napojen na chuff (spouštěč `ExhaustClock.fired`).
-  Zbývá 7 zvuků z manifestu — každý = `loadSample` + hybrid větev v `play*`. `.wav` se ukázal bezpečnější
-  než `.m4a` (PCM dekóduje každý prohlížeč; AAC na Firefoxu vrtkavé).
+  **Hybrid vrstva realizována S23–S24** (`loadSample` přes `BASE_URL` + `decodeAudioData`; tvary hlasů:
+  `playSample` one-shot, `makeSampleLoop` trvalý loop, `makeRandomizedLoop`/`RateVoice` loop s náhodnými
+  hranicemi + rychlostí). **4 z 8:** chuff (`ExhaustClock.fired`), únik páry (∝ parní tlak), houkačka
+  (tlačítko/H), brzdy (náhodné hranice proti švu + `playbackRate` ∝ rychlost, jen za jízdy). Zbývá: clank,
+  clunk, rail-tick, arc-jerk / loopy (slip, arc-squeal). `.wav` bezpečnější než `.m4a` (AAC na Firefoxu vrtkavé).
   Otevřené zdroje ověřené rešerší (S3):
   - výfuk páry: Wikimedia Commons `Steam_engine.ogg` — **Public Domain** (0-4-0 do kopce);
     freesound Benboncan „Trains" pack (CC-BY).

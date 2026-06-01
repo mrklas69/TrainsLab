@@ -144,10 +144,20 @@ Termíny projektu. Anglické identifikátory v kódu, české vysvětlení.
 - **clunk výhybky vs. trh přechodnice** — odlišené zvuky bodových perturbací (S20): výhybka/křížení
   (`switchFired`) = tupý kovový clunk; skok křivosti (`transitionJerkFired`) = krátké skřípnutí
   (`playArcJerk`, sklouznutí frekvence dolů — příbuzné trvalému skřípění oblouku, ale jednorázové).
-- **AudioView** — zvuk jako další „view" nad simem (DD-01): čte stav, ozvučuje události (chuff,
-  clank/náraz spřáhla, sykot prokluzu, skřípění brzd, tikot spár, skřípění oblouku, clunk výhybky,
-  trh přechodnice). **Hybrid** (S23): nahrané samply z `public/audio/` (`loadSample` přes `BASE_URL` +
-  `decodeAudioData`), s fallbackem na procedurální generátor — když sample chybí/nenačte, vždy zní něco.
+- **únik páry (steam leak)** — *(S24)* syčení kotle pod tlakem: sample smyčka (`makeSampleLoop`, úsek
+  1.–11. s na 1/3 hlasitosti) běžící pořád, slyšitelná dokud `steamPressure > 0` (po vyčerpání zásob utichne).
+- **houkačka (horn)** — *(S24)* one-shot na vyžádání (tlačítko / klávesa H), `playHorn`. Hlasitá (3× nad
+  běžné hlasy). Bez procedurálního fallbacku.
+- **brzdy (sample)** — *(S24)* `makeRandomizedLoop`: smyčka, jejíž hranice (`loopStart ∈ [0,1;0,3]`,
+  `loopEnd ∈ [0,6;0,9]` délky) se **přelosují po každém průchodu** → šev pevné smyčky se neozývá periodicky.
+  `playbackRate ∝ rychlost` (= otáčení kol, `RateVoice.setRate`), aktivní jen za jízdy (`isBraking && |v|>0,3`)
+  → stojící vlak s brzdou je tichý. Fallback = procedurální skřípění (3 neharmonické frekvence se jitterem).
+- **AudioView** — zvuk jako další „view" nad simem (DD-01): čte stav, ozvučuje události (chuff, únik páry,
+  houkačka, clank/náraz spřáhla, sykot prokluzu, skřípění/sample brzd, tikot spár, skřípění oblouku, clunk
+  výhybky, trh přechodnice). **Hybrid** (S23–S24): nahrané samply z `public/audio/` (`loadSample` přes
+  `BASE_URL` + `decodeAudioData`), s fallbackem na procedurální generátor — když sample chybí/nenačte, vždy
+  zní něco. Tvary hlasů: one-shot (`playSample`), trvalý loop (`makeSampleLoop`), loop s náhodnými hranicemi
+  + rychlostí (`makeRandomizedLoop`/`RateVoice`).
 
 ## Kamera (view)
 - **dron (auto-kamera)** — *(DD-19)* režim kamery (toggle `C`), který sleduje soupravu zezadu-shora

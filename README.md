@@ -77,7 +77,7 @@ mimo `params.ts` (drží DD-01).
 | **F2** | trakce & adheze — notch, prokluz, brzda jako řízené tření | ✅ |
 | **F6** | příčná dynamika — esíčko (osmička), most/podjezd, převrácení/vykolejení, kývání skříně, gradient meze, rázy z trati (spáry / skok křivosti) | ✅ |
 | **F3** | palivo & zásoby — uhlí/voda (parní tlak), proměnná adheze + písek | ✅ |
-| **F4** | záclony — lowpoly terén/most/stromy ✅, párové koleje ✅, modely vozů (kola + hnací spojnice + prokluz) ✅, kouř z komína (sladěný s výfukem) ✅; zvuk: procedurální ✅ + hybrid samply 🚧 (1 z 8) | 🚧 |
+| **F4** | záclony — lowpoly terén/most/stromy ✅, párové koleje ✅, modely vozů (kola + hnací spojnice + prokluz) ✅, kouř z komína (sladěný s výfukem) ✅; zvuk: procedurální ✅ + hybrid samply 🚧 (4 z 8: chuff, únik páry, houkačka, brzdy) | 🚧 |
 | **F5** | sloshing kapaliny v cisterně → posun těžiště | ⬜ |
 
 Aktuální úkoly: [`TODO.md`](TODO.md) · hotové: [`DONE.md`](DONE.md).

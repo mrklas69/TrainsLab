@@ -79,10 +79,15 @@ Kontext a rozhodnutí: viz `docs/diary/2026-05-29.md`.
       cíl skočí, tlumení `α=1−exp(−tuhost·dt)` doletí plynule; snap při zapnutí = bez letáku přes mapu).
       Params mimo fyziku (`DroneParams` ve view, DD-01), slidery Dron: výška / odstup / tuhost dohánění.
 - [~] Zvuk: prototyp `AudioView` hotový (procedurální) *(S3, vědomě předsunuto)*
-- [~] Zvuk: vyměnit procedurální generátor za nahrané samply *(S23: hybrid loader hotový — `loadSample` přes
-      `BASE_URL` + `decodeAudioData`, `playSample`, fallback na procedurální; první sample `steam_chuff.wav`
-      napojen na chuff. Zbývá 7 zvuků z manifestu — každý = `loadSample` + hybrid větev v `play*`. `ExhaustClock`
-      jako sdílený rytmus výfuku zavedený, DD-23)*
+- [~] Zvuk: vyměnit procedurální generátor za nahrané samply *(S23–S24: hybrid vrstva — `loadSample` přes
+      `BASE_URL` + `decodeAudioData`. **4 z 8 zvuků:** `steam_chuff` (chuff, takt `ExhaustClock`),
+      `steam_leak` (loop 1–11 s ∝ parní tlak, `makeSampleLoop`), `horn_on` (houkačka `playHorn` + tlačítko/H),
+      `brakes_on` (`makeRandomizedLoop` — náhodné hranice proti švu + `playbackRate` ∝ rychlost, jen za jízdy).
+      Zbývá: clank, clunk, rail-tick, arc-jerk (one-shoty) / slip, arc-squeal (loopy) — každý `loadSample` +
+      hybrid větev v `play*`. Fallbacky procedurální (skřípení brzd = 3-frekvenční složení).)*
+- [ ] **Chuff při vysokých otáčkách zní jako kulomet** — pufy jsou tak husté (4×/otáčku × vysoké otáčky),
+      že jednotlivá zahoukání splynou v rachot. Možná řešení: nad prahem frekvence chuff ztišit/zkrátit,
+      nebo plynule přejít na kontinuální sykot (crossfade puf → loop), případně snížit `PULSES_PER_REV` při rychlosti.
 
 ## Příčná dynamika — oblouky & vykolejení  *(S6, Úroveň A — drží DD-02; F-osu doladit v README)*
 - [x] `Track.radius(s)` — lokální poloměr oblouku z křivosti **horizontálního průmětu** (XZ);
