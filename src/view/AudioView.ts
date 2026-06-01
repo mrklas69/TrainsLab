@@ -15,6 +15,7 @@ const MASTER_VOLUME = 0.35;
 const BRAKE_FUSE_SPEED = 3.8; // m/s — nad tím už playbackRate neroste
 const BRAKE_RATE_MIN = 0.5;   // sotva jede → hluboké pomalé skřípání
 const BRAKE_RATE_MAX = 1.15;  // od BRAKE_FUSE_SPEED výš → strop, jen mírně zrychlené (žádná vrtačka)
+const RAIL_REF_SPEED = 12;    // m/s — rychlost, při níž hraje smyčka klapotu spár nominálně (playbackRate 1)
 
 /** Trvalý hlas se zapínáním + řízenou rychlostí přehrávání (sample smyčka brzd ∝ otáčení kol). */
 interface RateVoice extends SustainVoice {
@@ -64,6 +65,11 @@ export class AudioView {
   // přehrávání ∝ rychlost (= otáčení kol). Hybrid — chybí sample → procedurální skřípění. null do načtení.
   private brakeLoop: RateVoice | null = null;
 
+  // klapot dilatačních spár (sample smyčka): souvislá nahrávka klapotu kol přes spáry, hraje
+  // za jízdy; playbackRate ∝ rychlost → frekvence klapotu přímo úměrná rychlosti. Hybrid —
+  // chybí sample → self-timed procedurální tikot (interval railLength/v, updateRailJoints). null do načtení.
+  private railLoop: RateVoice | null = null;
+
   constructor(train: Train, private readonly params: PhysicsParams, private readonly exhaust: ExhaustClock) {
     this.ctx = new AudioContext();
     this.master = this.ctx.createGain();
@@ -86,7 +92,11 @@ export class AudioView {
     // brzdy: smyčka s náhodnými hranicemi (loopStart ∈ [0,1; 0,3], loopEnd ∈ [0,6; 0,9] délky),
     // přenastavovanými po každém průchodu → rozbije periodicky slyšitelný šev pevné smyčky.
     void this.loadSample('brakes_on.wav').then((buf) => {
-      if (buf) this.brakeLoop = this.makeRandomizedLoop(buf, 0.8, [0.1, 0.3], [0.6, 0.9]);
+      if (buf) this.brakeLoop = this.makeRandomizedLoop(buf, 1.6, [0.1, 0.3], [0.6, 0.9]);
+    });
+    // klapot spár: prostá smyčka celé nahrávky + řízená rychlost přehrávání (frekvence ∝ rychlost)
+    void this.loadSample('clattering_wheels.wav').then((buf) => {
+      if (buf) this.railLoop = this.makeRateLoop(buf, 1.2);
     });
   }
 
@@ -138,6 +148,25 @@ export class AudioView {
     src.start();
     return {
       setActive: (on) => gain.gain.setTargetAtTime(on ? volume : 0, this.ctx.currentTime, 0.15),
+    };
+  }
+
+  /**
+   * Prostá smyčka celé nahrávky s řízenou rychlostí přehrávání (jako {@link makeSampleLoop},
+   * navíc `setRate`). Na rozdíl od {@link makeRandomizedLoop} hranice nelosuje — klapot spár
+   * MÁ být periodický; `playbackRate` ∝ rychlost zrychluje klapot (frekvence úměrná rychlosti).
+   */
+  private makeRateLoop(buffer: AudioBuffer, volume: number): RateVoice {
+    const src = this.ctx.createBufferSource();
+    src.buffer = buffer;
+    src.loop = true;
+    const gain = this.ctx.createGain();
+    gain.gain.value = 0; // start zticha, update ho zapne podle stavu
+    src.connect(gain).connect(this.master);
+    src.start();
+    return {
+      setActive: (on) => gain.gain.setTargetAtTime(on ? volume : 0, this.ctx.currentTime, 0.12),
+      setRate: (rate) => src.playbackRate.setTargetAtTime(rate, this.ctx.currentTime, 0.05),
     };
   }
 
@@ -214,7 +243,9 @@ export class AudioView {
     // nepracuje → žádný výfuk, i když vlak dojíždí setrvačností s otevřeným regulátorem.
     if (this.exhaust.fired && train.notch !== 0 && train.steamPressure > 0) this.playChuff();
     this.updateCouplers(train);
-    this.updateRailJoints(train, dt);
+    // klapot spár: sample smyčka (frekvence ∝ rychlost) má přednost, jinak self-timed procedurální tikot
+    if (this.railLoop) this.updateRailLoop(train);
+    else this.updateRailJoints(train, dt);
     if (train.switchFired) this.playClunk(0.7);     // výhybka / křížení — tupý náraz
     if (train.transitionJerkFired) playArcJerk(this.ctx, this.master); // skok křivosti — krátké boční skřípnutí
     this.slip.setActive(train.slipping);
@@ -267,6 +298,17 @@ export class AudioView {
 
   private playRailTick(): void {
     playMetalHit(this.ctx, this.master, [90, 150, 240], 0.05, 0.45); // nízký tupý „klak" — krátký, kovově temný
+  }
+
+  // klapot spár ze samplu (hybrid varianta updateRailJoints): souvislá smyčka klapotu, jejíž
+  // rychlost přehrávání ∝ rychlost vlaku → frekvence klapotu přímo úměrná rychlosti. Aktivní za
+  // stejných podmínek jako self-timed tikot (jede + kvalita trati + nesvařovaná kolej).
+  private updateRailLoop(train: Train): void {
+    const speed = Math.abs(train.speed);
+    const active = this.params.trackImpulse > 0 && this.params.railLength > 0 && speed > 0.5;
+    this.railLoop!.setActive(active);
+    // playbackRate ∝ rychlost; clamp ať při krajních rychlostech klapot nezamrzne / nezní jako chipmunk
+    this.railLoop!.setRate(Math.min(2.0, Math.max(0.4, speed / RAIL_REF_SPEED)));
   }
 
   private playChuff(): void {
