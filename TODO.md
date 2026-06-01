@@ -136,9 +136,7 @@ Sjednocený balík: nespojitosti trati → impulsy do **existujících** roll/pi
       Nahradilo minimalizační toggle. Tlačítko písku jako press-hold (pointer events, drž = sype).
 
 ## Backlog / později
-- [ ] Davisův lineární člen odporu `B·v`; křivkový odpor v obloucích
+- [ ] Křivkový odpor v obloucích (Davisův lineární člen `B·v` hotov S26)
 - [ ] Rotační setrvačnost hmot (rotating mass factor)
-- [ ] **Split `Renderer.ts`** *(S18, KO3)* — 567 ř. mísí kameru (orbit/dron/WASD) + stavbu světa
-      (terén/scenérie/trať/pilíře) + render aktérů; SLAP kandidát na `CameraController`. Až poroste s modely vozů.
 - Dlouhodobé / nezralé nápady (sloshing F5, průběžná brzda, jiskry, hypotézy o „uspokojení",
   dynamický prokluz) → **IDEAS.md** (single source pro nezralé).

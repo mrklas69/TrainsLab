@@ -50,12 +50,11 @@ Koncept a kontext: viz `docs/diary/2026-05-29.md`.
   κ-trh), zvuk výhybky (clunk) odlišen od trhu přechodnice (skřípnutí). Pozice ověřeny profilem κ.
 - **Brzdy soupravy** — pneumatická soustava, prodleva šíření tlaku soupravou (další vlna).
   (Brzda lokomotivy hotová v F2; v S3 přepsána na řízené tření — souboj sil, DD-09.)
-- **`μ(v)` brzdy** *(→ TODO, S25)* — součinitel tření špalíkové brzdy mírně klesá s rychlostí →
-  decelerace *roste*, jak vlak zpomaluje (konkávní profil místo čistě lineárního). Fyzikálně podložený
-  „pocit" zpomalení, o který šlo v diskusi S25 (brzdný model je jinak korektní: Coulomb → lineární `v(t)`,
-  brzdná dráha ∝ v²). Malý čistý řez: škálovat `brakeForce` faktorem klesajícím s `|v|`, beze změny
-  lineárního základu při nízké rychlosti. Alternativa/doplněk: Davisův `B·v` člen odporu (→ backlog TODO,
-  zlepší hlavně **dojezd** bez brzdy, ne brzdění).
+- **`μ(v)` brzdy** *(→ DONE, S26)* — součinitel tření špalíkové brzdy klesá s rychlostí →
+  decelerace *roste*, jak vlak zpomaluje (konkávní profil místo čistě lineárního). Realizováno jako
+  `brakeFadeFactor = (1−fade) + fade/(1+k·|v|)` škálující brzdnou sílu: `f(0)=1` (Coulombův základ S25
+  zachován), `f(∞)=1−fade` (asymptota — tření nezmizí), `brakeFade=0` = konstantní. Skid-check proti
+  faded síle. Davisův `B·v` člen odporu **také DONE (S26)** — dokompletoval `R=A+B·v+C·v²`, zlepší dojezd.
 - **Dynamický prokluz** → TODO (rozšíření F2) — kolo s vlastní setrvačností + creep křivka
   (μ roste do ~1–2 % skluzu, pak padá). Doslovné „roztáčení kol", ne jen clamp. Pak písek.
 - **Mokrá kolej + písek** → DONE (S14, DD-17) — `railFactor` (stav koleje) škáluje adhezi, písek

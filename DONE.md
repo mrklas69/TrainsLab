@@ -211,6 +211,12 @@ Dokončené úkoly. Detaily a rozhodnutí: `docs/diary/`.
 - **Reverz = přelet zdarma**: cíl se překlopí na druhý konec, tlumení doletí plynule (žádný zvláštní kód). lookAt = střed soupravy (volba uživatele proti návrhu „čelní vůz" — klidnější).
 - Ověřeno v prohlížeči (Playwright + Edge): snap při zapnutí, sledování za rozjezdu, přelet při reverzu, návrat k orbitu bez skoku, žádné JS chyby.
 
+## Sezení 16 (2026-05-31)
+
+### `%CALIBRATE` — řídící dokumenty AI (poprvé za život projektu; údržbové, bez kódu)
+- Založen `docs/PROMPTS.md` (projektová makra `%BEGIN`/`%END`), `docs/DESIGN_DECISIONS.md` (rejstřík DD-01…19), projektový `CLAUDE.md` (AI overlay, izomorfní s PocketStory).
+- Permission cleanup v `.claude/settings.local.json`; paměti projektu povýšeny do gitu.
+
 ## Sezení 17 (2026-05-31)
 
 ### F4 — svět: lowpoly terén, párové koleje, trať na terénu, most s pilíři, stromy/kameny
@@ -233,6 +239,14 @@ Dokončené úkoly. Detaily a rozhodnutí: `docs/diary/`.
 - `main.ts` — amplituda předána rendereru; `onAmplitudeChange` přestaví terén + trať + dekoraci.
 - Build + `tsc` zelené. Ověřeno v prohlížeči (Playwright + Edge): trať na povrchu, most s pilíři čitelný,
   faceting vidět, stromy/kameny na svazích, žádné JS chyby. Most clearance ověřena i node-výpisem (9.42 vs 1.42).
+
+## Sezení 18 (2026-05-31)
+
+### `%AUDIT:CODE` — úklid po DD-20/DD-18 (LOC práh; 0 funkčních bugů; build + `tsc` zelené)
+- **K1:** zastaralý UI label „výška mostu" → „Sklon (vlny terénu)" + zastaralé komentáře po DD-20 (trať na terénu) a DD-18 (UX redesign).
+- **D2/D3:** drobné narovnání komentářů/terminologie k aktuálnímu stavu.
+- **KO1:** `grade` volán bez pozice; **KO2:** sdílená geometrie spřáhel (méně alokací).
+- **KO3:** split `Renderer.ts` (567 ř., mísí kameru + svět + aktéry) → odloženo do backlogu (realizováno S25).
 
 ## Sezení 19 (2026-05-31)
 
@@ -273,6 +287,13 @@ křivosti. Sjednoceno do **jednoho balíku** „rázy z trati" — impulsy do ex
 - `Train.ts` — větvení dle `kind` v `applyTrackImpulses` (`scale≤0` přeskočí ráz i jeho zvuk).
   `ControlPanel.ts` — slider „Přechodnice (kvalita oblouků)". `tsc` + build zelené; smoke test bez JS chyb.
 
+## Sezení 21 (2026-05-31)
+
+### Příprava sample vrstvy `AudioView` (bez kódu)
+- Manifest **8 zvuků 1:1 s hlasy** `AudioView` (one-shot vs. seamless loop) — délky, charakter, licence do `IDEAS.md`.
+- Volba knihoven (Pixabay / Freesound CC0; vyhnout se BBC RemArc, NC, Zapsplat). Fallback = **hybrid** (sample → padni na procedurální).
+- Soubory shání uživatel (Freesound vyžaduje login).
+
 ## Sezení 22 (2026-06-01)
 
 *Přechod na nový stroj (mrkla) — kontinuita ověřena: `git pull` natáhl S13–S21 (fast-forward, čistá historie), `tsc` zelený i na mrkla, `public/audio/` chybí dle stavu S21. Stale „Příště" (modely vozů, 5 sezení) → DO.*
@@ -296,6 +317,31 @@ křivosti. Sjednoceno do **jednoho balíku** „rázy z trati" — impulsy do ex
 - **Iterace dle feedbacku:** loko otočeno o 180° (vnitřní `model` skupina) — přída po směru jízdy;
   skříně zvednuty nad kola (`bodyGroup` posun o poloměr kola) — kola nejsou „utopená"; směr spojnice
   i vagonových kol opraven. `tsc` + build zelené. Uživatel: **„Prokluzy parádní!"**, „Test OK".
+
+## Sezení 23 (2026-06-01)
+
+### Propracovaný kouř + sdílený rytmus výfuku (DD-23) + start hybrid sample vrstvy
+- **`view/SmokeView.ts`** — pool faceted obláčků (ikosaedry, flatShading) emitovaných z ústí komína loko.
+  Žijí ve **world-space** → jak loko ujede, kouř visí a vzniká **vlečka emergentně** (bez skriptu). Hustota/
+  velikost/**tmavost** ∝ `throttleFraction·steamPressure` (uhlíkový kouř ↔ světlá pára), idle obláčky při notch 0.
+- **`view/ExhaustClock.ts` (DD-23)** — sdílený fyzikální rytmus výfuku (4 pufy/otáčku kola, `v/(π·D)`), jediný
+  zdroj pro zvukový chuff i puf kouře (`main` posouvá fázi, view čtou `fired`). Nahradil fenomenologický
+  `0.9/(v+0.4)` → věrný zrychlující se „čch… čch…". Emisní bod přes `chimneyTip` marker (`getWorldPosition`).
+- **Hybrid sample vrstva (realizace S21)** — uprostřed sezení dorazil první sample (`steam_chuff.wav`):
+  `loadSample` (`fetch` přes `BASE_URL` + `decodeAudioData`, chyba → fallback) + `playSample`; `playChuff`
+  dostal hybrid větev (sample má přednost, jinak procedurální). `vite-env.d.ts` (typy `import.meta.env`).
+- `Train.throttleFraction` getter (single source otevření regulátoru). `tsc` + build zelené, sample se kopíruje do `dist/`.
+
+## Sezení 24 (2026-06-01)
+
+### Sample vrstva — únik páry, houkačka, brzdy (4 z 8 zvuků)
+- **Tři tvary „voice" pro tři chování samplu** (izomorfní s procedurálními `SustainVoice`/`LevelVoice`):
+  - **`makeSampleLoop`** — únik páry (`steam_leak.wav`): loop běžící pořád, slyšitelný dokud `steamPressure > 0`.
+  - **`playSample`** (one-shot) — houkačka (`horn_on.wav`): nová akce `KeyH`, tlačítko vzniklo z pole `actions`. Bez fallbacku.
+  - **`makeRandomizedLoop`** — brzdy (`brakes_on.wav`): loop s **přelosovanými hranicemi** po každém průchodu
+    (šev se neozývá periodicky), `playbackRate ∝ rychlost` (`RateVoice`), aktivní jen za jízdy (stojící vlak tichý).
+- Skřípění brzd: sample → 3-frekvenční synteticky → sample s **fallbackem** (`makeSquealVoice` = 3 neharmonické frekvence s jitterem).
+- `tsc` + build zelené. Uživatel: **„Super! Mám to!"**
 
 ## Sezení 25 (2026-06-01)
 
@@ -323,3 +369,20 @@ křivosti. Sjednoceno do **jednoho balíku** „rázy z trati" — impulsy do ex
 ### Diskuse (bez kódu)
 - Brzdný model oponován a **ponechán**: Coulombovo tření = konstantní síla → lineární `v(t)` je správně
   (brzdná dráha ∝ v² to potvrzuje). Volby `μ(v)` / Davisův `B·v` → IDEAS.
+
+## Sezení 26 (2026-06-01)
+
+### μ(v) brzdy + Davisův `B·v` člen odporu (oba „Příště" S25; `tsc` + build zelené, „Test OK")
+- **μ(v) brzdy** — `Train.brakeFadeFactor = (1−fade) + fade/(1+k·|v|)` škáluje brzdnou sílu (litinový
+  špalík, tření klesá s rychlostí). `f(0)=1` (Coulombův základ S25 beze změny), `f(∞)=1−fade` (asymptota),
+  `brakeFade=0` = konstantní. `BRAKE_FADE_RATE=0,1` (půl-pokles ~10 m/s). Default `0,4`. Skid-check proti
+  faded síle (nižší μ → menší síla → méně náchylné k zablokování kol). → konkávní zpomalení („pocit" z S25).
+- **Davisův `B·v`** — `Body.beginStep` rozšířen o lineární člen `−davisB·v` vedle kvadratického dragu.
+  Davisova rovnice `R=A+B·v+C·v²` teď v modelu kompletní (A valivý, B·v ložiska, C·v² vzduch). Default `20` N·s/m.
+- `params.ts` (`davisB`, `brakeFade`), `ControlPanel.ts` (slidery „Lineární odpor (B·v)" + „Pokles tření brzdy s v").
+- **Žádné nové DD** — laditelné členy odporu (jako drag/Crr), ne architekturní rozhodnutí.
+
+### `%AUDIT:DOCS` (první od S13; uživatel „opravit vše")
+- **D1:** `DONE.md` doplněn o chybějící S16/S18/S21 (údržbová) + **S23/S24 (s kódem)** — skok S22→S25.
+- **D2:** README „čtyřmi vagony" → „pěti" (souprava 6 těles od S22). **D3:** odstraněn hotový „Split `Renderer.ts`" z TODO backlogu (S25).
+- **K1:** DD-21 přeřazen do pořadí v `DESIGN_DECISIONS`. **K2:** README strom doplněn o `carModels.ts`. **K3:** README zastaralý hedge u F1 odstraněn.

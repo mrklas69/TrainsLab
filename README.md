@@ -8,7 +8,7 @@ ignorují: nárazníky, vůli ve spřáhle, podélnou dynamiku.
 
 ### ▶ [Živé demo](https://mrklas69.github.io/TrainsLab/)
 
-Řiď parní lokomotivu se čtyřmi vagony po **ležaté osmičce** vedoucí **zvlněnou lowpoly krajinou**
+Řiď parní lokomotivu s pěti vagony po **ležaté osmičce** vedoucí **zvlněnou lowpoly krajinou**
 (les, balvany) — trať se uprostřed kříží, jednou po mostě (estakáda na pilířích), podruhé pod ním.
 Na stoupání krajiny se souprava natáhne a zpomalí, z klesání se rozjede a zhustí. Při rozjezdu kola prokluzují, na svahu drží parkovací brzda. A pozor
 na **ostré laloky**: vletíš-li do zatáčky moc rychle, odstředivka soupravu **převrátí**
@@ -58,9 +58,10 @@ baru** (vč. ⚙ Nastavení); pískování drž.
 
 Dialog **⚙ Nastavení** (tlačítko v dolním baru) ladí fyziku **za běhu** (single source of truth,
 [`src/sim/params.ts`](src/sim/params.ts)):
-hmotnosti (lokomotiva = adhezní tíha), odpory (gravitace, valivý, rozběhový faktor, vzduch),
-spřáhlo (vůle / tuhost / tlumení), trakce (výkon, max tažná síla, adheze μ, **stav koleje** =
-sucho/mokro, brzda, průměr hnacího kola a mez pístové rychlosti = otáčkový strop), **pískování**
+hmotnosti (lokomotiva = adhezní tíha), odpory (gravitace, valivý, rozběhový faktor, lineární `B·v`, vzduch
+— členy Davisovy rovnice), spřáhlo (vůle / tuhost / tlumení), trakce (výkon, max tažná síla, adheze μ,
+**stav koleje** = sucho/mokro, brzda + pokles jejího tření s rychlostí, průměr hnacího kola a mez pístové
+rychlosti = otáčkový strop), **pískování**
 (kapacita / spotřeba písku), příčnou
 dynamiku (rozchod koleje, výška těžiště — určují práh převrácení; amplituda terénních vln = sklon trati;
 rozteč dilatačních spár, síla rázů z trati a kvalita přechodnic oblouků = kvalita trati), vypružení skříně (frekvence / tlumení kývání)
@@ -73,7 +74,7 @@ mimo `params.ts` (drží DD-01).
 | Fáze | Co | Stav |
 |------|-----|------|
 | **F0** | jednotělesová dynamika (gravitace, odpory, integrátor) | ✅ |
-| **F1** | ★ slack action — spřáhla s vůlí, run-out vlna | ✅ (vizuální „aha" se dolaďuje) |
+| **F1** | ★ slack action — spřáhla s vůlí, run-out vlna | ✅ |
 | **F2** | trakce & adheze — notch, prokluz, brzda jako řízené tření | ✅ |
 | **F6** | příčná dynamika — esíčko (osmička), most/podjezd, převrácení/vykolejení, kývání skříně, gradient meze, rázy z trati (spáry / skok křivosti) | ✅ |
 | **F3** | palivo & zásoby — uhlí/voda (parní tlak), proměnná adheze + písek | ✅ |
@@ -91,8 +92,9 @@ vzniká až při renderu (DD-02).
 ```
 src/
   sim/    fyzika — Track, trackData, terrain, params, Body, Coupler, Train
-  view/   výstupy — Renderer (Three.js) + CameraController (orbit/dron) + SmokeView (kouř),
-          AudioView (hybrid samply) + proceduralAudio (fallback generátory), ExhaustClock (rytmus výfuku)
+  view/   výstupy — Renderer (Three.js) + CameraController (orbit/dron) + carModels (modely vozů)
+          + SmokeView (kouř), AudioView (hybrid samply) + proceduralAudio (fallback generátory),
+          ExhaustClock (rytmus výfuku)
   ui/     ControlPanel (slidery + status + tlačítka)
   main.ts skládá sim + view + ui, drží render loop
 ```

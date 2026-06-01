@@ -101,7 +101,11 @@ Termíny projektu. Anglické identifikátory v kódu, české vysvětlení.
   je hratelné zjednodušení).
 - **rozběhový odpor (starting/breakaway resistance)** — klidové tření > valivé za jízdy;
   fyzikální *důvod*, proč slack action funguje (rozjezd vozů postupně).
-- **valivý odpor (Crr)** — kinetický odpor valení za jízdy (ocel-ocel ≈ 0,002).
+- **valivý odpor (Crr)** — kinetický odpor valení za jízdy (ocel-ocel ≈ 0,002). Člen **A** Davisovy rovnice.
+- **Davisova rovnice odporu** — empirický rozklad jízdního odporu `R(v) = A + B·v + C·v²`: **A** = valivý
+  (`rollingResistance`, konstantní), **B·v** = lineární (`davisB` — ložiska, dynamické ztráty náprav),
+  **C·v²** = aerodynamický (`dragCoefficient`). V modelu A je v `applyFriction`, B·v a C·v² v `Body.beginStep`
+  (S26). Lineární člen doladí hlavně **dojezd** ve středním pásmu rychlostí (mezi valivým a vzduchem).
 - **protiproudé brzdění (plugging / counter-pressure)** — tah motoru proti směru jízdy =
   brzdění. Limit je adheze (`μ·N`), ne výkon `P/v` (ten platí jen pro zrychlování). V modelu
   notch −1 za jízdy vpřed (DD-08). Zabírá **plným úsilím** (`fraction=1`, ne dělené stupni),
@@ -109,6 +113,11 @@ Termíny projektu. Anglické identifikátory v kódu, české vysvětlení.
 - **brzda jako řízené tření** — provozní brzda lokomotivy modelovaná jako dodatečný odpor
   (zvyšuje statický práh i kinetický odpor), ne zvláštní síla. Tah a brzda se perou ve
   společném akumulátoru sil (DD-09).
+- **fade tření brzdy (μ(v), `brakeFade`)** — *(S26)* tření litinového špalíku klesá s rychlostí.
+  Brzdná síla se škáluje faktorem `f(v) = (1−fade) + fade/(1+k·|v|)`: `f(0)=1` (Coulombův základ
+  při nízké rychlosti zachován, model S25), `f(∞)=1−fade` (**asymptota** — tření nezmizí). Důsledek:
+  decelerace **roste, jak vlak zpomaluje** (konkávní `v(t)`). `brakeFade=0` = konstantní tření (Coulomb).
+  Multiplikativní faktor nad silou — izomorfní se `steamPressure` / `tractionDerating` u tahu.
 - **dragging brakes** — tah překoná hranu, ale brzda + tření vlak udrží: kola prokluzují
   proti stojící soupravě. Emergentní důsledek souboje sil (DD-09).
 
