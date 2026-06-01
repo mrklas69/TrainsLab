@@ -272,3 +272,27 @@ křivosti. Sjednoceno do **jednoho balíku** „rázy z trati" — impulsy do ex
   na `u=0.10/0.40/0.60/0.90` sedí na strmých úsecích κ. Pozice ponechány, opravena sémantika komentářů.
 - `Train.ts` — větvení dle `kind` v `applyTrackImpulses` (`scale≤0` přeskočí ráz i jeho zvuk).
   `ControlPanel.ts` — slider „Přechodnice (kvalita oblouků)". `tsc` + build zelené; smoke test bez JS chyb.
+
+## Sezení 22 (2026-06-01)
+
+*Přechod na nový stroj (mrkla) — kontinuita ověřena: `git pull` natáhl S13–S21 (fast-forward, čistá historie), `tsc` zelený i na mrkla, `public/audio/` chybí dle stavu S21. Stale „Příště" (modely vozů, 5 sezení) → DO.*
+
+### Modely vozů — lowpoly skříně + kola + hnací spojnice (DD-22)
+
+- **Nový `view/carModels.ts`** — faceted lowpoly factory `buildCarModel(type, length)` → `CarVisual`.
+  Typy `CarType`: `loco` (kotel/kabina/komín/dóm), `tank` (cisterna), `boxcar` (krytý), `flatcar`
+  (plošinový „plato" — pro techniku), `gondola` (otevřený). `skin` materiál nese stavové tintování,
+  doplňky fixní tmavá ocel. `CAR_WIDTH/CAR_HEIGHT` přesunuty sem (single source), `CAR_COLOR` smazán.
+- **Souprava 6 těles** (`main.ts`): `['loco','tank','boxcar','flatcar','gondola','gondola']`, délky `[8,7,6,6,7,7]`.
+  `carTypes` jdou do Rendereru paralelně s `carLengths` (view metadata 1:1 s tělesy, DD-22).
+- **`Renderer.ts`** — `carMeshes: Mesh[]` → `carVisuals: CarVisual[]`; render loop operuje na `group`
+  (position/lookAt/pitch/roll beze změny), barvu/žár cpe do `skin`. Konstruktor dostal `carTypes`.
+- **Kola s valením** — `rotation.x` ∝ `−body.s / wheelRadius` (per vůz), kontrastní příčka pro viditelnost.
+  `wheelDir` per vůz (loko `+1`, vagony `−1`) srovnává směr otáčení (loko je Y-flipnuté, viz níže).
+- **Hnací spojnice loko („páky")** — tyč podél Z vně kol; čep kliky (`CRANK_RADIUS`) obíhá střed kola →
+  tyč krouží v Y-Z (`rod.position` z `sin/cos(−phase)`, záporná fáze ladí směr s koly).
+- **Animace prokluzu** (`driverSlipPhase`, `SLIP_SPIN_RATE` 26 rad/s) — při `train.slipping` hnací kola
+  loko „závodí" navíc → viditelně se protáčejí a spojnice víří. View-only stav (sim dává jen bool), DD-01.
+- **Iterace dle feedbacku:** loko otočeno o 180° (vnitřní `model` skupina) — přída po směru jízdy;
+  skříně zvednuty nad kola (`bodyGroup` posun o poloměr kola) — kola nejsou „utopená"; směr spojnice
+  i vagonových kol opraven. `tsc` + build zelené. Uživatel: **„Prokluzy parádní!"**, „Test OK".

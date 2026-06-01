@@ -165,6 +165,23 @@ Termíny projektu. Anglické identifikátory v kódu, české vysvětlení.
   ikosaedr. `InstancedMesh`, deterministické rozmístění (`hash` z indexu) mimo zónu trati (`r > 180 m`).
   Sedí na terénu, přestaví se se sliderem sklonu.
 
+## Modely vozů (view)
+- **model vozu (`CarVisual`)** — *(DD-22)* lowpoly faceted reprezentace vozu: `group` (transformovaný
+  render loopem stejně jako dřív box), `skin` materiál (nese stavové tintování — semafor loko, žár, derail),
+  kola a u loko hnací spojnice. Typ vozu (`CarType`) je **view metadata 1:1 s tělesy** — sim zná jen 1D
+  těleso (délka + hmota), vzhled je ryze view (drží DD-01/DD-02). Factory `buildCarModel(type, length)`.
+- **typy vozů** — `loco` (parní: kotel + kabina + komín + dóm), `tank` (cisterna = vodorovný válcový tank),
+  `boxcar` (krytý vůz = uzavřená skříň), `flatcar` (**plošinový vůz „plato"** = holá deska, pro techniku/
+  kontejnery), `gondola` (otevřený vůz = nízká korba bez střechy).
+- **valení kol** — kola se otáčejí (`rotation.x`) úměrně ujeté dráze (`body.s / wheelRadius`), dozadu při
+  couvání. Kontrastní příčka přes disk zviditelní rotaci. `wheelDir` (±1) srovnává směr otáčení mezi
+  Y-flipnutou loko a vagony. Skříň je v podskupině zvednuté o poloměr kola → kola vykukují zpod vozu.
+- **hnací spojnice (coupling rod, „páky")** — tyč spojující hnací kola loko; čep kliky (`CRANK_RADIUS`)
+  obíhá střed kola, takže tyč krouží v rovině jako u parní mašiny. Ryze vizuální (sim nemá rotující hmoty).
+- **vizualizace prokluzu (`driverSlipPhase`)** — při `slipping` se hnací kola loko „rozzávodí" navíc
+  (`SLIP_SPIN_RATE`) → protáčejí se rychleji než jede vlak a spojnice víří. **View-only stav**: sim dává
+  jen bool `slipping`, vizuální protáčení si view dopočítá samo (drží DD-01).
+
 ## Numerika a architektura
 - **semi-implicitní Euler** — integrátor: nejdřív rychlost z aktuálních sil, pak poloha.
 - **substepping** — dělení časového kroku; nutné pro stabilitu tuhých pružin (spřáhel).

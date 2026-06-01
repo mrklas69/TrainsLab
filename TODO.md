@@ -64,7 +64,11 @@ Kontext a rozhodnutí: viz `docs/diary/2026-05-29.md`.
       **emergentní pilíře** tam, kde se trať odlepí od terénu (i pro budoucí estakády/náspy).
 - [x] **Stromy + kameny** *(S17)* — faceted lowpoly (kužel+kmen / ikosaedr), `InstancedMesh`,
       deterministické rozmístění mimo zónu trati (`r>180`), sedí na terénu.
-- [ ] Modely lokomotivy a vagonů (jeden cisterna) — zatím kvádry
+- [x] **Modely lokomotivy a vagonů** *(S22, DD-22)* — lowpoly faceted (`view/carModels.ts`): loko (kotel/
+      kabina/komín/dóm), cisterna, krytý, plošinový (plato — pro techniku), otevřený. Souprava 6 těles.
+      Kola s valením + **hnací spojnice** loko + **animace prokluzu** (`driverSlipPhase`). Typ = view metadata.
+- [ ] **Propracovaný kouř** — částicová emise z komína lokomotivy, **sladěná se zvukovým steam chuff**
+      (puf kouře v rytmu výfuku páry; hustota ∝ otevření regulátoru / výkon)
 - [~] Osvětlení doladěno pro lowpoly (S17); kamera „dron" hotová (S15). Volitelně: mostovka, mlha na horizontu
 - [x] **Auto-kamera „dron"** *(S15, DD-19)* — toggle `C` vypne OrbitControls/WASD a každý frame řídí
       kameru: pozice za+nad *zadním* vozem (dle směru jízdy), `lookAt` **střed soupravy** (volba uživatele,
