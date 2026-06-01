@@ -405,3 +405,19 @@ křivosti. Sjednoceno do **jednoho balíku** „rázy z trati" — impulsy do ex
   `playbackRate` cap zpomalen (`BRAKE_RATE_MIN/MAX` 0,25/0,6) kvůli rychlému („cikáda") samplu.
 - **Nárazníky na 1/3** — `updateCouplers` buff → `playClunk(volume / 3)`; výhybka (`switchFired`) hlasitější.
 - **Žádné nové DD** (dokončení sample vrstvy + úklid; hybrid nikdy neměl DD číslo). `tsc` + build zelené.
+
+## Sezení 29 (2026-06-01)
+
+### Křivkový odpor v obloucích (backlog; `tsc` + build zelené, „Test OK")
+- **Model** — `R = −sign(v)·curveResistance·|κ|·m·g`: tření okolků + prokluz kol na pevné nápravě v zatáčce.
+  Specifický odpor `curveResistance·|κ|` (bezrozm., jako Crr) úměrný křivosti — **Röcklův charakter** `c/r`
+  (ověřeno rešerší: curve resistance je rychlostně nezávislý, empirický Röckl `500/(r−30)` pro velká `r`
+  ≈ `c/r`). `κ` konečné → bez exploze u našich ostrých laloků (`r≈33 m`, kde Röckl selhává). Jen `sign(v)`
+  pro směr (rychlostně nezávislý), na rovince `κ=0` → mizí.
+- **`Body.beginStep`** rozšířen o `fCurve` jako **druhý geometrický** člen vedle gravitace (oba z polohy `s`
+  na trati); komentář rozdělen na **geometrické** (gravitace + oblouk) vs. **rychlostní** (Davisovy B·v, C·v²).
+  Body si čte `track.signedCurvature(s)` (jako už čte `grade(s)`). Doplnil `R=A+B·v+C·v²` o zatáčkový člen.
+- **Drží DD-02** — `κ` zůstává skalár, výstup je podélná síla (mění `v` podél `s`), žádný příčný DOF.
+- `params.ts` (`curveResistance` + default `0,15` m: ~2× valivý v laloku). `ControlPanel.ts` (slider
+  „Odpor v oblouku" 0..1 m v Odporech, za `B·v`). `GLOSSARY` (termín „odpor v oblouku").
+- **Žádné nové DD** — laditelný člen odporu (jako Davisův `B·v` S26), ne architekturní rozhodnutí.

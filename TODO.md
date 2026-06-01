@@ -136,7 +136,10 @@ Sjednocený balík: nespojitosti trati → impulsy do **existujících** roll/pi
       Nahradilo minimalizační toggle. Tlačítko písku jako press-hold (pointer events, drž = sype).
 
 ## Backlog / později
-- [ ] Křivkový odpor v obloucích (Davisův lineární člen `B·v` hotov S26)
+- [x] **Křivkový odpor v obloucích** *(S29)* — `R = −sign(v)·curveResistance·|κ|·m·g`; specifický odpor
+      úměrný křivosti (Röcklův charakter `c/r`), rychlostně nezávislý. Geometrický člen vedle gravitace
+      v `Body.beginStep` (z `s`/trati), oddělený od rychlostních Davisových členů. Doplnil `R=A+B·v+C·v²`
+      o zatáčkový člen. Slider „Odpor v oblouku" v Odporech. Žádné nové DD (laditelný odporový člen).
 - [ ] Rotační setrvačnost hmot (rotating mass factor)
 - Dlouhodobé / nezralé nápady (sloshing F5, průběžná brzda, jiskry, hypotézy o „uspokojení",
   dynamický prokluz) → **IDEAS.md** (single source pro nezralé).

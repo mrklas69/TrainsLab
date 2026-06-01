@@ -106,6 +106,13 @@ Termíny projektu. Anglické identifikátory v kódu, české vysvětlení.
   (`rollingResistance`, konstantní), **B·v** = lineární (`davisB` — ložiska, dynamické ztráty náprav),
   **C·v²** = aerodynamický (`dragCoefficient`). V modelu A je v `applyFriction`, B·v a C·v² v `Body.beginStep`
   (S26). Lineární člen doladí hlavně **dojezd** ve středním pásmu rychlostí (mezi valivým a vzduchem).
+- **odpor v oblouku (curve resistance)** — *(S29)* přídavný jízdní odpor v zatáčce z tření okolků o vnější
+  kolejnici a prokluzu kol na pevné nápravě (vnější kolo urazí delší dráhu). Model `R = curveResistance·|κ|·m·g`:
+  specifický odpor `curveResistance·|κ|` (bezrozm., jako Crr) je úměrný křivosti — **Röcklův charakter** `c/r`,
+  ale `κ` je konečné → bez exploze u našich ostrých laloků (`r≈33 m`, kde empirický Röckl `500/(r−30)` selhává).
+  Branžově **rychlostně nezávislý** (proto jen směr ze `sign(v)`, ne `v` v magnitudě). **Geometrický** člen
+  (z polohy `s` na trati, vedle gravitace v `Body.beginStep`), ne čtvrtý člen Davisovy rovnice. Drží DD-02:
+  `κ` zůstává skalár, výstup je podélná síla (mění `v`), nezavádí příčný DOF. Na rovince `κ=0` → mizí.
 - **protiproudé brzdění (plugging / counter-pressure)** — tah motoru proti směru jízdy =
   brzdění. Limit je adheze (`μ·N`), ne výkon `P/v` (ten platí jen pro zrychlování). V modelu
   notch −1 za jízdy vpřed (DD-08). Zabírá **plným úsilím** (`fraction=1`, ne dělené stupni),
