@@ -3,9 +3,8 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import type { Track } from '../sim/Track';
 import type { Train } from '../sim/Train';
 import { terrainHeight, smoothstep } from '../sim/terrain';
+import { buildCarModel, CAR_HEIGHT, CRANK_RADIUS, type CarType, type CarVisual } from './carModels';
 
-const CAR_WIDTH = 2.6;
-const CAR_HEIGHT = 3.0;
 const RAIL_RADIUS = 0.12;   // poloměr trubky kolejnice (m) — štíhlá pro párový vzhled (dřív 0.3 = jedna tuba)
 const RAIL_GAUGE = 1.7;     // vizuální rozchod kolejnic (m) — širší než fyzický 1.435 pro čitelnost pod vozy
 const SLEEPER_SPACING = 3;  // rozteč pražců podél trati (m)
@@ -43,8 +42,8 @@ const LOCO_SLIP = new THREE.Color(0xe08010);  // prokluz hnacích kol — oranž
 const LOCO_BRAKE = new THREE.Color(0xc01818); // brzdí — červená
 const LOCO_POWER = new THREE.Color(0x2e9e3f); // táhne (notch ≠ 0, drží adhezi) — zelená, max. účinnost
 const LOCO_IDLE = new THREE.Color(0x555a5e);  // volnoběh (notch 0, nebrzdí) — neutrální šedá
-const CAR_COLOR = new THREE.Color(0x2b5a8b);  // vagon — modrá
 const DERAILED_COLOR = new THREE.Color(0x8a0f0f); // vykolejeno (převrácení) — tmavě rudá, celá souprava
+const SLIP_SPIN_RATE = 26;  // rad/s — o kolik „závodí" hnací kola loko navíc při prokluzu (viditelný protáčející se)
 
 // gradient blízkosti převrácení: skříň žhne podle tipRatio (příč/práh) daného vozu.
 // Emissive (ne barva skříně) — izomorfní s markery spřáhel, nekoliduje se semaforem loko.
@@ -99,7 +98,7 @@ export class Renderer {
   private readonly camera: THREE.PerspectiveCamera;
   private readonly gl: THREE.WebGLRenderer;
   private readonly controls: OrbitControls;
-  private readonly carMeshes: THREE.Mesh[];
+  private readonly carVisuals: CarVisual[]; // lowpoly modely vozů (group + tintovaný skin materiál)
   private readonly couplerMeshes: THREE.Mesh[]; // marker napětí mezi sousedními vozy
   private trackGroup!: THREE.Group;             // dvě kolejnice + pražce — přestavitelné sliderem sklonu
   private terrainMesh!: THREE.Mesh;             // lowpoly heightfield — přestavitelný sliderem sklonu
@@ -107,6 +106,7 @@ export class Renderer {
   private readonly heldKeys = new Set<string>(); // držené klávesy kamery (WASD/QE/ZX)
 
   // stav auto-kamery „dron" (toggle C): směr s hysterezí + tlumeně dohánčné pozice/pohled
+  private driverSlipPhase = 0; // navýšení fáze hnacích kol loko při prokluzu (akumuluje se, view-only)
   private droneActive = false;
   private droneDir = 1;                            // ±1 směr jízdy (hystereze u v≈0)
   private readonly dronePos = new THREE.Vector3(); // tlumená pozice kamery
@@ -118,6 +118,7 @@ export class Renderer {
     private readonly train: Train, // živý sim, čtený per-frame (symetrie s track)
     private readonly drone: DroneParams, // sdílená instance — slidery ji ladí za běhu
     trackAmplitude: number, // počáteční amplituda terénu (slider sklonu) — terén vede trať (DD-20)
+    private readonly carTypes: CarType[], // typ modelu per vůz (ryze view — DD-01); délka 1:1 s train.bodies
   ) {
     this.gl = new THREE.WebGLRenderer({ canvas, antialias: true });
     this.gl.setPixelRatio(window.devicePixelRatio);
@@ -139,7 +140,7 @@ export class Renderer {
     this.buildTerrain(trackAmplitude);
     this.buildScenery(trackAmplitude);
     this.buildTrack(trackAmplitude);
-    this.carMeshes = this.buildCars(train);
+    this.carVisuals = this.buildCars(train);
     this.couplerMeshes = this.buildCouplers(train);
 
     this.onResize();
@@ -161,21 +162,37 @@ export class Renderer {
     else this.updateCamera(dt);
     train.bodies.forEach((body, i) => {
       const { position, tangent } = this.track.at(body.s);
-      const mesh = this.carMeshes[i];
-      mesh.position.copy(position);
-      mesh.position.y += CAR_HEIGHT / 2 + RAIL_RADIUS;
-      mesh.lookAt(mesh.position.clone().add(tangent)); // čelo (−Z) ve směru jízdy
+      const vis = this.carVisuals[i];
+      const group = vis.group;
+      group.position.copy(position);
+      group.position.y += CAR_HEIGHT / 2 + RAIL_RADIUS;
+      group.lookAt(group.position.clone().add(tangent)); // čelo (−Z) ve směru jízdy
       // kývání skříně: po orientaci podél tratě nakloň lokálně — pitch kolem příčné osy (X),
       // roll kolem podélné (Z). lookAt kvaternion každý frame resetuje, takže se náklon nehromadí.
-      mesh.rotateX(body.pitch);
-      mesh.rotateZ(body.roll);
+      group.rotateX(body.pitch);
+      group.rotateZ(body.roll);
 
-      // barva: vykolejení přebíjí vše (celá souprava rudá); jinak lokomotiva
-      // stavovým semaforem (prokluz > brzda > tah > volnoběh), vozy modré.
-      const mat = mesh.material as THREE.MeshStandardMaterial;
-      mat.color.copy(
+      // valení kol: úhel ∝ ujetá dráha / poloměr (každý vůz dle své pozice s).
+      // Loko při prokluzu navíc „závodí" — driverSlipPhase se akumuluje, takže se hnací kola
+      // protáčejí rychleji než jede vlak (viditelný prokluz) a spojnice zběsile krouží.
+      if (i === 0 && train.slipping) {
+        const dir = train.notch >= 0 ? 1 : -1; // směr protáčení dle stupně regulátoru (reverz = couvá)
+        this.driverSlipPhase += dir * SLIP_SPIN_RATE * dt;
+      }
+      const phase = -body.s / vis.wheelRadius + (i === 0 ? this.driverSlipPhase : 0);
+      for (const w of vis.wheels) w.rotation.x = phase * vis.wheelDir;
+      // hnací spojnice loko: čep kliky obíhá kolem středu kola → tyč krouží v rovině Y-Z.
+      // Záporná fáze ladí směr obíhání s otáčením kol (jinak by se spojnice točila opačně).
+      for (const rod of vis.rods) {
+        rod.position.y = vis.rodBaseY + CRANK_RADIUS * Math.sin(-phase);
+        rod.position.z = CRANK_RADIUS * Math.cos(-phase);
+      }
+
+      // barva skříně (skin materiál modelu): vykolejení přebíjí vše (celá souprava rudá);
+      // jinak lokomotiva stavovým semaforem (prokluz > brzda > tah > volnoběh), vozy klidovou barvou typu.
+      vis.skin.color.copy(
         train.derailed ? DERAILED_COLOR :
-        i !== 0 ? CAR_COLOR :
+        i !== 0 ? vis.baseColor :
         train.slipping ? LOCO_SLIP :
         train.isBraking ? LOCO_BRAKE :
         train.notch !== 0 && train.steamPressure > 0 ? LOCO_POWER : // bez páry netáhne → zhasne
@@ -185,7 +202,7 @@ export class Renderer {
       // gradient blízkosti převrácení: žár dle tipRatio tohoto vozu (per-vůz → výstraha
       // „cestuje" soupravou, jak vjíždí do oblouku). Vykolejeno = plný žár, spojitě navazuje.
       const glow = train.derailed ? 1 : tipGlow(train.tipRatio(i));
-      mat.emissive.copy(DANGER_GLOW).multiplyScalar(glow * MAX_GLOW);
+      vis.skin.emissive.copy(DANGER_GLOW).multiplyScalar(glow * MAX_GLOW);
     });
     this.renderCouplers(train);
     if (!this.droneActive) this.controls.update(); // orbit damping jen mimo dron režim
@@ -548,14 +565,13 @@ export class Renderer {
     return meshes;
   }
 
-  // kvádr na vůz; lokomotiva (index 0) šedá (volnoběh — semafor řídí render), vozy modré.
-  private buildCars(train: Train): THREE.Mesh[] {
+  // lowpoly model na každý vůz dle typu z `carTypes` (loko/cisterna/skříň/otevřený).
+  // Délku bere ze sim tělesa (per vůz). Barvu skříně řídí render loop: loko semaforem, vozy klidovou.
+  private buildCars(train: Train): CarVisual[] {
     return train.bodies.map((body, i) => {
-      const geo = new THREE.BoxGeometry(CAR_WIDTH, CAR_HEIGHT, body.length);
-      const color = i === 0 ? LOCO_IDLE : CAR_COLOR;
-      const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color }));
-      this.scene.add(mesh);
-      return mesh;
+      const vis = buildCarModel(this.carTypes[i], body.length);
+      this.scene.add(vis.group);
+      return vis;
     });
   }
 

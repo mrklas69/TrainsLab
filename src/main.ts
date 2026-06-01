@@ -4,6 +4,7 @@ import { makeLoopControlPoints } from './sim/trackData';
 import { Train } from './sim/Train';
 import { DEFAULT_PARAMS } from './sim/params';
 import { Renderer, DEFAULT_DRONE } from './view/Renderer';
+import type { CarType } from './view/carModels';
 import { AudioView } from './view/AudioView';
 import { createControlPanel, type KeyAction } from './ui/ControlPanel';
 
@@ -14,11 +15,14 @@ if (!canvas) throw new Error('Chybí <canvas id="scene">');
 const params = { ...DEFAULT_PARAMS };
 
 const track = new Track(makeLoopControlPoints(params.trackAmplitude));
-// lokomotiva (čelo) + 4 vagony
-const train = new Train(track, params, [8, 6, 6, 6, 6]);
+// souprava: lokomotiva (čelo) + cisterna + krytý + plošinový (plato) + 2 otevřené vozy.
+// `carTypes` je view metadata (typ modelu) 1:1 s tělesy; `carLengths` jde do simu (délka + rozteč spřáhel).
+const carTypes: CarType[] = ['loco', 'tank', 'boxcar', 'flatcar', 'gondola', 'gondola'];
+const carLengths = [8, 7, 6, 6, 7, 7];
+const train = new Train(track, params, carLengths);
 // dron = view parametry kamery (mimo fyziku), sdílená instance pro slidery (live ladění)
 const drone = { ...DEFAULT_DRONE };
-const renderer = new Renderer(canvas, track, train, drone, params.trackAmplitude);
+const renderer = new Renderer(canvas, track, train, drone, params.trackAmplitude, carTypes);
 const audio = new AudioView(train, params);
 
 // Klávesové akce — single source pro keydown handler, nápovědu i tlačítka panelu.
