@@ -318,6 +318,7 @@ křivosti. Sjednoceno do **jednoho balíku** „rázy z trati" — impulsy do ex
 - **Idle kouř na palivu:** `SmokeView.update(…, fireLit)` — idle větev jen při `coalFraction > 0` (vyhaslý kotel nekouří; bez vody kouří dál bez páry).
 - **Brzdový zvuk „vrtačka" opraven:** `playbackRate` přemapován lineárně 0 → `BRAKE_FUSE_SPEED = 3,8 m/s`, strop, rate ∈ [0,5; 1,15].
 - **Nižší těžiště:** `comHeight` 1,2 → 0,9 m → práh převrácení 5,87 → 7,82 m/s² (méně náchylné k vykolejení).
+- **Dodatek — klapot spár ze samplu (5/8 hlasů):** `clattering_wheels.wav` napojen jako rail-tick přes nový `makeRateLoop` (loop + `playbackRate ∝ rychlost`, `RAIL_REF_SPEED=12`, clamp [0,4; 2,0]); self-timed procedurální tikot zůstává fallback. Hlasitosti ×2 (klapot 1,2, brzdy 1,6).
 
 ### Diskuse (bez kódu)
 - Brzdný model oponován a **ponechán**: Coulombovo tření = konstantní síla → lineární `v(t)` je správně

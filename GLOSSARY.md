@@ -144,8 +144,10 @@ Termíny projektu. Anglické identifikátory v kódu, české vysvětlení.
   ∝ `throttleFraction·steamPressure` (uhlíkový kouř při zátěži ↔ světlá pára); volnoběh = líné světlé obláčky.
   Idle kouř je vázán na **hořící oheň** (`fireLit = coalFraction > 0`, S25): došlo uhlí → kotel vyhasne,
   žádný kouř; došla jen voda → kotel kouří idle dál, ale bez páry = bez chuffu/výfuku.
-- **tikot spár** — „klikety-klak" na dilatačních spárách; self-timed (interval `railLength/v`,
-  jako chuff — AudioView čte stav, negeneruje z eventů simu). Hlasitost mírá, vypne `trackImpulse=0`.
+- **tikot / klapot spár** — „klikety-klak" na dilatačních spárách. **Hybrid (S25):** sample
+  (`clattering_wheels.wav`) jako **smyčka** s `playbackRate ∝ rychlost` (`makeRateLoop`, `RAIL_REF_SPEED`)
+  → frekvence klapotu úměrná rychlosti. Fallback = procedurální self-timed tikot (interval `railLength/v`,
+  jako chuff — AudioView čte stav, negeneruje z eventů simu). Vypne `trackImpulse=0` / svařovaná kolej.
 - **skřípění oblouku (flange squeal)** — kvílení okolků v zatáčce; trvalý hlas s hlasitostí plynule
   řízenou příčným zrychlením (`v²·κ`) — sílí v ostřejším oblouku. ≠ on/off skřípění brzd.
 - **clunk výhybky vs. trh přechodnice** — odlišené zvuky bodových perturbací (S20): výhybka/křížení
