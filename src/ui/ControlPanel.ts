@@ -68,6 +68,8 @@ const SECTIONS: Section[] = [
       { key: 'gravity', label: 'Gravitace', min: 0, max: 20, step: 0.1, unit: 'm/s²' },
       { key: 'rollingResistance', label: 'Valivý odpor', min: 0, max: 0.05, step: 0.001, unit: '' },
       { key: 'startingResistanceFactor', label: 'Rozběhový faktor', min: 1, max: 6, step: 0.1, unit: '×' },
+      // lineární člen B·v Davisovy rovnice (ložiska/dynamické ztráty); doladí dojezd mezi valivým (A) a vzduchem (C·v²)
+      { key: 'davisB', label: 'Lineární odpor (B·v)', min: 0, max: 100, step: 5, unit: 'N·s/m' },
       { key: 'dragCoefficient', label: 'Odpor vzduchu', min: 0, max: 50, step: 0.5, unit: '' },
     ],
   },
@@ -88,6 +90,8 @@ const SECTIONS: Section[] = [
       // stav koleje: 1 = sucho, níž = mokro/listí → eff. μ = adheze·faktor. Pod ~0.4 začne loko prokluzovat → písek
       { key: 'railFactor', label: 'Stav koleje', min: 0, max: 1, step: 0.05, unit: '×' },
       { key: 'brakeForceMax', label: 'Brzda', min: 0, max: 400_000, step: 10_000, unit: 'N' },
+      // μ(v) špalíkové brzdy: 0 = konstantní tření (Coulomb), výš = víc klesá s rychlostí → konkávní zpomalení
+      { key: 'brakeFade', label: 'Pokles tření brzdy s v', min: 0, max: 0.8, step: 0.05, unit: '' },
       // otáčkový strop: v_mech = maxPistonSpeed·π·D/(2·zdvih); větší kolo / vyšší mez = vyšší v_max
       { key: 'driverDiameter', label: 'Průměr hnacího kola', min: 1, max: 2.2, step: 0.05, unit: 'm' },
       { key: 'maxPistonSpeed', label: 'Mez pístové rychlosti', min: 3, max: 14, step: 0.5, unit: 'm/s' },

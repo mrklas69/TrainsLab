@@ -41,12 +41,19 @@ export class Body {
     this.force += force;
   }
 
-  /** Začátek kroku: akumulátor = gravitace + odpor vzduchu (tření řeší {@link applyFriction}). */
+  /**
+   * Začátek kroku: akumulátor = gravitace + rychlostní členy Davisovy rovnice odporu
+   * `R(v) = A + B·v + C·v²` (tření řeší {@link applyFriction}).
+   *  - **B·v** (`davisB`) — lineární člen: tření v ložiskách, dynamické ztráty náprav.
+   *  - **C·v²** (`dragCoefficient`) — odpor vzduchu (kvadratický).
+   * Oba vždy proti pohybu (znaménko `v`). Člen A (valivý + rozběhový) je v {@link applyFriction}.
+   */
   beginStep(track: Track, params: PhysicsParams, mass: number): void {
     const grade = track.grade(this.s); // sin(θ)
     const fGravity = -mass * params.gravity * grade;            // do kopce brzdí
-    const fDrag = -params.dragCoefficient * this.v * Math.abs(this.v);
-    this.force = fGravity + fDrag;
+    const fDavisB = -params.davisB * this.v;                    // lineární člen B·v
+    const fDrag = -params.dragCoefficient * this.v * Math.abs(this.v); // kvadratický člen C·v²
+    this.force = fGravity + fDavisB + fDrag;
   }
 
   /**

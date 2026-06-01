@@ -7,9 +7,10 @@ export interface PhysicsParams {
   carMass: number;           // hmotnost vagonu (kg)
   locomotiveMass: number;    // hmotnost lokomotivy (kg) — i adhezní tíha N
   gravity: number;           // tíhové zrychlení (m/s²)
-  rollingResistance: number; // valivý odpor Crr za jízdy (ocel-ocel ≈ 0.002)
+  rollingResistance: number; // valivý odpor Crr za jízdy (ocel-ocel ≈ 0.002) — člen A Davisovy rovnice
   startingResistanceFactor: number; // statický odpor = Crr × tento faktor (rozběh)
-  dragCoefficient: number;   // odpor vzduchu b ve F = b·v·|v| (kg/m)
+  davisB: number;            // lineární člen B·v Davisovy rovnice odporu (N·s/m) — ložiska, dynamické ztráty
+  dragCoefficient: number;   // odpor vzduchu b ve F = b·v·|v| (kg/m) — člen C·v² Davisovy rovnice
   couplerSlack: number;      // vůle spřáhla — šířka mrtvého pásma (m)
   couplerStiffness: number;  // tuhost pružiny spřáhla za vůlí (N/m)
   couplerDamping: number;    // tlumení spřáhla (N·s/m)
@@ -22,6 +23,7 @@ export interface PhysicsParams {
   sandCapacity: number;      // kapacita pískoven (kg) — spotřební zásoba jako uhlí/voda
   sandRate: number;          // spotřeba písku při pískování (kg/s)
   brakeForceMax: number;     // max brzdná síla lokomotivy (N)
+  brakeFade: number;         // 0..1 — pokles tření špalíkové brzdy s rychlostí (μ(v)); 0 = konstantní, 0.4 = −40 % při vysoké v
   trackAmplitude: number;    // amplituda terénních vln pod tratí (m) — sklon pro slack action (DD-20); most fixní
   railLength: number;        // m — rozteč dilatačních spár (klikot ∝ rychlost); velká = svařovaná kolej (bez tiku)
   trackImpulse: number;      // bezrozm. síla rázů z trati (spáry + skok křivosti/výhybky); 0 = ideální hladká trať
@@ -42,6 +44,7 @@ export const DEFAULT_PARAMS: PhysicsParams = {
   gravity: 9.81,
   rollingResistance: 0.002,
   startingResistanceFactor: 3,
+  davisB: 20,          // lineární odpor (N·s/m per vůz): při 20 m/s ≈ 400 N, řádově jako valivý — doladí dojezd
   dragCoefficient: 1.2,
   couplerSlack: 0.4,
   couplerStiffness: 2_000_000,
@@ -55,6 +58,8 @@ export const DEFAULT_PARAMS: PhysicsParams = {
   sandCapacity: 100,   // ~20 s pískování při sandRate (krátké dávky v krizi adheze)
   sandRate: 5,
   brakeForceMax: 180_000,
+  brakeFade: 0.4,      // litinový špalík: tření při vysoké rychlosti ~−40 % → decelerace roste, jak vlak zpomaluje
+
   trackAmplitude: 4,
   railLength: 20,       // klasická kolejnice ~18–25 m → tikot „klikety-klak" se škáluje rychlostí
   trackImpulse: 0.012,  // jemné cuknutí skříně; 0 = dokonalá trať (svařovaná + přechodnice)

@@ -21,6 +21,8 @@ const BRAKE_SKID_TOLERANCE = 1.1; // brzda smí přesáhnout adhezi o 10 %, než
                                   // leží plná brzda těsně nad adhezí (180 vs 177 kN), ať to neblikne
 const V_SKID = 0.1;               // m/s — pod tím vůz stojí; skid (klouzání kol) dává smysl jen za jízdy
 
+const BRAKE_FADE_RATE = 0.1;      // 1/(m/s) — strmost poklesu tření brzdy s rychlostí; 0.1 → půl-pokles ~10 m/s
+
 const JOINT_WEIGHT = 0.4; // spárový ráz je jemnější než bodová perturbace (časté tiknutí, ne trh)
 
 /**
@@ -350,17 +352,32 @@ export class Train {
     return this.effectiveAdhesion * this.params.locomotiveMass * this.params.gravity;
   }
 
-  // brzdná síla lokomotivy, limitovaná adhezí (μ·N); 0 = nebrzdí. Když by požadovaná brzda
-  // výrazně přesáhla adhezi (mokrá kolej), kola se zablokují a kloužou — skid: delší dráha
-  // a vizuální výstraha. Indikuje se sdíleným slipping flagem (izomorfně s prokluzem při tahu,
-  // DD-16); pískování zvedne adhezi → skid zmizí. Nepřepisuje slipping z tahu na false (jen ho zvedá).
+  /**
+   * Útlum tření špalíkové brzdy rychlostí (1..1−brakeFade): `f(v) = (1−fade) + fade/(1+k·|v|)`.
+   * Litinový špalík má μ klesající s rychlostí → při vysoké rychlosti menší brzdná síla,
+   * při dobrzďování roste → konkávní zpomalení (decelerace roste, jak vlak zpomaluje). `f(0)=1`
+   * (lineární základ při nízké rychlosti zachován), `f(∞)=1−fade` (asymptota — tření nezmizí).
+   * `brakeFade=0` → konstantní (Coulomb), beze změny chování.
+   */
+  private get brakeFadeFactor(): number {
+    const fade = this.params.brakeFade;
+    return (1 - fade) + fade / (1 + BRAKE_FADE_RATE * Math.abs(this.bodies[0].v));
+  }
+
+  // brzdná síla lokomotivy, limitovaná adhezí (μ·N); 0 = nebrzdí. Síla špalíku klesá s rychlostí
+  // (brakeFadeFactor, μ(v)). Když by požadovaná brzda výrazně přesáhla adhezi (mokrá kolej), kola
+  // se zablokují a kloužou — skid: delší dráha a vizuální výstraha. Skid se testuje proti faded
+  // síle (nižší μ → menší síla → méně náchylné k zablokování, fyzikálně konzistentní). Indikuje se
+  // sdíleným slipping flagem (izomorfně s prokluzem při tahu, DD-16); pískování zvedne adhezi → skid
+  // zmizí. Nepřepisuje slipping z tahu na false (jen ho zvedá).
   private brakeForce(): number {
     if (!this.braking) return 0;
+    const requested = this.params.brakeForceMax * this.brakeFadeFactor;
     const limit = this.adhesionLimit;
-    if (this.params.brakeForceMax > limit * BRAKE_SKID_TOLERANCE && Math.abs(this.bodies[0].v) > V_SKID) {
+    if (requested > limit * BRAKE_SKID_TOLERANCE && Math.abs(this.bodies[0].v) > V_SKID) {
       this.slipping = true;
     }
-    return Math.min(this.params.brakeForceMax, limit);
+    return Math.min(requested, limit);
   }
 
   // lokomotiva (index 0) je těžší — a její tíha je adhezní tíha N.
