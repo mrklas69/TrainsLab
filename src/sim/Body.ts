@@ -99,9 +99,16 @@ export class Body {
     }
   }
 
-  /** Semi-implicitní Euler z naakumulované síly: nejdřív rychlost, pak poloha. */
-  integrate(h: number, mass: number): void {
-    this.accel = this.force / mass; // ulož zrychlení pro klování skříně (pitch)
+  /**
+   * Semi-implicitní Euler z naakumulované síly: nejdřív rychlost, pak poloha.
+   *
+   * `rotatingFactor` (λ) je rotující hmota: efektivní **setrvačná** hmota je `m·(1+λ)`
+   * (roztáčení kol/náprav/ojnic přidá setrvačnost). Jen převod síla→zrychlení — síly už
+   * jsou spočtené ze skutečného `mass` (gravitace/odpory/adheze). λ=0 → beze změny.
+   */
+  integrate(h: number, mass: number, rotatingFactor = 0): void {
+    const inertialMass = mass * (1 + rotatingFactor);
+    this.accel = this.force / inertialMass; // ulož zrychlení pro klování skříně (pitch)
     this.v += this.accel * h;
     this.s += this.v * h;
   }

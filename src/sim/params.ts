@@ -6,6 +6,12 @@
 export interface PhysicsParams {
   carMass: number;           // hmotnost vagonu (kg)
   locomotiveMass: number;    // hmotnost lokomotivy (kg) — i adhezní tíha N
+  // rotating mass factor λ: efektivní setrvačná hmota = m·(1+λ). Roztáčení kol/náprav/ojnic
+  // polkne část síly → línější rozjezd i dobrzdění. Jen setrvačnost (převod síla→zrychlení),
+  // ne tíha (gravitace/odpory/adheze drží skutečné m). Rychlostně nezávislé. Loko > vůz
+  // (parní stroj má těžká hnací kola + ojnice; branžově vlak ~6–8 %, loko ~10 %+).
+  rotatingMassFactorLoco: number; // λ lokomotivy (bezrozm.)
+  rotatingMassFactorCar: number;  // λ vagonu (bezrozm.)
   gravity: number;           // tíhové zrychlení (m/s²)
   rollingResistance: number; // valivý odpor Crr za jízdy (ocel-ocel ≈ 0.002) — člen A Davisovy rovnice
   startingResistanceFactor: number; // statický odpor = Crr × tento faktor (rozběh)
@@ -42,6 +48,8 @@ export interface PhysicsParams {
 export const DEFAULT_PARAMS: PhysicsParams = {
   carMass: 30000,
   locomotiveMass: 60000,
+  rotatingMassFactorLoco: 0.15, // velká hnací kola + ojnice → vyšší rotující setrvačnost
+  rotatingMassFactorCar: 0.06,  // jen valivá kola/nápravy
   gravity: 9.81,
   rollingResistance: 0.002,
   startingResistanceFactor: 3,

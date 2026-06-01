@@ -277,7 +277,8 @@ export class Train {
     for (let i = 0; i < this.bodies.length; i++) {
       const mass = this.massOf(i);
       this.bodies[i].applyFriction(this.params, mass, i === 0 ? brake : 0);
-      this.bodies[i].integrate(h, mass);
+      // integrace dělí silou setrvačnou hmotu m·(1+λ) — rotující kola/ojnice (massOf drží tíhu)
+      this.bodies[i].integrate(h, mass, this.rotatingFactorOf(i));
     }
 
     // vypružení skříně (DD-02: rotace, nemění s/v) — buzení z příčného (v²·κ se znaménkem)
@@ -383,6 +384,11 @@ export class Train {
   // lokomotiva (index 0) je těžší — a její tíha je adhezní tíha N.
   private massOf(index: number): number {
     return index === 0 ? this.params.locomotiveMass : this.params.carMass;
+  }
+
+  // rotující hmota λ per vůz (izomorfní s massOf): loko má větší (hnací kola + ojnice).
+  private rotatingFactorOf(index: number): number {
+    return index === 0 ? this.params.rotatingMassFactorLoco : this.params.rotatingMassFactorCar;
   }
 
   /**

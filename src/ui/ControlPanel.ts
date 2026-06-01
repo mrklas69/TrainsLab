@@ -60,6 +60,9 @@ const SECTIONS: Section[] = [
     sliders: [
       { key: 'locomotiveMass', label: 'Lokomotiva', min: 20000, max: 120000, step: 2000, unit: 'kg' },
       { key: 'carMass', label: 'Vagon', min: 5000, max: 100000, step: 1000, unit: 'kg' },
+      // rotující hmota λ: efektivní setrvačná hmota m·(1+λ) — línější rozjezd/dobrzdění; loko > vůz
+      { key: 'rotatingMassFactorLoco', label: 'Rotující hmota (loko)', min: 0, max: 0.4, step: 0.01, unit: '' },
+      { key: 'rotatingMassFactorCar', label: 'Rotující hmota (vagon)', min: 0, max: 0.4, step: 0.01, unit: '' },
     ],
   },
   {
