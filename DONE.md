@@ -386,3 +386,22 @@ křivosti. Sjednoceno do **jednoho balíku** „rázy z trati" — impulsy do ex
 - **D1:** `DONE.md` doplněn o chybějící S16/S18/S21 (údržbová) + **S23/S24 (s kódem)** — skok S22→S25.
 - **D2:** README „čtyřmi vagony" → „pěti" (souprava 6 těles od S22). **D3:** odstraněn hotový „Split `Renderer.ts`" z TODO backlogu (S25).
 - **K1:** DD-21 přeřazen do pořadí v `DESIGN_DECISIONS`. **K2:** README strom doplněn o `carModels.ts`. **K3:** README zastaralý hedge u F1 odstraněn.
+
+## Sezení 27 (2026-06-01)
+
+### Kompletace zvukových samplů (8 z 8 manifestu) + odstranění procedurální vrstvy
+- **5 nových hlasů ze samplů** (uživatel dodal soubory): `clank`, `clunk`, `arc_jerk` (one-shoty,
+  vzor jako `chuffSample`), `arc_squeal` (loop řízený úrovní — nový `makeSampleLevelLoop`, izomorfní
+  s `makeSampleLoop`), `steam_slip` (prokluz, loop on/off). Tím **8 z 8** manifestu + bonusy (únik páry, houkačka).
+- **Audio čistě sample-based** — hybrid (sample → fallback procedurální) byl od S23 most, dokud nebyly
+  všechny samply. Set kompletní → smazán **`view/proceduralAudio.ts`** (166 ř., všechny generátory),
+  všechny fallback větve v `AudioView`, self-timed `updateRailJoints`/`playRailTick`. Interfacy
+  `SustainVoice`/`LevelVoice` přesunuty do `AudioView.ts` (jediný uživatel). `update(train)` bez `dt`
+  (jediný uživatel byl odstraněný `updateRailJoints`) → upraveno volání v `main.ts`. **Trade-off:**
+  chybí-li sample → hlas mlčí (žádný procedurální záskok) — vědomě přijato.
+- **Brzdy zprovozněny** — odhalen překlep `breaks_on.wav` vs. kód `brakes_on.wav`: sample se nikdy
+  nenačetl, padalo na procedurální squeal (= dlouhodobé „zní divně"). Soubor přejmenován, `.old` smazán.
+  Po zprovoznění slyšet ~2s perioda smyčky → **randomizace hranic** (`makeRandomizedLoop` vrácen z gitu);
+  `playbackRate` cap zpomalen (`BRAKE_RATE_MIN/MAX` 0,25/0,6) kvůli rychlému („cikáda") samplu.
+- **Nárazníky na 1/3** — `updateCouplers` buff → `playClunk(volume / 3)`; výhybka (`switchFired`) hlasitější.
+- **Žádné nové DD** (dokončení sample vrstvy + úklid; hybrid nikdy neměl DD číslo). `tsc` + build zelené.

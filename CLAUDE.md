@@ -45,8 +45,7 @@ K obecným bodům globálního `%THINK` přidej:
 | sim | `sim/Train.ts` | řetězec těles, integrace, trakce/adheze/brzda, palivo, příčná diagnostika |
 | view | `view/Renderer.ts` | Three.js — čistá funkce stavu → obraz; lowpoly terén/dekorace, párové koleje, most+pilíře (DD-20); deleguje kameru na `CameraController` |
 | view | `view/CameraController.ts` | řízení kamery (orbit/dron/WASD), `DroneParams`/`DEFAULT_DRONE` (DD-19) — vytaženo z Rendereru (S25, SLAP) |
-| view | `view/AudioView.ts` | hybrid zvuk — view nad simem (DD-01): nahrané samply (`loadSample`) + orchestrace; fallback v `proceduralAudio` |
-| view | `view/proceduralAudio.ts` | procedurální generátory Web Audio (čisté funkce) — fallback hlasy AudioView (S25) |
+| view | `view/AudioView.ts` | zvuk — view nad simem (DD-01): nahrané samply (`loadSample`) + orchestrace; čistě sample-based (S27, `proceduralAudio` odstraněn), tvary hlasů `makeSampleLoop`/`makeRateLoop`/`makeRandomizedLoop`/`makeSampleLevelLoop` |
 | view | `view/ExhaustClock.ts` | sdílený rytmus výfuku (DD-23) pro chuff i kouř; cap `CHUFF_FUSE_SPEED` |
 | view | `view/SmokeView.ts` | faceted kouř ve world-space (DD-23) — vlečka emergentně, idle vázán na palivo |
 | view | `view/carModels.ts` | lowpoly factory modelů vozů `buildCarModel` (DD-22) — kola, hnací spojnice |

@@ -78,7 +78,7 @@ mimo `params.ts` (drží DD-01).
 | **F2** | trakce & adheze — notch, prokluz, brzda jako řízené tření | ✅ |
 | **F6** | příčná dynamika — esíčko (osmička), most/podjezd, převrácení/vykolejení, kývání skříně, gradient meze, rázy z trati (spáry / skok křivosti) | ✅ |
 | **F3** | palivo & zásoby — uhlí/voda (parní tlak), proměnná adheze + písek | ✅ |
-| **F4** | záclony — lowpoly terén/most/stromy ✅, párové koleje ✅, modely vozů (kola + hnací spojnice + prokluz) ✅, kouř z komína (sladěný s výfukem) ✅; zvuk: procedurální ✅ + hybrid samply 🚧 (5 z 8: chuff, únik páry, houkačka, brzdy, klapot spár) | 🚧 |
+| **F4** | záclony — lowpoly terén/most/stromy ✅, párové koleje ✅, modely vozů (kola + hnací spojnice + prokluz) ✅, kouř z komína (sladěný s výfukem) ✅, zvuk: samply ✅ (8 z 8 hlasů + houkačka/únik páry); volitelně mostovka/mlha 🚧 | 🚧 |
 | **F5** | sloshing kapaliny v cisterně → posun těžiště | ⬜ |
 
 Aktuální úkoly: [`TODO.md`](TODO.md) · hotové: [`DONE.md`](DONE.md).
@@ -93,8 +93,7 @@ vzniká až při renderu (DD-02).
 src/
   sim/    fyzika — Track, trackData, terrain, params, Body, Coupler, Train
   view/   výstupy — Renderer (Three.js) + CameraController (orbit/dron) + carModels (modely vozů)
-          + SmokeView (kouř), AudioView (hybrid samply) + proceduralAudio (fallback generátory),
-          ExhaustClock (rytmus výfuku)
+          + SmokeView (kouř), AudioView (samply), ExhaustClock (rytmus výfuku)
   ui/     ControlPanel (slidery + status + tlačítka)
   main.ts skládá sim + view + ui, drží render loop
 ```

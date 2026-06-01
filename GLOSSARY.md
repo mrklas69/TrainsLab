@@ -137,8 +137,8 @@ Termíny projektu. Anglické identifikátory v kódu, české vysvětlení.
 ## Zvuk
 - **chuff (výfuk páry)** — nárazový výdech páry komínem **pod párou** (otevřený regulátor `notch≠0`
   **a** `steamPressure>0` — bez páry píst nepracuje). Časován **`ExhaustClock`** (4 pufy/otáčku kola),
-  ne podle rychlosti přímo → věrný zrychlující se rytmus. Hybrid: nahraný sample (`steam_chuff.wav`),
-  dokud se nenačte / když chybí → procedurální burst šumu.
+  ne podle rychlosti přímo → věrný zrychlující se rytmus. Nahraný sample (`steam_chuff.wav`), přehraný
+  one-shot v každém taktu; dokud se nenačte (nebo když chybí) je chuff tichý.
 - **ExhaustClock (rytmus výfuku)** — *(DD-23)* sdílený view zdroj taktu parního výfuku: fáze ∝ ujetá
   dráha kol (`v/(π·D) × 4 pufy/otáčku` — dvojčinná dvojválcová mašina). `main` ji posouvá jednou za frame,
   obě view vrstvy (zvukový chuff, puf kouře) čtou flag `fired` → jsou **sladěné z jednoho zdroje** (DRY).
@@ -153,32 +153,34 @@ Termíny projektu. Anglické identifikátory v kódu, české vysvětlení.
   ∝ `throttleFraction·steamPressure` (uhlíkový kouř při zátěži ↔ světlá pára); volnoběh = líné světlé obláčky.
   Idle kouř je vázán na **hořící oheň** (`fireLit = coalFraction > 0`, S25): došlo uhlí → kotel vyhasne,
   žádný kouř; došla jen voda → kotel kouří idle dál, ale bez páry = bez chuffu/výfuku.
-- **tikot / klapot spár** — „klikety-klak" na dilatačních spárách. **Hybrid (S25):** sample
-  (`clattering_wheels.wav`) jako **smyčka** s `playbackRate ∝ rychlost` (`makeRateLoop`, `RAIL_REF_SPEED`)
-  → frekvence klapotu úměrná rychlosti. Fallback = procedurální self-timed tikot (interval `railLength/v`,
-  jako chuff — AudioView čte stav, negeneruje z eventů simu). Vypne `trackImpulse=0` / svařovaná kolej.
-- **skřípění oblouku (flange squeal)** — kvílení okolků v zatáčce; trvalý hlas s hlasitostí plynule
-  řízenou příčným zrychlením (`v²·κ`) — sílí v ostřejším oblouku. ≠ on/off skřípění brzd.
+- **tikot / klapot spár** — „klikety-klak" na dilatačních spárách. Sample (`clattering_wheels.wav`)
+  jako **smyčka** s `playbackRate ∝ rychlost` (`makeRateLoop`, `RAIL_REF_SPEED`) → frekvence klapotu
+  úměrná rychlosti. Aktivní za jízdy; vypne `trackImpulse=0` / svařovaná kolej.
+- **skřípění oblouku (flange squeal)** — kvílení okolků v zatáčce; sample smyčka (`arc_squeal.wav`,
+  `makeSampleLevelLoop`) s hlasitostí plynule řízenou příčným zrychlením (`v²·κ`) — sílí v ostřejším
+  oblouku. ≠ on/off skřípění brzd.
 - **clunk výhybky vs. trh přechodnice** — odlišené zvuky bodových perturbací (S20): výhybka/křížení
-  (`switchFired`) = tupý kovový clunk; skok křivosti (`transitionJerkFired`) = krátké skřípnutí
-  (`playArcJerk`, sklouznutí frekvence dolů — příbuzné trvalému skřípění oblouku, ale jednorázové).
+  (`switchFired`) = tupý kovový clunk (sample `clunk.wav`); skok křivosti (`transitionJerkFired`) =
+  krátké skřípnutí (sample `arc_jerk.wav`, one-shot). Týž `clunk` sample slouží i nárazníkům spřáhel
+  (buff), ale ztlumený na 1/3 (S27) — výhybka je hlasitější.
 - **únik páry (steam leak)** — *(S24)* syčení kotle pod tlakem: sample smyčka (`makeSampleLoop`, úsek
   1.–11. s na 1/3 hlasitosti) běžící pořád, slyšitelná dokud `steamPressure > 0` (po vyčerpání zásob utichne).
-- **houkačka (horn)** — *(S24)* one-shot na vyžádání (tlačítko / klávesa H), `playHorn`. Hlasitá (3× nad
-  běžné hlasy). Bez procedurálního fallbacku.
+- **houkačka (horn)** — *(S24)* one-shot na vyžádání (tlačítko / klávesa H), `playHorn`. Hlasitá (3× nad běžné hlasy).
+- **prokluz (slip, sample)** — *(S27)* sykot protáčejících se hnacích kol: sample smyčka (`steam_slip.wav`,
+  `makeSampleLoop`) on/off podle `train.slipping`. Vizuální protějšek = `driverSlipPhase` (víření spojnic).
 - **brzdy (sample)** — *(S24)* `makeRandomizedLoop`: smyčka, jejíž hranice (`loopStart ∈ [0,1;0,3]`,
-  `loopEnd ∈ [0,6;0,9]` délky) se **přelosují po každém průchodu** → šev pevné smyčky se neozývá periodicky.
-  `playbackRate ∝ rychlost` (= otáčení kol, `RateVoice.setRate`), aktivní jen za jízdy (`isBraking && |v|>0,3`)
-  → stojící vlak s brzdou je tichý. Fallback = procedurální skřípění (3 neharmonické frekvence se jitterem).
-  **Rate cap (`BRAKE_FUSE_SPEED`, S25):** rychlost přehrávání roste lineárně 0 → 3,8 m/s, pak strop
-  (`rate ∈ [0,5; 1,15]`) — bez capu by při vysoké rychlosti rate vyletěl na ~1,9 a skřípání znělo jako
-  „zubní vrtačka" (analogie chuff fuse).
+  `loopEnd ∈ [0,6;0,9]` délky) se **přelosují po každém průchodu** → smyčka nemá pevnou periodu (rozbíjí
+  ~2s opakování rysu nahrávky). `playbackRate ∝ rychlost` (= otáčení kol, `RateVoice.setRate`), aktivní jen
+  za jízdy (`isBraking && |v|>0,3`) → stojící vlak s brzdou je tichý.
+  **Rate cap (`BRAKE_FUSE_SPEED`):** rychlost přehrávání roste lineárně 0 → 3,8 m/s, pak strop
+  (`rate ∈ [0,25; 0,6]`, S27 zpomaleno kvůli rychlé nahrávce) — bez capu by skřípání znělo jako „cikáda".
 - **AudioView** — zvuk jako další „view" nad simem (DD-01): čte stav, ozvučuje události (chuff, únik páry,
-  houkačka, clank/náraz spřáhla, sykot prokluzu, skřípění/sample brzd, tikot spár, skřípění oblouku, clunk
-  výhybky, trh přechodnice). **Hybrid** (S23–S24): nahrané samply z `public/audio/` (`loadSample` přes
-  `BASE_URL` + `decodeAudioData`), s fallbackem na procedurální generátor — když sample chybí/nenačte, vždy
-  zní něco. Tvary hlasů: one-shot (`playSample`), trvalý loop (`makeSampleLoop`), loop s náhodnými hranicemi
-  + rychlostí (`makeRandomizedLoop`/`RateVoice`).
+  houkačka, clank/náraz spřáhla, sykot prokluzu, skřípění brzd, tikot spár, skřípění oblouku, clunk
+  výhybky, trh přechodnice). **Čistě sample-based** (S27): nahrané samply z `public/audio/` (`loadSample`
+  přes `BASE_URL` + `decodeAudioData`); chybí-li sample → hlas mlčí (procedurální vrstva odstraněna —
+  set kompletní). Tvary hlasů: one-shot (`playSample`), trvalý loop on/off (`makeSampleLoop`), loop ∝ úroveň
+  (`makeSampleLevelLoop`), loop s náhodnými hranicemi (`makeRandomizedLoop`), prostá smyčka ∝ rychlost
+  (`makeRateLoop`). Interfacy `SustainVoice`/`LevelVoice`/`RateVoice` žijí zde.
 
 ## Kamera (view)
 - **dron (auto-kamera)** — *(DD-19)* režim kamery (toggle `C`), který sleduje soupravu zezadu-shora
@@ -229,6 +231,4 @@ Termíny projektu. Anglické identifikátory v kódu, české vysvětlení.
 - **sim/view split (DD-01)** — model nezná renderer; renderer = čistá funkce stavu → obraz.
 - **CameraController** — *(S25)* veškeré řízení kamery (orbit/dron/WASD) jako samostatná view třída
   vytažená z Rendereru (SLAP): drží `camera`, Renderer ji jen čte při `gl.render`. `DroneParams` žijí tady.
-- **proceduralAudio** — *(S25)* knihovna procedurálních generátorů zvuku (čisté funkce nad `AudioContext`)
-  = fallback vrstva `AudioView` pro chybějící samply (hybrid: sample má přednost, jinak „vždy zní něco").
 - **DD-NN** — design decision; tabulky v `docs/diary/`.

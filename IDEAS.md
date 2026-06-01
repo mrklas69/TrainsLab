@@ -99,13 +99,14 @@ Udělat z A2 měřitelné hypotézy, ne filozofování (proto Lab):
 - **AudioView prototyp hotový** (S3) — zvuk jako další view nad simem (DD-01), procedurální
   Web Audio. Mapuje události: chuff (výfuk páry ∝ rychlost), clank/náraz spřáhla (∝ relVel),
   sykot prokluzu, skřípění brzd. → DONE (prototyp); samply jsou F4.
-- **Vyměnit generátor za nahrané samply** (F4) — izomorfně s vyměnitelným rendererem.
-  **Hybrid vrstva realizována S23–S25** (`loadSample` přes `BASE_URL` + `decodeAudioData`; tvary hlasů:
-  `playSample` one-shot, `makeSampleLoop` trvalý loop, `makeRandomizedLoop` loop s náhodnými hranicemi,
-  `makeRateLoop` prostá smyčka + `playbackRate`). **5 z 8:** chuff (`ExhaustClock.fired`), únik páry (∝ parní
-  tlak), houkačka (tlačítko/H), brzdy (náhodné hranice proti švu + `playbackRate` ∝ rychlost), klapot spár
-  (`clattering_wheels`, loop + `playbackRate` ∝ rychlost). Zbývá: clank, clunk, arc-jerk / loopy (slip,
-  arc-squeal). `.wav` bezpečnější než `.m4a` (AAC na Firefoxu vrtkavé).
+- **Vyměnit generátor za nahrané samply** (F4) → **DONE (S23–S27)** — izomorfně s vyměnitelným rendererem.
+  Tvary hlasů: `playSample` one-shot, `makeSampleLoop` trvalý loop on/off, `makeSampleLevelLoop` loop ∝ úroveň,
+  `makeRandomizedLoop` loop s náhodnými hranicemi + rychlostí, `makeRateLoop` prostá smyčka + `playbackRate`.
+  **8 z 8 manifestu** + bonusy: chuff, únik páry, houkačka, brzdy, klapot spár, clank, clunk, arc-jerk,
+  arc-squeal, prokluz (`steam_slip`). **S27 — hybrid opuštěn → čistě sample-based:** `proceduralAudio.ts`
+  smazán, fallbacky pryč (set kompletní, fallback „na který nedojde"); chybí-li sample → ticho. `.wav`
+  bezpečnější než `.m4a` (AAC na Firefoxu vrtkavé). **Censure S27:** překlep `breaks`≠`brakes` v názvu souboru
+  → sample se tiše nenačetl (`loadSample` polyká 404), padalo na fallback = „divně". Ověřit shodu název↔kód.
   Otevřené zdroje ověřené rešerší (S3):
   - výfuk páry: Wikimedia Commons `Steam_engine.ogg` — **Public Domain** (0-4-0 do kopce);
     freesound Benboncan „Trains" pack (CC-BY).
@@ -114,7 +115,7 @@ Udělat z A2 měřitelné hypotézy, ne filozofování (proto Lab):
   - prokluz: freesound „wheel slip" CC0.
   - **Licenční hygiena:** držet CC0/CC-BY, vyhnout se NC (mřížka míří i k publikovatelnému).
     Freesound vyžaduje login ke stažení → soubory musí přinést uživatel.
-  - **Manifest k sehnání (S21)** — 8 souborů 1:1 s hlasy `AudioView` (žádné nové → izomorfismus).
+  - **Manifest k sehnání (S21)** → **DONE (S27, 8 z 8 + 2 bonusy)** — 8 souborů 1:1 s hlasy `AudioView` (žádné nové → izomorfismus).
     Formát `.ogg`/`.mp3`, mono, 44,1 kHz, bez clippingu. Cíl `public/audio/`. Fallback = **hybrid**
     (chybí/nenačte se → padni na procedurální generátor, vždy zní něco). One-shoty:
     `chuff` (0,2–0,4 s, výdech páry), `clank` (0,1–0,3 s, tah spřáhla — jasné), `clunk` (0,2–0,4 s,

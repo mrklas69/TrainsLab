@@ -78,14 +78,14 @@ Kontext a rozhodnutí: viz `docs/diary/2026-05-29.md`.
       klidnější než čelo). Směr `sign(v)` s **hysterezí u `v≈0`**. **Reverz = přelet** (prohození konců →
       cíl skočí, tlumení `α=1−exp(−tuhost·dt)` doletí plynule; snap při zapnutí = bez letáku přes mapu).
       Params mimo fyziku (`DroneParams` ve view, DD-01), slidery Dron: výška / odstup / tuhost dohánění.
-- [~] Zvuk: prototyp `AudioView` hotový (procedurální) *(S3, vědomě předsunuto)*
-- [~] Zvuk: vyměnit procedurální generátor za nahrané samply *(S23–S25: hybrid vrstva — `loadSample` přes
-      `BASE_URL` + `decodeAudioData`. **5 z 8 zvuků:** `steam_chuff` (chuff, takt `ExhaustClock`),
-      `steam_leak` (loop 1–11 s ∝ parní tlak, `makeSampleLoop`), `horn_on` (houkačka `playHorn` + tlačítko/H),
-      `brakes_on` (`makeRandomizedLoop` — náhodné hranice proti švu + `playbackRate` ∝ rychlost, jen za jízdy),
-      `clattering_wheels` (klapot spár, `makeRateLoop` — loop + `playbackRate` ∝ rychlost; S25).
-      Zbývá: clank, clunk, arc-jerk (one-shoty) / slip, arc-squeal (loopy) — každý `loadSample` +
-      hybrid větev v `play*`. Fallbacky procedurální (skřípení brzd = 3-frekvenční složení).)*
+- [x] Zvuk: prototyp `AudioView` (procedurální) *(S3, vědomě předsunuto)* — nahrazen samply, procedurální vrstva odstraněna *(S27)*
+- [x] **Zvuk: vyměnit procedurální generátor za nahrané samply** *(S23–S27)* — **8 z 8 manifestu** + bonusy.
+      `steam_chuff` (takt `ExhaustClock`), `steam_leak` (loop ∝ parní tlak, `makeSampleLoop`), `horn_on`
+      (houkačka `playHorn` + H), `brakes_on` (`makeRandomizedLoop` — náhodné hranice proti švu/2s periodě +
+      `playbackRate` ∝ rychlost, jen za jízdy), `clattering_wheels` (klapot spár, `makeRateLoop`),
+      `clank`/`clunk`/`arc_jerk` (one-shoty), `arc_squeal` (loop ∝ příčné zrychlení, `makeSampleLevelLoop`),
+      `steam_slip` (prokluz, loop on/off). **S27: čistě sample-based** — `proceduralAudio.ts` smazán,
+      hybrid fallbacky odstraněny (chybí-li sample → ticho). Interfacy hlasů přesunuty do `AudioView.ts`.
 - [x] **Chuff při vysokých otáčkách zní jako kulomet** *(S25)* — vyřešeno capem rychlosti v `ExhaustClock`
       (`CHUFF_FUSE_SPEED=7,4 m/s`, kde interval výfuku ≈ délka chuffu). Cap na **sdíleném clocku** → takt se
       ustálí pro zvuk i kouř (drží DD-23). Stejný vzor i u brzdy (`BRAKE_FUSE_SPEED=3,8`, „zubní vrtačka").
