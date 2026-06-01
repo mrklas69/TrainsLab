@@ -4,6 +4,8 @@ import type { Track } from '../sim/Track';
 import type { Train } from '../sim/Train';
 import { terrainHeight, smoothstep } from '../sim/terrain';
 import { buildCarModel, CAR_HEIGHT, CRANK_RADIUS, type CarType, type CarVisual } from './carModels';
+import { SmokeView } from './SmokeView';
+import type { ExhaustClock } from './ExhaustClock';
 
 const RAIL_RADIUS = 0.12;   // poloměr trubky kolejnice (m) — štíhlá pro párový vzhled (dřív 0.3 = jedna tuba)
 const RAIL_GAUGE = 1.7;     // vizuální rozchod kolejnic (m) — širší než fyzický 1.435 pro čitelnost pod vozy
@@ -100,6 +102,8 @@ export class Renderer {
   private readonly controls: OrbitControls;
   private readonly carVisuals: CarVisual[]; // lowpoly modely vozů (group + tintovaný skin materiál)
   private readonly couplerMeshes: THREE.Mesh[]; // marker napětí mezi sousedními vozy
+  private readonly smoke: SmokeView;        // faceted kouř z komína loko (čistě view)
+  private readonly chimneyWorld = new THREE.Vector3(); // přepoužitý buffer pro world pozici ústí komína
   private trackGroup!: THREE.Group;             // dvě kolejnice + pražce — přestavitelné sliderem sklonu
   private terrainMesh!: THREE.Mesh;             // lowpoly heightfield — přestavitelný sliderem sklonu
   private sceneryGroup!: THREE.Group;           // stromy + kameny — sedí na terénu (rebuild se sklonem)
@@ -119,6 +123,7 @@ export class Renderer {
     private readonly drone: DroneParams, // sdílená instance — slidery ji ladí za běhu
     trackAmplitude: number, // počáteční amplituda terénu (slider sklonu) — terén vede trať (DD-20)
     private readonly carTypes: CarType[], // typ modelu per vůz (ryze view — DD-01); délka 1:1 s train.bodies
+    private readonly exhaust: ExhaustClock, // sdílený rytmus výfuku — kouř pufá v taktu se zvukem
   ) {
     this.gl = new THREE.WebGLRenderer({ canvas, antialias: true });
     this.gl.setPixelRatio(window.devicePixelRatio);
@@ -142,6 +147,7 @@ export class Renderer {
     this.buildTrack(trackAmplitude);
     this.carVisuals = this.buildCars(train);
     this.couplerMeshes = this.buildCouplers(train);
+    this.smoke = new SmokeView(this.scene);
 
     this.onResize();
     window.addEventListener('resize', () => this.onResize());
@@ -205,6 +211,17 @@ export class Renderer {
       vis.skin.emissive.copy(DANGER_GLOW).multiplyScalar(glow * MAX_GLOW);
     });
     this.renderCouplers(train);
+
+    // kouř z komína loko: emisní bod = world pozice ústí (getWorldPosition vyřeší flip/náklon
+    // za nás). Pufá v taktu výfuku (ExhaustClock) jen pod párou; mimo páru jen líný idle kouř.
+    // Hustota/velikost/tmavost ∝ otevření regulátoru × parní tlak (bez páry není co kouřit).
+    const loco = this.carVisuals[0];
+    if (loco.chimneyTip) {
+      loco.chimneyTip.getWorldPosition(this.chimneyWorld);
+      const power = train.throttleFraction * train.steamPressure;
+      this.smoke.update(dt, this.chimneyWorld, power, this.exhaust.fired && train.notch !== 0);
+    }
+
     if (!this.droneActive) this.controls.update(); // orbit damping jen mimo dron režim
     this.gl.render(this.scene, this.camera);
   }

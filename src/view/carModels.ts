@@ -49,6 +49,7 @@ export interface CarVisual {
   wheelDir: number;                    // ±1 směr otáčení kol — sladí flipnuté loko (Y-flip invertuje rotaci) s vagony
   rods: THREE.Mesh[];                  // hnací spojnice loko (u vagonů prázdné); render loop animuje pozici dle kliky
   rodBaseY: number;                    // klidové y spojnice (osa orbity kliky = výška středu hnacích kol)
+  chimneyTip?: THREE.Object3D;         // ústí komína (jen loko) — render loop z něj bere world pozici pro emisi kouře
 }
 
 // pomocník: faceted mesh z geometrie a materiálu, posazený na danou lokální pozici
@@ -121,6 +122,12 @@ function buildLoco(length: number): CarVisual {
   body.add(part(new THREE.BoxGeometry(CAR_WIDTH - 0.2, 2.0, length * 0.28), skin, 0, FLOOR_Y + 1.6, length * 0.33));
   // komín — svislý válec nad přídí kotle
   body.add(part(new THREE.CylinderGeometry(0.28, 0.32, 0.9, RADIAL_SEG), detail, 0, FLOOR_Y + 2.6, -length * 0.34));
+  // marker ústí komína (těsně nad vrškem) — emisní bod kouře. Prázdný Object3D ve stejném
+  // parentu jako komín → render loop přečte world pozici přes getWorldPosition (flip/náklon
+  // vyřeší three sám, žádné ruční počítání znamének po Y-flipu loko).
+  const chimneyTip = new THREE.Object3D();
+  chimneyTip.position.set(0, FLOOR_Y + 3.15, -length * 0.34);
+  body.add(chimneyTip);
   // parní dóm — kratší svislý válec na temeni kotle
   body.add(part(new THREE.CylinderGeometry(0.4, 0.4, 0.5, RADIAL_SEG), detail, 0, FLOOR_Y + 2.5, -length * 0.02));
 
@@ -139,7 +146,7 @@ function buildLoco(length: number): CarVisual {
   }
 
   // loko je Y-flipnuté → rotation.x kol se ve světě obrací; +1 vychází správně (vagony dostanou −1)
-  return { group, skin, baseColor: LOCO_BASE, wheels, wheelRadius: LOCO_WHEEL_R, wheelDir: 1, rods, rodBaseY };
+  return { group, skin, baseColor: LOCO_BASE, wheels, wheelRadius: LOCO_WHEEL_R, wheelDir: 1, rods, rodBaseY, chimneyTip };
 }
 
 // společný závěr pro vagony: 2 nápravy (na kolejnici), žádné spojnice

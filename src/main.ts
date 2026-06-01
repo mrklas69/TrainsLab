@@ -6,6 +6,7 @@ import { DEFAULT_PARAMS } from './sim/params';
 import { Renderer, DEFAULT_DRONE } from './view/Renderer';
 import type { CarType } from './view/carModels';
 import { AudioView } from './view/AudioView';
+import { ExhaustClock } from './view/ExhaustClock';
 import { createControlPanel, type KeyAction } from './ui/ControlPanel';
 
 const canvas = document.querySelector<HTMLCanvasElement>('#scene');
@@ -22,8 +23,10 @@ const carLengths = [8, 7, 6, 6, 7, 7];
 const train = new Train(track, params, carLengths);
 // dron = view parametry kamery (mimo fyziku), sdílená instance pro slidery (live ladění)
 const drone = { ...DEFAULT_DRONE };
-const renderer = new Renderer(canvas, track, train, drone, params.trackAmplitude, carTypes);
-const audio = new AudioView(train, params);
+// sdílený rytmus parního výfuku (čistě view) — kouř i zvukový chuff z něj pufají v taktu
+const exhaust = new ExhaustClock(params);
+const renderer = new Renderer(canvas, track, train, drone, params.trackAmplitude, carTypes, exhaust);
+const audio = new AudioView(train, params, exhaust);
 
 // Klávesové akce — single source pro keydown handler, nápovědu i tlačítka panelu.
 const actions: KeyAction[] = [
@@ -73,6 +76,7 @@ const clock = new THREE.Clock();
 function frame(): void {
   const dt = Math.min(clock.getDelta(), 0.05);
   train.update(dt);
+  exhaust.advance(train.speed, dt); // posuň takt výfuku (čtou ho audio i renderer)
   audio.update(train, dt);
   updatePanel(train);
   renderer.render(dt);

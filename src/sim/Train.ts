@@ -102,6 +102,11 @@ export class Train {
     return this.throttle;
   }
 
+  /** Otevření regulátoru 0..1 (|notch| / max) — single source pro view (hustota kouře/výfuku). */
+  get throttleFraction(): number {
+    return Math.abs(this.throttle) / MAX_FORWARD;
+  }
+
   get isBraking(): boolean {
     return this.braking;
   }

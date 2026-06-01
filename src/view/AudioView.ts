@@ -1,6 +1,7 @@
 import type { Train } from '../sim/Train';
 import type { PhysicsParams } from '../sim/params';
 import type { CouplerMode } from '../sim/Coupler';
+import type { ExhaustClock } from './ExhaustClock';
 
 const MASTER_VOLUME = 0.35;
 
@@ -21,7 +22,7 @@ interface LevelVoice {
  * stejně, jako je vyměnitelný renderer.
  *
  * Mapování událostí → zvuk:
- *  - chuff (výfuk páry): rytmický burst při otevřeném regulátoru, hustota ∝ rychlost
+ *  - chuff (výfuk páry): burst v taktu ExhaustClock (4×/otáčku kola), jen pod párou — sladěný s kouřem
  *  - clank / náraz: přechod spřáhla do draft (tah) / buff (nárazníky), hlasitost ∝ relVel
  *  - sykot prokluzu: trvalý šum, dokud loko prokluzuje
  *  - skřípění brzd: trvalý pískot při brzdění za jízdy
@@ -39,11 +40,14 @@ export class AudioView {
   private readonly arc: LevelVoice;
 
   private prevModes: CouplerMode[];
-  private chuffTimer = 0;
-  private railTimer = 0; // odpočet do dalšího tiku spáry (self-timed jako chuff)
+  private railTimer = 0; // odpočet do dalšího tiku spáry (self-timed)
   private muted = false;
 
-  constructor(train: Train, private readonly params: PhysicsParams) {
+  // nahraný sample výfuku (hybrid vrstva, S21): null dokud se nenačte / když chybí nebo
+  // se nedekóduje → playChuff padne na procedurální generátor (vždy zní něco).
+  private chuffSample: AudioBuffer | null = null;
+
+  constructor(train: Train, private readonly params: PhysicsParams, private readonly exhaust: ExhaustClock) {
     this.ctx = new AudioContext();
     this.master = this.ctx.createGain();
     this.master.gain.value = MASTER_VOLUME;
@@ -54,6 +58,34 @@ export class AudioView {
     this.squeal = this.makeSquealVoice();
     this.arc = this.makeArcSquealVoice();
     this.prevModes = train.couplers.map((c) => c.mode);
+
+    // asynchronně natáhni samply (fire-and-forget; do načtení hraje procedurální fallback)
+    void this.loadSample('steam_chuff.wav').then((buf) => (this.chuffSample = buf));
+  }
+
+  /**
+   * Načte zvukový sample z `public/audio/` přes Web Audio (fetch → decodeAudioData).
+   * URL přes `BASE_URL` (dev `/`, GitHub Pages `/TrainsLab/`) — jinak by build házel 404.
+   * Při jakékoli chybě (chybí soubor, prohlížeč neumí kodek) vrátí null → hybrid fallback.
+   */
+  private async loadSample(file: string): Promise<AudioBuffer | null> {
+    try {
+      const res = await fetch(`${import.meta.env.BASE_URL}audio/${file}`);
+      if (!res.ok) return null;
+      return await this.ctx.decodeAudioData(await res.arrayBuffer());
+    } catch {
+      return null; // hybrid: nezní sample → zazní procedurální generátor
+    }
+  }
+
+  /** Jednorázové přehrání nahraného bufferu danou hlasitostí (přes master gain). */
+  private playSample(buffer: AudioBuffer, volume: number): void {
+    const src = this.ctx.createBufferSource();
+    src.buffer = buffer;
+    const gain = this.ctx.createGain();
+    gain.gain.value = volume;
+    src.connect(gain).connect(this.master);
+    src.start();
   }
 
   /** Prohlížeč povolí zvuk až po interakci uživatele — voláno z prvního vstupu. */
@@ -71,7 +103,8 @@ export class AudioView {
   }
 
   update(train: Train, dt: number): void {
-    this.updateChuff(train, dt);
+    // výfuk páry: puf v taktu sdíleného ExhaustClock (sladěný s kouřem), jen pod párou (notch ≠ 0)
+    if (this.exhaust.fired && train.notch !== 0) this.playChuff();
     this.updateCouplers(train);
     this.updateRailJoints(train, dt);
     if (train.switchFired) this.playClunk(0.7);     // výhybka / křížení — tupý náraz
@@ -83,18 +116,6 @@ export class AudioView {
   }
 
   // --- jednorázové události ---
-
-  // výfuk páry: pod párou (notch ≠ 0) vystřeluje burst, interval klesá s rychlostí
-  private updateChuff(train: Train, dt: number): void {
-    if (train.notch === 0) {
-      this.chuffTimer = 0;
-      return;
-    }
-    this.chuffTimer -= dt;
-    if (this.chuffTimer > 0) return;
-    this.chuffTimer = Math.max(0.1, 0.9 / (Math.abs(train.speed) + 0.4));
-    this.playChuff();
-  }
 
   // přechod spřáhla z vůle do kontaktu → cvaknutí (draft) nebo náraz (buff)
   private updateCouplers(train: Train): void {
@@ -151,6 +172,11 @@ export class AudioView {
   }
 
   private playChuff(): void {
+    // hybrid: nahraný sample má přednost; dokud se nenačte (nebo chybí), zní procedurální „čch"
+    if (this.chuffSample) {
+      this.playSample(this.chuffSample, 0.9);
+      return;
+    }
     const t = this.ctx.currentTime;
     const src = this.ctx.createBufferSource();
     src.buffer = this.noise;
