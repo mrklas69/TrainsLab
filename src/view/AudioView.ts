@@ -12,6 +12,8 @@ const BRAKE_FUSE_SPEED = 3.8; // m/s — nad tím už playbackRate neroste
 const BRAKE_RATE_MIN = 0.25;  // sotva jede → hluboké pomalé skřípání
 const BRAKE_RATE_MAX = 0.6;   // od BRAKE_FUSE_SPEED výš → strop, jen mírně zrychlené (žádná cikáda)
 const RAIL_REF_SPEED = 12;    // m/s — rychlost, při níž hraje smyčka klapotu spár nominálně (playbackRate 1)
+// clunk: ×1,1 = mírné zesílení nárazu, /3 = globální ztlumení (na přání — byl příliš hlasitý)
+const CLUNK_GAIN = 1.1 / 3;
 
 /** Trvalý hlas (loop) jen se zapínáním/vypínáním — prokluz, únik páry. */
 interface SustainVoice {
@@ -287,7 +289,7 @@ export class AudioView {
       if (coupler.mode !== this.prevModes[i] && coupler.mode !== 0) {
         const volume = Math.min(1, Math.abs(coupler.relVel) / 2);
         if (coupler.mode === 1) this.playClank(volume);
-        else this.playClunk(volume / 3); // nárazníky ztlumené na 1/3 (na přání) — výhybka (switchFired) hlasitější
+        else this.playClunk(volume / 3); // nárazníky o další 1/3 tišší než výhybka (switchFired) — globální ztlumení clunk řeší playClunk
       }
       this.prevModes[i] = coupler.mode;
     });
@@ -312,7 +314,7 @@ export class AudioView {
   }
 
   private playClunk(volume: number): void {
-    if (this.clunkSample) this.playSample(this.clunkSample, volume * 1.1);
+    if (this.clunkSample) this.playSample(this.clunkSample, volume * CLUNK_GAIN);
   }
 
   private playTransitionJerk(): void {

@@ -28,7 +28,7 @@ function bridgeLift(t: number): number {
  *
  * **Výška `Y = terrainHeight(x,z) + most`** (DD-20): koleje vedou po povrchu krajiny, sklony
  * pro slack action vznikají z terénu (emergence, ne skript). `amplitude` škáluje terénní vlny
- * (slider sklonu → Track.rebuild + Renderer.rebuildTerrain); most zůstává fixní.
+ * (slider sklonu → Track.rebuild + Renderer.rebuildWorld); most zůstává fixní.
  */
 export function makeLoopControlPoints(amplitude: number): Vector3[] {
   const points: Vector3[] = [];

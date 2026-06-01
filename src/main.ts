@@ -47,8 +47,7 @@ const updatePanel = createControlPanel(params, drone, actions, {
   // souprava jede dál (s je v metrech, wrap přes novou délku)
   onAmplitudeChange: () => {
     track.rebuild(makeLoopControlPoints(params.trackAmplitude));
-    renderer.rebuildTerrain(params.trackAmplitude);
-    renderer.rebuildTrack(params.trackAmplitude);
+    renderer.rebuildWorld(params.trackAmplitude); // přestaví terén + dekoraci + trať (WorldView)
   },
 });
 
