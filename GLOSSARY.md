@@ -126,8 +126,17 @@ Termíny projektu. Anglické identifikátory v kódu, české vysvětlení.
   neviditelný. Zachrání rozjezd (prokluz) i brzdění (skid).
 
 ## Zvuk
-- **chuff (výfuk páry)** — nárazový výdech páry komínem při otevřeném regulátoru; hustota
-  roste s rychlostí. V `AudioView` rytmický burst šumu.
+- **chuff (výfuk páry)** — nárazový výdech páry komínem při otevřeném regulátoru. Časován
+  **`ExhaustClock`** (4 pufy/otáčku kola), ne podle rychlosti přímo → věrný zrychlující se rytmus.
+  Hybrid: nahraný sample (`steam_chuff.wav`), dokud se nenačte / když chybí → procedurální burst šumu.
+- **ExhaustClock (rytmus výfuku)** — *(DD-23)* sdílený view zdroj taktu parního výfuku: fáze ∝ ujetá
+  dráha kol (`v/(π·D) × 4 pufy/otáčku` — dvojčinná dvojválcová mašina). `main` ji posouvá jednou za frame,
+  obě view vrstvy (zvukový chuff, puf kouře) čtou flag `fired` → jsou **sladěné z jednoho zdroje** (DRY).
+  Fyzikálně odvozený rytmus = emergentně pomalý rozjezdový „čch… čch…" i hustý sykot, bez ladění konstanty.
+- **kouř (`SmokeView`)** — *(DD-23)* faceted obláčky (ikosaedry, flatShading) emitované z ústí komína loko.
+  Žijí ve **world-space** (children scény, ne loko) → jak loko ujede, kouř visí a vzniká **vlečka**
+  emergentně (bez skriptu). Pod párou výrazné pufy v taktu výfuku (`ExhaustClock`), hustota/velikost/**tmavost**
+  ∝ `throttleFraction·steamPressure` (uhlíkový kouř při zátěži ↔ světlá pára); volnoběh = líné světlé obláčky.
 - **tikot spár** — „klikety-klak" na dilatačních spárách; self-timed (interval `railLength/v`,
   jako chuff — AudioView čte stav, negeneruje z eventů simu). Hlasitost mírá, vypne `trackImpulse=0`.
 - **skřípění oblouku (flange squeal)** — kvílení okolků v zatáčce; trvalý hlas s hlasitostí plynule
@@ -137,7 +146,8 @@ Termíny projektu. Anglické identifikátory v kódu, české vysvětlení.
   (`playArcJerk`, sklouznutí frekvence dolů — příbuzné trvalému skřípění oblouku, ale jednorázové).
 - **AudioView** — zvuk jako další „view" nad simem (DD-01): čte stav, ozvučuje události (chuff,
   clank/náraz spřáhla, sykot prokluzu, skřípění brzd, tikot spár, skřípění oblouku, clunk výhybky,
-  trh přechodnice). Procedurální, bez souborů.
+  trh přechodnice). **Hybrid** (S23): nahrané samply z `public/audio/` (`loadSample` přes `BASE_URL` +
+  `decodeAudioData`), s fallbackem na procedurální generátor — když sample chybí/nenačte, vždy zní něco.
 
 ## Kamera (view)
 - **dron (auto-kamera)** — *(DD-19)* režim kamery (toggle `C`), který sleduje soupravu zezadu-shora

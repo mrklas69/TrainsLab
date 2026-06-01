@@ -67,8 +67,11 @@ Kontext a rozhodnutí: viz `docs/diary/2026-05-29.md`.
 - [x] **Modely lokomotivy a vagonů** *(S22, DD-22)* — lowpoly faceted (`view/carModels.ts`): loko (kotel/
       kabina/komín/dóm), cisterna, krytý, plošinový (plato — pro techniku), otevřený. Souprava 6 těles.
       Kola s valením + **hnací spojnice** loko + **animace prokluzu** (`driverSlipPhase`). Typ = view metadata.
-- [ ] **Propracovaný kouř** — částicová emise z komína lokomotivy, **sladěná se zvukovým steam chuff**
-      (puf kouře v rytmu výfuku páry; hustota ∝ otevření regulátoru / výkon)
+- [x] **Propracovaný kouř** *(S23, DD-23)* — `SmokeView`: pool faceted obláčků (ikosaedry, flatShading) ve
+      **world-space** → vlečka za komínem emergentně (loko ujede, kouř visí). Hustota/velikost/**tmavost** ∝
+      `throttleFraction·steamPressure` (uhlíkový kouř ↔ světlá pára), idle obláčky při notch 0. Sladěn se
+      zvukovým chuff přes **`ExhaustClock`** (sdílený fyzikální rytmus výfuku, 4×/otáčku kola). `chimneyTip`
+      marker přes `getWorldPosition` (flip/náklon vyřeší three).
 - [~] Osvětlení doladěno pro lowpoly (S17); kamera „dron" hotová (S15). Volitelně: mostovka, mlha na horizontu
 - [x] **Auto-kamera „dron"** *(S15, DD-19)* — toggle `C` vypne OrbitControls/WASD a každý frame řídí
       kameru: pozice za+nad *zadním* vozem (dle směru jízdy), `lookAt` **střed soupravy** (volba uživatele,
@@ -76,8 +79,10 @@ Kontext a rozhodnutí: viz `docs/diary/2026-05-29.md`.
       cíl skočí, tlumení `α=1−exp(−tuhost·dt)` doletí plynule; snap při zapnutí = bez letáku přes mapu).
       Params mimo fyziku (`DroneParams` ve view, DD-01), slidery Dron: výška / odstup / tuhost dohánění.
 - [~] Zvuk: prototyp `AudioView` hotový (procedurální) *(S3, vědomě předsunuto)*
-- [~] Zvuk: vyměnit procedurální generátor za nahrané samply *(S21: manifest 8 zvuků + knihovny + hybrid
-      fallback rozhodnuty → IDEAS; čeká na soubory v `public/audio/`, pak loader + `SamplePlayer`/`SampleLoop`)*
+- [~] Zvuk: vyměnit procedurální generátor za nahrané samply *(S23: hybrid loader hotový — `loadSample` přes
+      `BASE_URL` + `decodeAudioData`, `playSample`, fallback na procedurální; první sample `steam_chuff.wav`
+      napojen na chuff. Zbývá 7 zvuků z manifestu — každý = `loadSample` + hybrid větev v `play*`. `ExhaustClock`
+      jako sdílený rytmus výfuku zavedený, DD-23)*
 
 ## Příčná dynamika — oblouky & vykolejení  *(S6, Úroveň A — drží DD-02; F-osu doladit v README)*
 - [x] `Track.radius(s)` — lokální poloměr oblouku z křivosti **horizontálního průmětu** (XZ);

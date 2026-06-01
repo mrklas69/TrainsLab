@@ -82,7 +82,8 @@ Udělat z A2 měřitelné hypotézy, ne filozofování (proto Lab):
 - **Svět (F4)** → **DONE** (S17): lowpoly terén (heightfield, faceted), párové kolejnice + pražce,
   **trať vede po povrchu** (sklony z krajiny, DD-20), most u křížení s emergentními pilíři, stromy + kameny.
   *Otevřené (nezralé) doladění:* mostovka mezi pilíři; mlha na horizontu pro hloubku; hustota/velikost stromů;
-  barevná pásma terénu. *Modely lokomotivy/vagonů místo kvádrů* a *zvukové samply* zůstávají hlavní zbytek F4.
+  barevná pásma terénu. Modely vozů → DONE (S22), kouř z komína → DONE (S23). Hlavní zbytek F4 = **zvukové
+  samply** (hybrid vrstva rozjeta S23, zbývá 7 zvuků z manifestu).
 - Vizuální zvýraznění napětí ve spřáhlech (barva / deformace) — fyzika viditelná.
   → DONE (S5) — koule-marker mezi vozy, barva dle `Coupler.mode`, jas ∝ `force`.
 - Stavový semafor lokomotivy (prokluz / brzda / tah / volnoběh barvou). → DONE (S5).
@@ -94,6 +95,10 @@ Udělat z A2 měřitelné hypotézy, ne filozofování (proto Lab):
   Web Audio. Mapuje události: chuff (výfuk páry ∝ rychlost), clank/náraz spřáhla (∝ relVel),
   sykot prokluzu, skřípění brzd. → DONE (prototyp); samply jsou F4.
 - **Vyměnit generátor za nahrané samply** (F4) — izomorfně s vyměnitelným rendererem.
+  **Hybrid vrstva realizována S23** (`loadSample` přes `BASE_URL` + `decodeAudioData`, `playSample`,
+  fallback na procedurální). První sample `steam_chuff.wav` napojen na chuff (spouštěč `ExhaustClock.fired`).
+  Zbývá 7 zvuků z manifestu — každý = `loadSample` + hybrid větev v `play*`. `.wav` se ukázal bezpečnější
+  než `.m4a` (PCM dekóduje každý prohlížeč; AAC na Firefoxu vrtkavé).
   Otevřené zdroje ověřené rešerší (S3):
   - výfuk páry: Wikimedia Commons `Steam_engine.ogg` — **Public Domain** (0-4-0 do kopce);
     freesound Benboncan „Trains" pack (CC-BY).
@@ -113,6 +118,12 @@ Udělat z A2 měřitelné hypotézy, ne filozofování (proto Lab):
     **Wikimedia Commons**; herní balíčky na **OpenGameArt**. ⚠ **vyhnout se:** BBC Sound Effects (RemArc =
     jen osobní/vzdělávací), Orange Free Sounds (NC), Zapsplat/SoundSnap (atribuční/redistribuční háčky).
     Loopy stříhat z delší stacionární nahrávky (Audacity → Crossfade Loop).
+- **Rytmus výfuku jako sdílený zdroj** → DONE (S23, DD-23) — `ExhaustClock`: fyzikální takt
+  (4 pufy/otáčku kola, `v/(π·D)`), jediný zdroj pro zvukový chuff i puf kouře (`SmokeView`). Nahradil
+  fenomenologický `0.9/(v+0.4)` → věrný zrychlující se „čch… čch…".
+  *Otevřené (nezralé):* takt z **otáček kol** místo rychlosti vlaku → při **prokluzu** zběsilý
+  zrychlený výfuk (charakteristický zvuk parní mašiny, když loko „protáčí"). `ExhaustClock` to umožní
+  snadno (advance z efektivní obvodové rychlosti kol, kterou view už zná z `driverSlipPhase`).
 
 ## Lab knoby & nástroje
 - **Slider sklonu tratě** → DONE (S5) — `trackAmplitude` v params, `Track.rebuild()`

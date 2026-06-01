@@ -77,7 +77,7 @@ mimo `params.ts` (drží DD-01).
 | **F2** | trakce & adheze — notch, prokluz, brzda jako řízené tření | ✅ |
 | **F6** | příčná dynamika — esíčko (osmička), most/podjezd, převrácení/vykolejení, kývání skříně, gradient meze, rázy z trati (spáry / skok křivosti) | ✅ |
 | **F3** | palivo & zásoby — uhlí/voda (parní tlak), proměnná adheze + písek | ✅ |
-| **F4** | záclony — lowpoly terén/most/stromy ✅, párové koleje ✅, modely vozů (kola + hnací spojnice + prokluz) ✅ (zvuk: prototyp ✅); zvukové samply ⬜ | 🚧 |
+| **F4** | záclony — lowpoly terén/most/stromy ✅, párové koleje ✅, modely vozů (kola + hnací spojnice + prokluz) ✅, kouř z komína (sladěný s výfukem) ✅; zvuk: procedurální ✅ + hybrid samply 🚧 (1 z 8) | 🚧 |
 | **F5** | sloshing kapaliny v cisterně → posun těžiště | ⬜ |
 
 Aktuální úkoly: [`TODO.md`](TODO.md) · hotové: [`DONE.md`](DONE.md).
@@ -91,7 +91,7 @@ vzniká až při renderu (DD-02).
 ```
 src/
   sim/    fyzika — Track, trackData, terrain, params, Body, Coupler, Train
-  view/   výstupy — Renderer (Three.js), AudioView (procedurální Web Audio)
+  view/   výstupy — Renderer (Three.js) + SmokeView (kouř), AudioView (hybrid samply/procedurální), ExhaustClock (rytmus výfuku)
   ui/     ControlPanel (slidery + status + tlačítka)
   main.ts skládá sim + view + ui, drží render loop
 ```
