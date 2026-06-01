@@ -296,3 +296,29 @@ křivosti. Sjednoceno do **jednoho balíku** „rázy z trati" — impulsy do ex
 - **Iterace dle feedbacku:** loko otočeno o 180° (vnitřní `model` skupina) — přída po směru jízdy;
   skříně zvednuty nad kola (`bodyGroup` posun o poloměr kola) — kola nejsou „utopená"; směr spojnice
   i vagonových kol opraven. `tsc` + build zelené. Uživatel: **„Prokluzy parádní!"**, „Test OK".
+
+## Sezení 25 (2026-06-01)
+
+### `%AUDIT:CODE` — split Renderer + AudioView, DRY, cleanup (0 kritických; `tsc` + build zelené)
+- **D2 (KO3 z S18):** nový `view/CameraController.ts` — veškeré řízení kamery (orbit/dron/WASD +
+  key-listenery + `setAspect`) vytaženo z `Renderer.ts` (544 → ~390 ř.). Renderer deleguje. `DroneParams`/
+  `DEFAULT_DRONE` přesunuty tam (importy opraveny v `main.ts`, `ControlPanel.ts`).
+- **D3:** nový `view/proceduralAudio.ts` — procedurální generátory (slip/squeal/arc/metalHit/chuff-burst/
+  arc-jerk + `SustainVoice`/`LevelVoice`) jako čisté funkce nad `ctx`+`dest`. AudioView (388 → ~270 ř.)
+  drží orchestraci + hybrid + sample tvary.
+- **D1 (DRY):** `consumeFuel` i `applyLocomotive` přepojeny na getter `throttleFraction` (single source).
+- **K1:** zrušeny zbytečné `export` (`CAR_WIDTH` + lživý komentář, `TERRAIN_FLAT_R/HILL_R/HILL_H`).
+- **K2:** `driverSlipPhase` přesunuto z bloku dronu (patří k animaci kol).
+- **K3:** per-frame alokace pryč (`lookTarget` buffer + instanční dron buffery).
+- **K4** (memoizace `lateralAcceleration`) **zamítnuta** — cache v simu proti KISS, výkon irelevantní. → IDEAS.
+
+### Doladění zvuku/kouře + těžiště (živý test)
+- **Bug fix:** chuff i puf kouře jen `steamPressure > 0` (dřív falešně zněly při dojezdu bez páry s otevřeným regulátorem).
+- **Chuff-kulomet vyřešen:** `ExhaustClock` stropuje rychlost na `CHUFF_FUSE_SPEED = 7,4 m/s` (sdílený clock → zvuk i kouř).
+- **Idle kouř na palivu:** `SmokeView.update(…, fireLit)` — idle větev jen při `coalFraction > 0` (vyhaslý kotel nekouří; bez vody kouří dál bez páry).
+- **Brzdový zvuk „vrtačka" opraven:** `playbackRate` přemapován lineárně 0 → `BRAKE_FUSE_SPEED = 3,8 m/s`, strop, rate ∈ [0,5; 1,15].
+- **Nižší těžiště:** `comHeight` 1,2 → 0,9 m → práh převrácení 5,87 → 7,82 m/s² (méně náchylné k vykolejení).
+
+### Diskuse (bez kódu)
+- Brzdný model oponován a **ponechán**: Coulombovo tření = konstantní síla → lineární `v(t)` je správně
+  (brzdná dráha ∝ v² to potvrzuje). Volby `μ(v)` / Davisův `B·v` → IDEAS.

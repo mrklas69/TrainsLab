@@ -85,9 +85,9 @@ Kontext a rozhodnutí: viz `docs/diary/2026-05-29.md`.
       `brakes_on` (`makeRandomizedLoop` — náhodné hranice proti švu + `playbackRate` ∝ rychlost, jen za jízdy).
       Zbývá: clank, clunk, rail-tick, arc-jerk (one-shoty) / slip, arc-squeal (loopy) — každý `loadSample` +
       hybrid větev v `play*`. Fallbacky procedurální (skřípení brzd = 3-frekvenční složení).)*
-- [ ] **Chuff při vysokých otáčkách zní jako kulomet** — pufy jsou tak husté (4×/otáčku × vysoké otáčky),
-      že jednotlivá zahoukání splynou v rachot. Možná řešení: nad prahem frekvence chuff ztišit/zkrátit,
-      nebo plynule přejít na kontinuální sykot (crossfade puf → loop), případně snížit `PULSES_PER_REV` při rychlosti.
+- [x] **Chuff při vysokých otáčkách zní jako kulomet** *(S25)* — vyřešeno capem rychlosti v `ExhaustClock`
+      (`CHUFF_FUSE_SPEED=7,4 m/s`, kde interval výfuku ≈ délka chuffu). Cap na **sdíleném clocku** → takt se
+      ustálí pro zvuk i kouř (drží DD-23). Stejný vzor i u brzdy (`BRAKE_FUSE_SPEED=3,8`, „zubní vrtačka").
 
 ## Příčná dynamika — oblouky & vykolejení  *(S6, Úroveň A — drží DD-02; F-osu doladit v README)*
 - [x] `Track.radius(s)` — lokální poloměr oblouku z křivosti **horizontálního průmětu** (XZ);

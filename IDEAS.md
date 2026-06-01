@@ -50,6 +50,12 @@ Koncept a kontext: viz `docs/diary/2026-05-29.md`.
   κ-trh), zvuk výhybky (clunk) odlišen od trhu přechodnice (skřípnutí). Pozice ověřeny profilem κ.
 - **Brzdy soupravy** — pneumatická soustava, prodleva šíření tlaku soupravou (další vlna).
   (Brzda lokomotivy hotová v F2; v S3 přepsána na řízené tření — souboj sil, DD-09.)
+- **`μ(v)` brzdy** *(→ TODO, S25)* — součinitel tření špalíkové brzdy mírně klesá s rychlostí →
+  decelerace *roste*, jak vlak zpomaluje (konkávní profil místo čistě lineárního). Fyzikálně podložený
+  „pocit" zpomalení, o který šlo v diskusi S25 (brzdný model je jinak korektní: Coulomb → lineární `v(t)`,
+  brzdná dráha ∝ v²). Malý čistý řez: škálovat `brakeForce` faktorem klesajícím s `|v|`, beze změny
+  lineárního základu při nízké rychlosti. Alternativa/doplněk: Davisův `B·v` člen odporu (→ backlog TODO,
+  zlepší hlavně **dojezd** bez brzdy, ne brzdění).
 - **Dynamický prokluz** → TODO (rozšíření F2) — kolo s vlastní setrvačností + creep křivka
   (μ roste do ~1–2 % skluzu, pak padá). Doslovné „roztáčení kol", ne jen clamp. Pak písek.
 - **Mokrá kolej + písek** → DONE (S14, DD-17) — `railFactor` (stav koleje) škáluje adhezi, písek
@@ -125,6 +131,17 @@ Udělat z A2 měřitelné hypotézy, ne filozofování (proto Lab):
   *Otevřené (nezralé):* takt z **otáček kol** místo rychlosti vlaku → při **prokluzu** zběsilý
   zrychlený výfuk (charakteristický zvuk parní mašiny, když loko „protáčí"). `ExhaustClock` to umožní
   snadno (advance z efektivní obvodové rychlosti kol, kterou view už zná z `driverSlipPhase`).
+  *Chuff fuse (S25):* `CHUFF_FUSE_SPEED=7,4 m/s` (práh „kulometu") je vázán na **default `driverDiameter`** —
+  při ladění průměru kola sliderem se fyzikální frekvence posune, ale práh ne. Dokonalá vazba (cap odvodit
+  z aktuálního `D` tak, aby interval = délka chuffu) by byla čistší, ale pro demo over-engineering.
+
+## Optimalizace (nezralé)
+- **Zlevnit `signedCurvature`** *(S25, místo zamítnuté memoizace `lateralAcceleration`)* — getter příčného
+  zrychlení se volá vícekrát/frame (`Train.update`, status, `AudioView.arc`, `Renderer.tipRatio` per vůz),
+  každé volání = 3× `getPointAt` na CatmullRom. Memoizace getteru zamítnuta (K4 S25): cache v simu závislá
+  na `v`/`s` (mění se každý substep) = stavová složitost + riziko zastaralé cache, proti KISS; výkon při
+  6 vozech @ 60 FPS není měřitelný problém. Lepší budoucí řez, kdyby vadilo: **cache vzorků křivky** v `Track`
+  (předpočítat poloha/tečna v N bodech, interpolovat) — zlevní `positionAt`/`getTangentAt` na horké cestě.
 
 ## Lab knoby & nástroje
 - **Slider sklonu tratě** → DONE (S5) — `trackAmplitude` v params, `Track.rebuild()`

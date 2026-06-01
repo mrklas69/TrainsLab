@@ -126,17 +126,24 @@ Termíny projektu. Anglické identifikátory v kódu, české vysvětlení.
   neviditelný. Zachrání rozjezd (prokluz) i brzdění (skid).
 
 ## Zvuk
-- **chuff (výfuk páry)** — nárazový výdech páry komínem při otevřeném regulátoru. Časován
-  **`ExhaustClock`** (4 pufy/otáčku kola), ne podle rychlosti přímo → věrný zrychlující se rytmus.
-  Hybrid: nahraný sample (`steam_chuff.wav`), dokud se nenačte / když chybí → procedurální burst šumu.
+- **chuff (výfuk páry)** — nárazový výdech páry komínem **pod párou** (otevřený regulátor `notch≠0`
+  **a** `steamPressure>0` — bez páry píst nepracuje). Časován **`ExhaustClock`** (4 pufy/otáčku kola),
+  ne podle rychlosti přímo → věrný zrychlující se rytmus. Hybrid: nahraný sample (`steam_chuff.wav`),
+  dokud se nenačte / když chybí → procedurální burst šumu.
 - **ExhaustClock (rytmus výfuku)** — *(DD-23)* sdílený view zdroj taktu parního výfuku: fáze ∝ ujetá
   dráha kol (`v/(π·D) × 4 pufy/otáčku` — dvojčinná dvojválcová mašina). `main` ji posouvá jednou za frame,
   obě view vrstvy (zvukový chuff, puf kouře) čtou flag `fired` → jsou **sladěné z jednoho zdroje** (DRY).
   Fyzikálně odvozený rytmus = emergentně pomalý rozjezdový „čch… čch…" i hustý sykot, bez ladění konstanty.
+- **chuff fuse (`CHUFF_FUSE_SPEED`)** — *(S25)* strop rychlosti v `ExhaustClock.advance` (7,4 m/s): nad ním
+  by interval výfuku (~159 ms) klesl pod délku chuffu (~0,2 s) a pufy by splynuly v rachot („kulomet").
+  Cap **na sdíleném clocku** → takt se ustálí pro zvuk i kouř současně (drží DD-23). Práh = fyzikální „interval
+  = délka výdechu", vázán na default `driverDiameter`.
 - **kouř (`SmokeView`)** — *(DD-23)* faceted obláčky (ikosaedry, flatShading) emitované z ústí komína loko.
   Žijí ve **world-space** (children scény, ne loko) → jak loko ujede, kouř visí a vzniká **vlečka**
   emergentně (bez skriptu). Pod párou výrazné pufy v taktu výfuku (`ExhaustClock`), hustota/velikost/**tmavost**
   ∝ `throttleFraction·steamPressure` (uhlíkový kouř při zátěži ↔ světlá pára); volnoběh = líné světlé obláčky.
+  Idle kouř je vázán na **hořící oheň** (`fireLit = coalFraction > 0`, S25): došlo uhlí → kotel vyhasne,
+  žádný kouř; došla jen voda → kotel kouří idle dál, ale bez páry = bez chuffu/výfuku.
 - **tikot spár** — „klikety-klak" na dilatačních spárách; self-timed (interval `railLength/v`,
   jako chuff — AudioView čte stav, negeneruje z eventů simu). Hlasitost mírá, vypne `trackImpulse=0`.
 - **skřípění oblouku (flange squeal)** — kvílení okolků v zatáčce; trvalý hlas s hlasitostí plynule
@@ -152,6 +159,9 @@ Termíny projektu. Anglické identifikátory v kódu, české vysvětlení.
   `loopEnd ∈ [0,6;0,9]` délky) se **přelosují po každém průchodu** → šev pevné smyčky se neozývá periodicky.
   `playbackRate ∝ rychlost` (= otáčení kol, `RateVoice.setRate`), aktivní jen za jízdy (`isBraking && |v|>0,3`)
   → stojící vlak s brzdou je tichý. Fallback = procedurální skřípění (3 neharmonické frekvence se jitterem).
+  **Rate cap (`BRAKE_FUSE_SPEED`, S25):** rychlost přehrávání roste lineárně 0 → 3,8 m/s, pak strop
+  (`rate ∈ [0,5; 1,15]`) — bez capu by při vysoké rychlosti rate vyletěl na ~1,9 a skřípání znělo jako
+  „zubní vrtačka" (analogie chuff fuse).
 - **AudioView** — zvuk jako další „view" nad simem (DD-01): čte stav, ozvučuje události (chuff, únik páry,
   houkačka, clank/náraz spřáhla, sykot prokluzu, skřípění/sample brzd, tikot spár, skřípění oblouku, clunk
   výhybky, trh přechodnice). **Hybrid** (S23–S24): nahrané samply z `public/audio/` (`loadSample` přes
@@ -206,4 +216,8 @@ Termíny projektu. Anglické identifikátory v kódu, české vysvětlení.
 - **semi-implicitní Euler** — integrátor: nejdřív rychlost z aktuálních sil, pak poloha.
 - **substepping** — dělení časového kroku; nutné pro stabilitu tuhých pružin (spřáhel).
 - **sim/view split (DD-01)** — model nezná renderer; renderer = čistá funkce stavu → obraz.
+- **CameraController** — *(S25)* veškeré řízení kamery (orbit/dron/WASD) jako samostatná view třída
+  vytažená z Rendereru (SLAP): drží `camera`, Renderer ji jen čte při `gl.render`. `DroneParams` žijí tady.
+- **proceduralAudio** — *(S25)* knihovna procedurálních generátorů zvuku (čisté funkce nad `AudioContext`)
+  = fallback vrstva `AudioView` pro chybějící samply (hybrid: sample má přednost, jinak „vždy zní něco").
 - **DD-NN** — design decision; tabulky v `docs/diary/`.

@@ -91,7 +91,8 @@ vzniká až při renderu (DD-02).
 ```
 src/
   sim/    fyzika — Track, trackData, terrain, params, Body, Coupler, Train
-  view/   výstupy — Renderer (Three.js) + SmokeView (kouř), AudioView (hybrid samply/procedurální), ExhaustClock (rytmus výfuku)
+  view/   výstupy — Renderer (Three.js) + CameraController (orbit/dron) + SmokeView (kouř),
+          AudioView (hybrid samply) + proceduralAudio (fallback generátory), ExhaustClock (rytmus výfuku)
   ui/     ControlPanel (slidery + status + tlačítka)
   main.ts skládá sim + view + ui, drží render loop
 ```
