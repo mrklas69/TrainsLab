@@ -447,3 +447,15 @@ křivosti. Sjednoceno do **jednoho balíku** „rázy z trati" — impulsy do ex
 - `params.ts` (2 parametry + defaulty + komentář k modelu). `Body.ts` (`integrate` + `m_eff`). `Train.ts`
   (getter + předání). `ControlPanel.ts` (2 slidery „Rotující hmota (loko/vagon)" 0..0,4 v Hmotnostech).
 - **Drží DD-02** (skalár, žádný DOF). **Žádné nové DD** (laditelný setrvačný člen jako `davisB`/`curveResistance`).
+
+## Sezení 31 (2026-06-02)
+
+### Ztlumení clunk + `%AUDIT:CODE` (6. audit, 0 kritických, „opravit vše"; `tsc` + build zelené, „Test OK")
+- **Ztlumení clunk.wav** — celý sample na 1/3 (`CLUNK_GAIN = 1.1/3` v `playClunk`, volba uživatele „celý
+  sample"); nárazník spadl na ~1/9 (relativní /3 × globální /3), výhybka zůstává hlasitější.
+- **`%AUDIT:CODE`** — přečten celý `src/` (16 souborů); fyzikální vrstvy od S25 ověřeny izomorfní. Nálezy → vše opraveno:
+  - **K1:** `playClunk` magic `1.1/3` → pojmenovaná konstanta `CLUNK_GAIN`.
+  - **K2:** sjednoceno pořadí cross-productu pro příčnou osu kolejnic na `crossVectors(UP, tan)` (= pražce/pilíře); kosmetické (offset symetrický, `right`→`side`).
+  - **D2:** doc drift po dnešní změně clunk — `GLOSSARY` přepsán (globální `CLUNK_GAIN` + relativní /3 nárazníku).
+  - **D1 (split, KO3 z S18):** vytažen **`view/WorldView.ts`** (statická scéna: terén + dekorace + trať/pilíře, `rebuild`, export `RAIL_RADIUS`); `Renderer.ts` 436 → ~210 ř., řeší jen aktéry (vozy/spřáhla/kouř) + kameru + loop. `main.ts`: `rebuildTerrain`+`rebuildTrack` → `rebuildWorld`. SLAP jako S25 (CameraController/AudioView), drží DD-01.
+- Docs: GLOSSARY (clunk + termín WorldView), README (strom view), CLAUDE.md (Key Files), `docs/PROMPTS.md` (cadence ledger CODE → S31). **21 modulů** (+1 WorldView). **Žádné nové DD** (split = aplikace SLAP).

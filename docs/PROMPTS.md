@@ -53,7 +53,7 @@ o ≥ 2 sezení → spustit jako první bod sezení.
 
 | Audit | Naposledy (sezení) | Práh |
 |-------|--------------------|------|
-| `%AUDIT:CODE` | **S25** | ≥ 6 sez. **nebo** +250 LOC v `src/` |
+| `%AUDIT:CODE` | **S31** | ≥ 6 sez. **nebo** +250 LOC v `src/` |
 | `%AUDIT:DOCS` | **S26** | ≥ 12 sez. |
 | pruning (IDEAS/TODO) | **S26** | ≥ 12 sez. |
 | `%CALIBRATE` | **S28** | ≥ 15 sez. |

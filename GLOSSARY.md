@@ -175,7 +175,8 @@ Termíny projektu. Anglické identifikátory v kódu, české vysvětlení.
 - **clunk výhybky vs. trh přechodnice** — odlišené zvuky bodových perturbací (S20): výhybka/křížení
   (`switchFired`) = tupý kovový clunk (sample `clunk.wav`); skok křivosti (`transitionJerkFired`) =
   krátké skřípnutí (sample `arc_jerk.wav`, one-shot). Týž `clunk` sample slouží i nárazníkům spřáhel
-  (buff), ale ztlumený na 1/3 (S27) — výhybka je hlasitější.
+  (buff). Celý clunk je globálně ztlumený (`CLUNK_GAIN = 1,1/3`, S31 — byl příliš hlasitý); nárazník má
+  navíc relativní `/3` proti výhybce → výhybka je hlasitější.
 - **únik páry (steam leak)** — *(S24)* syčení kotle pod tlakem: sample smyčka (`makeSampleLoop`, úsek
   1.–11. s na 1/3 hlasitosti) běžící pořád, slyšitelná dokud `steamPressure > 0` (po vyčerpání zásob utichne).
 - **houkačka (horn)** — *(S24)* one-shot na vyžádání (tlačítko / klávesa H), `playHorn`. Hlasitá (3× nad běžné hlasy).
@@ -244,4 +245,8 @@ Termíny projektu. Anglické identifikátory v kódu, české vysvětlení.
 - **sim/view split (DD-01)** — model nezná renderer; renderer = čistá funkce stavu → obraz.
 - **CameraController** — *(S25)* veškeré řízení kamery (orbit/dron/WASD) jako samostatná view třída
   vytažená z Rendereru (SLAP): drží `camera`, Renderer ji jen čte při `gl.render`. `DroneParams` žijí tady.
+- **WorldView** — *(S31)* statická scéna (lowpoly terén + dekorace + párové koleje/pražce/pilíře) jako
+  samostatná view třída vytažená z Rendereru (SLAP, izomorfně s `CameraController`): drží `terrainMesh`/
+  `trackGroup`/`sceneryGroup`, `rebuild` na slider sklonu. Renderer pak řeší jen **aktéry** (vozy, markery
+  spřáhel, kouř) + render loop. Exportuje `RAIL_RADIUS` (výška temene koleje, čte ji render loop).
 - **DD-NN** — design decision; tabulky v `docs/diary/`.
