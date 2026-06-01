@@ -42,18 +42,31 @@ export class Body {
   }
 
   /**
-   * Začátek kroku: akumulátor = gravitace + rychlostní členy Davisovy rovnice odporu
-   * `R(v) = A + B·v + C·v²` (tření řeší {@link applyFriction}).
-   *  - **B·v** (`davisB`) — lineární člen: tření v ložiskách, dynamické ztráty náprav.
+   * Začátek kroku: akumulátor sil nezávislých na spřáhlech a trakci, dvě skupiny:
+   *
+   * **Geometrické** (z polohy `s` na trati, rychlostně nezávislé v magnitudě):
+   *  - **gravitace** (−m·g·sinθ) — `grade(s)` = sin sklonu; do kopce brzdí.
+   *  - **odpor v oblouku** (−C·|κ|·m·g) — tření okolků + prokluz kol na pevné nápravě
+   *    (vnější kolo urazí delší dráhu). Specifický odpor `C·|κ|` je úměrný křivosti
+   *    (Röcklův charakter `c/r`, ale `κ` je konečné → bez exploze u malých `r` jako u nás).
+   *    Branžově **rychlostně nezávislý** — proto jen `sign(v)`, ne `v` v magnitudě.
+   *
+   * **Rychlostní** (Davisova rovnice `R(v) = A + B·v + C·v²`, člen A = {@link applyFriction}):
+   *  - **B·v** (`davisB`) — lineární: tření v ložiskách, dynamické ztráty náprav.
    *  - **C·v²** (`dragCoefficient`) — odpor vzduchu (kvadratický).
-   * Oba vždy proti pohybu (znaménko `v`). Člen A (valivý + rozběhový) je v {@link applyFriction}.
+   *
+   * Všechny odporové členy proti pohybu (znaménko `v`). Drží DD-02: `κ` je jen skalár,
+   * křivkový odpor je podélná síla (mění `v` podél `s`), nezavádí příčný DOF.
    */
   beginStep(track: Track, params: PhysicsParams, mass: number): void {
-    const grade = track.grade(this.s); // sin(θ)
-    const fGravity = -mass * params.gravity * grade;            // do kopce brzdí
+    const grade = track.grade(this.s);                 // sin(θ)
+    const curvature = track.signedCurvature(this.s);   // 1/m (znaménko = strana oblouku, tady jen |κ|)
+    const fGravity = -mass * params.gravity * grade;   // do kopce brzdí
+    // odpor v oblouku: specifický C·|κ| (bezrozm.) krát tíha; proti pohybu (sign), na rovince κ=0 → 0
+    const fCurve = -Math.sign(this.v) * params.curveResistance * Math.abs(curvature) * mass * params.gravity;
     const fDavisB = -params.davisB * this.v;                    // lineární člen B·v
     const fDrag = -params.dragCoefficient * this.v * Math.abs(this.v); // kvadratický člen C·v²
-    this.force = fGravity + fDavisB + fDrag;
+    this.force = fGravity + fCurve + fDavisB + fDrag;
   }
 
   /**

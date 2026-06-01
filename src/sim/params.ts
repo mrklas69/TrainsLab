@@ -11,6 +11,7 @@ export interface PhysicsParams {
   startingResistanceFactor: number; // statický odpor = Crr × tento faktor (rozběh)
   davisB: number;            // lineární člen B·v Davisovy rovnice odporu (N·s/m) — ložiska, dynamické ztráty
   dragCoefficient: number;   // odpor vzduchu b ve F = b·v·|v| (kg/m) — člen C·v² Davisovy rovnice
+  curveResistance: number;   // odpor v oblouku: specifický odpor = curveResistance·|κ| (jako Crr, bezrozm.), ·m·g; rychlostně nezávislý (Röcklův charakter c/r), [m]
   couplerSlack: number;      // vůle spřáhla — šířka mrtvého pásma (m)
   couplerStiffness: number;  // tuhost pružiny spřáhla za vůlí (N/m)
   couplerDamping: number;    // tlumení spřáhla (N·s/m)
@@ -46,6 +47,7 @@ export const DEFAULT_PARAMS: PhysicsParams = {
   startingResistanceFactor: 3,
   davisB: 20,          // lineární odpor (N·s/m per vůz): při 20 m/s ≈ 400 N, řádově jako valivý — doladí dojezd
   dragCoefficient: 1.2,
+  curveResistance: 0.15,  // v laloku (r≈33 m, κ≈0,03) specifický odpor ≈ 0,0045 ≈ 2× valivý — citelné přibrzdění v zatáčce
   couplerSlack: 0.4,
   couplerStiffness: 2_000_000,
   couplerDamping: 60_000,

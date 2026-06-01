@@ -71,6 +71,8 @@ const SECTIONS: Section[] = [
       // lineární člen B·v Davisovy rovnice (ložiska/dynamické ztráty); doladí dojezd mezi valivým (A) a vzduchem (C·v²)
       { key: 'davisB', label: 'Lineární odpor (B·v)', min: 0, max: 100, step: 5, unit: 'N·s/m' },
       { key: 'dragCoefficient', label: 'Odpor vzduchu', min: 0, max: 50, step: 0.5, unit: '' },
+      // odpor v oblouku: specifický C·|κ|·m·g (tření okolků, prokluz kol); rychlostně nezávislý. 0 = vypnuto, výš = víc brzdí v zatáčce
+      { key: 'curveResistance', label: 'Odpor v oblouku', min: 0, max: 1, step: 0.02, unit: 'm' },
     ],
   },
   {
