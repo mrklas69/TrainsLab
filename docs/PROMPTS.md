@@ -14,7 +14,7 @@ Projektová makra `%BEGIN` a `%END` (start a konec sezení). Ostatní makra
    sesynchronizuj se před prací.
 2. **Načti kontext:** README (sekce Stav), `TODO.md`, poslední `docs/diary/YYYY-MM-DD.md`,
    `IDEAS.md`. Audit cadence čísla = poslední výskyt auditu v diáři (single source).
-3. **Audit cadence check** (prahy v `~/.claude/CLAUDE.md`): vyhodnoť, kolik sezení /
+3. **Audit cadence check** (prahy + ledger v sekci „Cadence" níže): vyhodnoť, kolik sezení /
    LOC uplynulo od posledního `%AUDIT:CODE` / `%AUDIT:DOCS` / pruning / `%CALIBRATE`.
    Práh překročen o ≥ 2 sezení → **⚠ PŘEKROČEN — spustit jako první bod sezení**.
 4. **Stale „Příště" check:** položka opakovaná v „Příště" ≥ 5 sezení po sobě →
@@ -42,3 +42,22 @@ Projektová makra `%BEGIN` a `%END` (start a konec sezení). Ostatní makra
 Do „Příště" piš **konkrétní příští řez**, ne velký milník. Milníky (F4 záclony, F5
 sloshing) žijí v README (Stav) a `IDEAS.md` — opisovat je do „Příště" každé sezení je
 šum, který falešně spouští Stale check.
+
+---
+
+## Cadence — prahy a ledger  *(kalibrováno S28, prahy z reálných dat)*
+
+`%BEGIN` krok 3 čte tuto sekci. **Ledger** = poslední výskyt auditu (single source —
+když audit doběhne v `%END`, zvedni tu příslušné číslo sezení). **Práh** překročen
+o ≥ 2 sezení → spustit jako první bod sezení.
+
+| Audit | Naposledy (sezení) | Práh |
+|-------|--------------------|------|
+| `%AUDIT:CODE` | **S25** | ≥ 6 sez. **nebo** +250 LOC v `src/` |
+| `%AUDIT:DOCS` | **S26** | ≥ 12 sez. |
+| pruning (IDEAS/TODO) | **S26** | ≥ 12 sez. |
+| `%CALIBRATE` | **S28** | ≥ 15 sez. |
+
+Prahy odvozené z reálné kadence projektu: `%AUDIT:CODE` běžel S6/S12/S18/S25 (~6 sez.),
+`%AUDIT:DOCS` S13/S26 (13), pruning S13/S26 (13), `%CALIBRATE` S16/S28 (12). LOC práh
+u kódu je sekundární spouštěč (skok velikosti `src/` i mezi audity).
