@@ -79,7 +79,7 @@ function frame(): void {
   const dt = Math.min(clock.getDelta(), 0.05);
   train.update(dt);
   exhaust.advance(train.speed, dt); // posuň takt výfuku (čtou ho audio i renderer)
-  audio.update(train, dt);
+  audio.update(train);
   updatePanel(train);
   renderer.render(dt);
   requestAnimationFrame(frame);
