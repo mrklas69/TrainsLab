@@ -406,6 +406,16 @@ křivosti. Sjednoceno do **jednoho balíku** „rázy z trati" — impulsy do ex
 - **Nárazníky na 1/3** — `updateCouplers` buff → `playClunk(volume / 3)`; výhybka (`switchFired`) hlasitější.
 - **Žádné nové DD** (dokončení sample vrstvy + úklid; hybrid nikdy neměl DD číslo). `tsc` + build zelené.
 
+## Sezení 28 (2026-06-01)
+
+### `%CALIBRATE` — meta-audit řídících docs/procesu (2. za život projektu; bez kódu)
+- **A1 (kritické):** `%CALIBRATE` neměl globální definici (jen ve skillu PocketStory) → povýšen do
+  globálního `~/.claude/PROMPTS.md` (DRY, používán ve 3 projektech) + přidán do tabulky maker v `~/.claude/CLAUDE.md`.
+- **A2 (kritické):** cadence prahy nikde zapsané (`%BEGIN` je odhadoval z diářů) → explicitní **prahy + ledger**
+  v `docs/PROMPTS.md` (CODE ≥6 sez./+250 LOC, DOCS/pruning ≥12, CALIBRATE ≥15), opraven rozbitý ukazatel kroku 3.
+- **A4:** Key Files / rejstřík DD / GLOSSARY ověřeny aktuální. **A5:** `CONTEXT.md` nezaváděn (KISS, diár+git stačí).
+- Změny mimo repo (`~/.claude/*`) + `docs/PROMPTS.md`. Bez kódu (`src/` netknuto).
+
 ## Sezení 29 (2026-06-01)
 
 ### Křivkový odpor v obloucích (backlog; `tsc` + build zelené, „Test OK")
@@ -421,3 +431,19 @@ křivosti. Sjednoceno do **jednoho balíku** „rázy z trati" — impulsy do ex
 - `params.ts` (`curveResistance` + default `0,15` m: ~2× valivý v laloku). `ControlPanel.ts` (slider
   „Odpor v oblouku" 0..1 m v Odporech, za `B·v`). `GLOSSARY` (termín „odpor v oblouku").
 - **Žádné nové DD** — laditelný člen odporu (jako Davisův `B·v` S26), ne architekturní rozhodnutí.
+
+## Sezení 30 (2026-06-01)
+
+### Rotační setrvačnost hmot — rotating mass factor (backlog; `tsc` + build zelené, „Test OK")
+- **Model `m_eff = m·(1+λ)`** — rotující kola/náprav/ojnic přidají k translační setrvačnosti. Rešerší
+  (Metro Train Simulation, GE Locomotive Application Guide) ověřeno: **rychlostně i výkonově nezávislé**,
+  celý vlak ~6–8 % tara, samotná loko ~10 % (GE ~9,8 %). Přesný `m_eff = m_static + I·(převod/r)²`
+  zjednodušen na branžový tvar `m·(1+λ)` (`λ` laditelný knob).
+- **Jen převod síla→zrychlení, ne síly** — `Body.integrate(h, mass, rotatingFactor=0)`: `accel =
+  force/(mass·(1+λ))`. Síly (gravitace, Davis, oblouk, adheze `μ·N`, trakce) drží **skutečné `m`** přes
+  `massOf`. `m_eff` vzorec žije v `Body` (jediné místo); `accel` pro pitch zůstává korektní (`F/m_eff`).
+- **Per-vůz `λ`** (izomorfní s `massOf`) — `Train.rotatingFactorOf(i)`: loko `rotatingMassFactorLoco`
+  (0,15 — hnací kola + ojnice) / vůz `rotatingMassFactorCar` (0,06 — valivá kola/nápravy).
+- `params.ts` (2 parametry + defaulty + komentář k modelu). `Body.ts` (`integrate` + `m_eff`). `Train.ts`
+  (getter + předání). `ControlPanel.ts` (2 slidery „Rotující hmota (loko/vagon)" 0..0,4 v Hmotnostech).
+- **Drží DD-02** (skalár, žádný DOF). **Žádné nové DD** (laditelný setrvačný člen jako `davisB`/`curveResistance`).

@@ -140,6 +140,9 @@ Sjednocený balík: nespojitosti trati → impulsy do **existujících** roll/pi
       úměrný křivosti (Röcklův charakter `c/r`), rychlostně nezávislý. Geometrický člen vedle gravitace
       v `Body.beginStep` (z `s`/trati), oddělený od rychlostních Davisových členů. Doplnil `R=A+B·v+C·v²`
       o zatáčkový člen. Slider „Odpor v oblouku" v Odporech. Žádné nové DD (laditelný odporový člen).
-- [ ] Rotační setrvačnost hmot (rotating mass factor)
+- [x] **Rotační setrvačnost hmot** *(S30)* — `m_eff = m·(1+λ)`: rotující kola/ojnice přidají k translační
+      setrvačnosti (rychlostně nezávislé, branžově vlak ~6–8 %, loko ~10 %). Mění jen převod síla→zrychlení
+      v `Body.integrate` (síly drží skutečné `m` přes `massOf`). Per-vůz `rotatingFactorOf` (loko 0,15 /
+      vůz 0,06), izomorfní s `massOf`. 2 slidery v Hmotnostech. Drží DD-02 (skalár). Žádné nové DD.
 - Dlouhodobé / nezralé nápady (sloshing F5, průběžná brzda, jiskry, hypotézy o „uspokojení",
   dynamický prokluz) → **IDEAS.md** (single source pro nezralé).

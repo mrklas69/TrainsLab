@@ -113,6 +113,12 @@ Termíny projektu. Anglické identifikátory v kódu, české vysvětlení.
   Branžově **rychlostně nezávislý** (proto jen směr ze `sign(v)`, ne `v` v magnitudě). **Geometrický** člen
   (z polohy `s` na trati, vedle gravitace v `Body.beginStep`), ne čtvrtý člen Davisovy rovnice. Drží DD-02:
   `κ` zůstává skalár, výstup je podélná síla (mění `v`), nezavádí příčný DOF. Na rovince `κ=0` → mizí.
+- **rotující hmota (rotating mass factor, `λ`)** — *(S30)* přídavná **setrvačnost** od roztáčených
+  kol/náprav/ojnic. Efektivní setrvačná hmota `m_eff = m·(1+λ)` → línější rozjezd i dobrzdění. Mění
+  **jen převod síla→zrychlení** (`Body.integrate`: `accel = force/m_eff`), **ne tíhu** — gravitace,
+  odpory a adheze drží skutečné `m`. Branžově **rychlostně nezávislé** (fixní přirážka); celý vlak
+  ~6–8 % tara, samotná lokomotiva ~10 % (těžká hnací kola). V modelu **per-vůz** (`rotatingFactorOf`):
+  loko `λ=0,15` (hnací kola + ojnice) > vůz `0,06` (jen valivá kola). Drží DD-02 (skalár, žádný DOF).
 - **protiproudé brzdění (plugging / counter-pressure)** — tah motoru proti směru jízdy =
   brzdění. Limit je adheze (`μ·N`), ne výkon `P/v` (ten platí jen pro zrychlování). V modelu
   notch −1 za jízdy vpřed (DD-08). Zabírá **plným úsilím** (`fraction=1`, ne dělené stupni),

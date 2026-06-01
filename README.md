@@ -58,8 +58,9 @@ baru** (vč. ⚙ Nastavení); pískování drž.
 
 Dialog **⚙ Nastavení** (tlačítko v dolním baru) ladí fyziku **za běhu** (single source of truth,
 [`src/sim/params.ts`](src/sim/params.ts)):
-hmotnosti (lokomotiva = adhezní tíha), odpory (gravitace, valivý, rozběhový faktor, lineární `B·v`, vzduch
-— členy Davisovy rovnice; odpor v oblouku ∝ křivost), spřáhlo (vůle / tuhost / tlumení), trakce (výkon, max tažná síla, adheze μ,
+hmotnosti (lokomotiva = adhezní tíha; rotující hmota = setrvačnost kol/ojnic, loko > vůz), odpory
+(gravitace, valivý, rozběhový faktor, lineární `B·v`, vzduch — členy Davisovy rovnice; odpor v oblouku
+∝ křivost), spřáhlo (vůle / tuhost / tlumení), trakce (výkon, max tažná síla, adheze μ,
 **stav koleje** = sucho/mokro, brzda + pokles jejího tření s rychlostí, průměr hnacího kola a mez pístové
 rychlosti = otáčkový strop), **pískování**
 (kapacita / spotřeba písku), příčnou
