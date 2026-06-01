@@ -1,5 +1,5 @@
 import type { PhysicsParams } from '../sim/params';
-import type { DroneParams } from '../view/Renderer';
+import type { DroneParams } from '../view/CameraController';
 import type { Train } from '../sim/Train';
 
 // Jeden zdroj pravdy o klávesové akci: pohání keydown handler (codes), nápovědu

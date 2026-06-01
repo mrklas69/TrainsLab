@@ -5,6 +5,12 @@ import type { PhysicsParams } from '../sim/params';
 // rytmus „čch-čch-čch-čch", který se zrychluje s rychlostí.
 const PULSES_PER_REV = 4;
 
+// Nad touhle rychlostí (m/s) se pufy slévají v rachot („kulomet"): interval výfuku klesne
+// pod délku chuffu (~159 ms při 7,4 m/s vs ~0,2 s výdech). Frekvenci výfuku proto stropujeme
+// — takt se nad prahem ustálí, místo aby rostl donekonečna. Sdílený clock → cap platí pro
+// zvukový chuff i puf kouře současně (drží DD-23 sladění z jednoho zdroje).
+const CHUFF_FUSE_SPEED = 7.4;
+
 /**
  * ExhaustClock = sdílený zdroj rytmu parního výfuku (čistě view, DD-01). Není to
  * zvuk ani obraz — jen takt: kdy padl další výfuk. Obě view vrstvy (AudioView puf
@@ -14,7 +20,8 @@ const PULSES_PER_REV = 4;
  * Rytmus je **fyzikálně odvozený**, ne fenomenologický: frekvence výfuku = otáčky
  * kola × {@link PULSES_PER_REV}. Otáčky = rychlost / obvod hnacího kola (π·D), takže
  * pomalý rozjezd dá pomalé oddělené pufy a rychlá jízda hustý sykot — emergentně,
- * bez ladění časové konstanty (nika projektu: preferuj emergenci).
+ * bez ladění časové konstanty (nika projektu: preferuj emergenci). Nad
+ * {@link CHUFF_FUSE_SPEED} se takt stropuje, aby pufy nesplynuly v rachot.
  *
  * `main` volá {@link advance} jednou za frame (drží `dt`), view pak jen čtou
  * {@link fired} — stejný vzor jako per-frame flagy `train.switchFired` apod.
@@ -33,8 +40,10 @@ export class ExhaustClock {
   advance(speed: number, dt: number): void {
     const circumference = Math.PI * this.params.driverDiameter; // obvod hnacího kola (m)
     const pulsesPerMeter = PULSES_PER_REV / circumference;      // kolik výfuků na metr dráhy
+    // cap rychlosti → nad CHUFF_FUSE_SPEED se takt ustálí (jinak by pufy splynuly v rachot)
+    const v = Math.min(Math.abs(speed), CHUFF_FUSE_SPEED);
     const prev = this.phase;
-    this.phase += Math.abs(speed) * dt * pulsesPerMeter;
+    this.phase += v * dt * pulsesPerMeter;
     // přechod přes celé číslo = nový výfuk (floor skočí o 1+)
     this.fired = Math.floor(this.phase) > Math.floor(prev);
   }

@@ -60,7 +60,7 @@ export const DEFAULT_PARAMS: PhysicsParams = {
   trackImpulse: 0.012,  // jemné cuknutí skříně; 0 = dokonalá trať (svařovaná + přechodnice)
   transitionQuality: 0.3, // mírná přechodnice — κ-trh znát, ale ne plný (1 = úplně rozetřený, 0 = ostrý)
   trackGauge: 1.435, // normální rozchod
-  comHeight: 1.2,    // těžiště níže posazeného vozu — práh převrácení výš, méně náchylné k vykolejení
+  comHeight: 0.9,    // nízké těžiště (rám, kola, nápravy, podvozek dole) → práh převrácení ~7,8 m/s²; výrazně méně náchylné k překlopení
   suspensionFreq: 0.6,     // pomalé houpání skříně (Hz)
   suspensionDamping: 0.25, // lehce dotlumené — pár kmitů doznívá
   coalCapacity: 1500,  // ~250 s plného výkonu (demo dojezd)

@@ -10,7 +10,7 @@ import * as THREE from 'three';
 // Svislé vrstvení: kola dnem na FLOOR_Y (temeno kolejnice), skříň vozu je v podskupině
 //   zvednuté o poloměr kola (`bodyLift`) → kola vykukují zpod vozu, nejsou „utopená".
 
-export const CAR_WIDTH = 2.6;   // šířka skříně (m) — single source pro model i render offset
+const CAR_WIDTH = 2.6;           // šířka skříně (m) — používá jen factory tady
 export const CAR_HEIGHT = 3.0;  // nominální výška (m); dno kol = −CAR_HEIGHT/2
 
 const FLOOR_Y = -CAR_HEIGHT / 2;            // lokální y dna kol (úroveň temene kolejnice)

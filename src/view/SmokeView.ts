@@ -62,15 +62,17 @@ export class SmokeView {
    * @param chimney světová pozice ústí komína (emisní bod)
    * @param power   otevření regulátoru × parní tlak (0..1) — řídí hustotu/velikost/tmavost
    * @param exhaustFired padl tento frame výfuk páry (z {@link ExhaustClock}; jen pod párou)
+   * @param fireLit hoří oheň v topeništi (je uhlí) — bez něj žádný kouř (vyhaslý kotel)
    */
-  update(dt: number, chimney: THREE.Vector3, power: number, exhaustFired: boolean): void {
+  update(dt: number, chimney: THREE.Vector3, power: number, exhaustFired: boolean, fireLit: boolean): void {
     // 1) emise nových obláčků
     if (exhaustFired && power > 0) {
       // výfuk pod párou: výrazný puf, velikost i hustota rostou s výkonem, barva tmavne
       // (počáteční mrak menší o 1/4 — rozšíří se až postupně, viz GROWTH)
       this.emit(chimney, 0.6 + power * 0.98, 0.55 + power * 0.25, power);
-    } else if (power <= 0) {
-      // volnoběh: slabé světlé obláčky líně stoupají v pravidelném taktu (i když stojí)
+    } else if (fireLit && power <= 0) {
+      // oheň hoří (je uhlí), ale nejede výfuk: slabé světlé obláčky líně stoupají v taktu.
+      // Pokrývá i „došla voda, uhlí zbývá" → kotel kouří dál, jen bez páry/výfuku.
       this.idleTimer -= dt;
       if (this.idleTimer <= 0) {
         this.idleTimer = IDLE_INTERVAL;

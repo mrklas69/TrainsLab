@@ -9,9 +9,9 @@
  * Barvení facet podle výšky je naopak ryze view (zůstává v Rendereru).
  */
 
-export const TERRAIN_FLAT_R = 170; // m — do téhle vzdálenosti od středu jen mírné vlny (trať sahá k ~150)
-export const TERRAIN_HILL_R = 350; // m — od téhle vzdálenosti kopce naplno (mezi: smoothstep)
-export const TERRAIN_HILL_H = 45;  // m — amplituda kopců na horizontu (fixní drama, mimo slider)
+const TERRAIN_FLAT_R = 170; // m — do téhle vzdálenosti od středu jen mírné vlny (trať sahá k ~150)
+const TERRAIN_HILL_R = 350; // m — od téhle vzdálenosti kopce naplno (mezi: smoothstep)
+const TERRAIN_HILL_H = 45;  // m — amplituda kopců na horizontu (fixní drama, mimo slider)
 
 export function smoothstep(edge0: number, edge1: number, x: number): number {
   const t = Math.min(Math.max((x - edge0) / (edge1 - edge0), 0), 1);

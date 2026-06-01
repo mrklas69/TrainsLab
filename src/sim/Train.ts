@@ -374,7 +374,7 @@ export class Train {
    * clampnuté na 0; po vyčerpání klesá parní tlak (viz {@link steamPressure}).
    */
   private consumeFuel(dt: number): void {
-    const demand = Math.abs(this.throttle) / MAX_FORWARD; // 0..1 — otevření regulátoru
+    const demand = this.throttleFraction; // 0..1 — otevření regulátoru (single source)
     this.coal = Math.max(0, this.coal - this.params.coalRate * (COAL_IDLE_FRACTION + demand) * dt);
     this.water = Math.max(0, this.water - this.params.waterRate * demand * dt);
   }
@@ -402,7 +402,7 @@ export class Train {
     // Velikost úsilí (0..1). Při zrychlování jemně po stupních (MAX_FORWARD). Protiproudé
     // brzdění je naopak inherentně naplno — motor zabírá proti rotujícím kolům, snadno
     // překoná adhezi → skid (prokluz při brzdění). Proto fraction = 1, ne dělení stupni (DD-10).
-    const fraction = counterPressure ? 1 : Math.abs(this.throttle) / MAX_FORWARD;
+    const fraction = counterPressure ? 1 : this.throttleFraction;
     // při zrychlování limituje výkon (P/v) i otáčkový strop (tractionDerating); protiproudé
     // brzdění je limitováno jen adhezí (DD-08) — otáčky tah nesnižují, brzdí se naplno.
     const available = counterPressure

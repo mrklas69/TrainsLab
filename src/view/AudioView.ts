@@ -2,23 +2,23 @@ import type { Train } from '../sim/Train';
 import type { PhysicsParams } from '../sim/params';
 import type { CouplerMode } from '../sim/Coupler';
 import type { ExhaustClock } from './ExhaustClock';
+import {
+  makeNoise, makeSlipVoice, makeSquealVoice, makeArcSquealVoice,
+  playMetalHit, playChuffBurst, playArcJerk,
+  type SustainVoice, type LevelVoice,
+} from './proceduralAudio';
 
 const MASTER_VOLUME = 0.35;
-const BRAKE_REF_SPEED = 12; // m/s — rychlost, při níž hraje brzdová smyčka nominálně (playbackRate 1)
-
-/** Trvalý hlas (loop), který se jen plynule zapíná/vypíná — prokluz, skřípění brzd. */
-interface SustainVoice {
-  setActive(on: boolean): void;
-}
+// brzdová smyčka: rychlost přehrávání (= výška/tempo skřípání) roste lineárně s rychlostí
+// jen do BRAKE_FUSE_SPEED, pak drží strop. Bez capu by při plné rychlosti rate vyletěl
+// (~1,9) a skřípání by znělo jako „zubní vrtačka" (analogie chuff fuse v ExhaustClock).
+const BRAKE_FUSE_SPEED = 3.8; // m/s — nad tím už playbackRate neroste
+const BRAKE_RATE_MIN = 0.5;   // sotva jede → hluboké pomalé skřípání
+const BRAKE_RATE_MAX = 1.15;  // od BRAKE_FUSE_SPEED výš → strop, jen mírně zrychlené (žádná vrtačka)
 
 /** Trvalý hlas se zapínáním + řízenou rychlostí přehrávání (sample smyčka brzd ∝ otáčení kol). */
 interface RateVoice extends SustainVoice {
   setRate(rate: number): void;
-}
-
-/** Trvalý hlas s plynule řízenou hlasitostí (0..1) — skřípění oblouku ∝ příčné zrychlení. */
-interface LevelVoice {
-  setLevel(level: number): void;
 }
 
 /**
@@ -70,10 +70,10 @@ export class AudioView {
     this.master.gain.value = MASTER_VOLUME;
     this.master.connect(this.ctx.destination);
 
-    this.noise = this.makeNoise();
-    this.slip = this.makeSlipVoice();
-    this.squeal = this.makeSquealVoice();
-    this.arc = this.makeArcSquealVoice();
+    this.noise = makeNoise(this.ctx);
+    this.slip = makeSlipVoice(this.ctx, this.master, this.noise);
+    this.squeal = makeSquealVoice(this.ctx, this.master);
+    this.arc = makeArcSquealVoice(this.ctx, this.master);
     this.prevModes = train.couplers.map((c) => c.mode);
 
     // asynchronně natáhni samply (fire-and-forget; do načtení hraje procedurální fallback)
@@ -209,12 +209,14 @@ export class AudioView {
   }
 
   update(train: Train, dt: number): void {
-    // výfuk páry: puf v taktu sdíleného ExhaustClock (sladěný s kouřem), jen pod párou (notch ≠ 0)
-    if (this.exhaust.fired && train.notch !== 0) this.playChuff();
+    // výfuk páry: puf v taktu sdíleného ExhaustClock (sladěný s kouřem), jen pod párou —
+    // otevřený regulátor (notch ≠ 0) A pára v kotli (steamPressure > 0). Bez páry píst
+    // nepracuje → žádný výfuk, i když vlak dojíždí setrvačností s otevřeným regulátorem.
+    if (this.exhaust.fired && train.notch !== 0 && train.steamPressure > 0) this.playChuff();
     this.updateCouplers(train);
     this.updateRailJoints(train, dt);
     if (train.switchFired) this.playClunk(0.7);     // výhybka / křížení — tupý náraz
-    if (train.transitionJerkFired) this.playArcJerk(); // skok křivosti — krátké boční skřípnutí
+    if (train.transitionJerkFired) playArcJerk(this.ctx, this.master); // skok křivosti — krátké boční skřípnutí
     this.slip.setActive(train.slipping);
     // brzdy skřípou jen za jízdy (tření kolo↔špalík) — stojící vlak s brzdou je tichý.
     // Sample smyčka má přednost (rychlost přehrávání ∝ otáčení kol), jinak procedurální skřípění.
@@ -222,8 +224,9 @@ export class AudioView {
     const braking = train.isBraking && speed > 0.3;
     if (this.brakeLoop) {
       this.brakeLoop.setActive(braking);
-      // playbackRate ∝ rychlost; clamp ať při krajních rychlostech nezní extrémně hluboce/pištivě
-      this.brakeLoop.setRate(Math.min(2.2, Math.max(0.4, speed / BRAKE_REF_SPEED)));
+      // rychlost přehrávání lineárně roste 0 → BRAKE_FUSE_SPEED, pak konstantní strop (cap)
+      const t = Math.min(speed, BRAKE_FUSE_SPEED) / BRAKE_FUSE_SPEED; // 0..1
+      this.brakeLoop.setRate(BRAKE_RATE_MIN + t * (BRAKE_RATE_MAX - BRAKE_RATE_MIN));
     } else {
       this.squeal.setActive(braking);
     }
@@ -263,29 +266,7 @@ export class AudioView {
   }
 
   private playRailTick(): void {
-    this.metalHit([90, 150, 240], 0.05, 0.45); // nízký tupý „klak" — krátký, kovově temný
-  }
-
-  // boční trh na skoku křivosti (chybějící přechodnice): krátké skřípnutí okolku, příbuzné
-  // trvalému skřípění oblouku (sawtooth/bandpass ~2,2 kHz), ale jednorázové se sklouznutím
-  // frekvence dolů („škríp") — odlišuje κ-trh od tupého kovového clunku výhybky.
-  private playArcJerk(): void {
-    const t = this.ctx.currentTime;
-    const osc = this.ctx.createOscillator();
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(2400, t);
-    osc.frequency.exponentialRampToValueAtTime(1500, t + 0.12); // sklouznutí dolů = kvílivý trh
-    const band = this.ctx.createBiquadFilter();
-    band.type = 'bandpass';
-    band.frequency.value = 2200;
-    band.Q.value = 6;
-    const gain = this.ctx.createGain();
-    gain.gain.setValueAtTime(0.0001, t);
-    gain.gain.exponentialRampToValueAtTime(0.2, t + 0.008); // ostrý nástup
-    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.14); // rychlé doznění
-    osc.connect(band).connect(gain).connect(this.master);
-    osc.start(t);
-    osc.stop(t + 0.16);
+    playMetalHit(this.ctx, this.master, [90, 150, 240], 0.05, 0.45); // nízký tupý „klak" — krátký, kovově temný
   }
 
   private playChuff(): void {
@@ -294,136 +275,14 @@ export class AudioView {
       this.playSample(this.chuffSample, 0.9);
       return;
     }
-    const t = this.ctx.currentTime;
-    const src = this.ctx.createBufferSource();
-    src.buffer = this.noise;
-    src.loop = true;
-    const band = this.ctx.createBiquadFilter();
-    band.type = 'bandpass';
-    band.frequency.value = 280; // nízkofrekvenční výdech
-    band.Q.value = 0.8;
-    const gain = this.ctx.createGain();
-    gain.gain.setValueAtTime(0.0001, t);
-    gain.gain.exponentialRampToValueAtTime(0.9, t + 0.015); // ostrý nádech
-    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.18); // výdech
-    src.connect(band).connect(gain).connect(this.master);
-    src.start(t);
-    src.stop(t + 0.2);
+    playChuffBurst(this.ctx, this.master, this.noise);
   }
 
   private playClank(volume: number): void {
-    this.metalHit([1200, 1840, 2650], 0.08, volume); // kovové, jasné — tah spřáhla
+    playMetalHit(this.ctx, this.master, [1200, 1840, 2650], 0.08, volume); // kovové, jasné — tah spřáhla
   }
 
   private playClunk(volume: number): void {
-    this.metalHit([300, 470, 700], 0.14, volume * 1.1); // nižší, delší — tupý náraz nárazníků
-  }
-
-  // krátký úder z několika netónových harmonických s rychlým decayem
-  private metalHit(freqs: number[], decay: number, volume: number): void {
-    const t = this.ctx.currentTime;
-    const gain = this.ctx.createGain();
-    gain.gain.setValueAtTime(Math.max(0.03, volume) * 0.6, t);
-    gain.gain.exponentialRampToValueAtTime(0.0001, t + decay);
-    gain.connect(this.master);
-    for (const f of freqs) {
-      const osc = this.ctx.createOscillator();
-      osc.type = 'triangle';
-      osc.frequency.value = f;
-      osc.connect(gain);
-      osc.start(t);
-      osc.stop(t + decay);
-    }
-  }
-
-  // --- trvalé hlasy a zdroje ---
-
-  // sykot prokluzu: vysoký filtrovaný šum
-  private makeSlipVoice(): SustainVoice {
-    const src = this.ctx.createBufferSource();
-    src.buffer = this.noise;
-    src.loop = true;
-    const hp = this.ctx.createBiquadFilter();
-    hp.type = 'highpass';
-    hp.frequency.value = 2500;
-    const gain = this.ctx.createGain();
-    gain.gain.value = 0;
-    src.connect(hp).connect(gain).connect(this.master);
-    src.start();
-    return {
-      setActive: (on) =>
-        gain.gain.setTargetAtTime(on ? 0.5 : 0, this.ctx.currentTime, 0.05),
-    };
-  }
-
-  // skřípění brzd: skřípání kovu o kov složené ze **tří neharmonických** vysokých frekvencí
-  // (disonance = „skříp", ne hudební tón), každá s vlastním pomalým jitterem frekvence →
-  // nestabilní, neperiodické škrundání. Složky sečtené přes společný bandpass; hlasitost on/off.
-  private makeSquealVoice(): SustainVoice {
-    const gain = this.ctx.createGain();
-    gain.gain.value = 0;
-    const band = this.ctx.createBiquadFilter();
-    band.type = 'bandpass';
-    band.frequency.value = 3000;
-    band.Q.value = 1.2; // širší pásmo než u jednoho tónu — projdou všechny tři složky
-    band.connect(gain).connect(this.master);
-
-    // neharmonické poměry (ne celočíselné násobky základní) → kovová disonance místo tónu
-    const freqs = [2150, 3070, 4350];
-    const lfoRates = [24, 31, 39]; // různé rychlosti jitteru → složitá modulace bez slyšitelné periody
-    freqs.forEach((f, i) => {
-      const osc = this.ctx.createOscillator();
-      osc.type = 'sawtooth';
-      osc.frequency.value = f;
-      const lfo = this.ctx.createOscillator();
-      lfo.frequency.value = lfoRates[i];
-      const lfoGain = this.ctx.createGain();
-      lfoGain.gain.value = f * 0.04; // hloubka kmitání ∝ frekvence → výraznější „skřípání"
-      lfo.connect(lfoGain).connect(osc.frequency);
-      osc.connect(band);
-      osc.start();
-      lfo.start();
-    });
-    return {
-      setActive: (on) =>
-        gain.gain.setTargetAtTime(on ? 0.2 : 0, this.ctx.currentTime, 0.04), // 3 zdroje → mírně níž
-    };
-  }
-
-  // skřípění okolků v oblouku (flange squeal): vysoký kvílivý tón s pomalou modulací,
-  // hlasitost plynule řízená příčným zrychlením (≠ on/off brzd) — sílí v ostřejší zatáčce
-  private makeArcSquealVoice(): LevelVoice {
-    const osc = this.ctx.createOscillator();
-    osc.type = 'sawtooth';
-    osc.frequency.value = 2200;
-
-    const lfo = this.ctx.createOscillator();
-    lfo.frequency.value = 8;       // pomalejší než brzdový pískot → „kvílení", ne „skřípot"
-    const lfoGain = this.ctx.createGain();
-    lfoGain.gain.value = 120;
-    lfo.connect(lfoGain).connect(osc.frequency);
-
-    const band = this.ctx.createBiquadFilter();
-    band.type = 'bandpass';
-    band.frequency.value = 2200;
-    band.Q.value = 7;
-    const gain = this.ctx.createGain();
-    gain.gain.value = 0;
-    osc.connect(band).connect(gain).connect(this.master);
-    osc.start();
-    lfo.start();
-    return {
-      setLevel: (level) =>
-        gain.gain.setTargetAtTime(Math.max(0, Math.min(level, 1)) * 0.18, this.ctx.currentTime, 0.08),
-    };
-  }
-
-  // 2 s bílého šumu, sdílený zdroj pro chuff i sykot prokluzu
-  private makeNoise(): AudioBuffer {
-    const len = this.ctx.sampleRate * 2;
-    const buf = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
-    const data = buf.getChannelData(0);
-    for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
-    return buf;
+    playMetalHit(this.ctx, this.master, [300, 470, 700], 0.14, volume * 1.1); // nižší, delší — tupý náraz nárazníků
   }
 }
