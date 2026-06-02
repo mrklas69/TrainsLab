@@ -43,9 +43,12 @@ function terrainColor(y: number, out: THREE.Color): void {
 }
 
 // ── Stromy & kameny (lowpoly dekorace, čistě view) ───────────────────────────────────
-const SCENERY_STEP = 22;     // m — rozteč mřížky kandidátních míst pro dekoraci
-const SCENERY_MIN_R = 180;   // m — blíž ke středu nic nesázíme (zóna trati, osmička sahá k ~150)
-const SCENERY_MAX_R = 340;   // m — za horizontem desky už taky ne
+const SCENERY_STEP = 18;     // m — rozteč mřížky kandidátních míst pro dekoraci (hustší = víc zeleně)
+const SCENERY_MAX_R = 340;   // m — za horizontem desky už nesázíme
+// kolem osy trati nic nesázíme, aby strom/kámen nestál na koleji (vlak by jím projížděl). Práh =
+// rozchod + koruna stromu (~5 m při scale) + rezerva. Nahrazuje dřívější radiální zónu (MIN_R) →
+// dekorace teď roste i uprostřed osmičky, jen ne na trati.
+const TRACK_CLEARANCE = 14;
 const TREE_LINE = 34;        // m — nad touhle výškou jen kameny (skála), pod ní převažují stromy
 const TRUNK_COLOR = 0x5a3d28;  // kmen — hnědá
 const CROWN_COLOR = 0x2f6b2a;  // koruna — sytě zelená (vyniká nad loukou)
@@ -56,6 +59,22 @@ const ROCK_DECO_COLOR = 0x8a857c; // kámen — světle šedá
 function hash(i: number, seed: number): number {
   const s = Math.sin(i * 127.1 + seed * 311.7) * 43758.5453;
   return s - Math.floor(s);
+}
+
+// true, je-li bod (x,z) blíž k ose trati než TRACK_CLEARANCE — tam dekoraci nesázíme (vlak projíždí).
+// Vzdálenost k nejbližšímu z předvzorkovaných bodů osy (XZ); hrubší vzorkování trati stačí.
+function nearTrack(x: number, z: number, trackPts: { x: number; z: number }[]): boolean {
+  for (const p of trackPts) {
+    if (Math.hypot(x - p.x, z - p.z) < TRACK_CLEARANCE) return true;
+  }
+  return false;
+}
+
+// Lesnatost: nízkofrekvenční pole 0..1 (vlnová délka ~500 m → pár oblastí na desce). Kde je vysoká,
+// sázíme hustě = shluk stromů (les); kde nízká, jen řídce. Tím vznikají lesy místo rovnoměrného rozsypu.
+function forestDensity(x: number, z: number): number {
+  const n = Math.sin(x * 0.013 + 1.3) * Math.cos(z * 0.011 - 0.7);
+  return (n + 1) / 2;
 }
 
 // místo pro kus dekorace (strom/kámen) na terénu
@@ -289,20 +308,27 @@ export class WorldView {
     const trees: Spot[] = [];
     const rocks: Spot[] = [];
 
+    // body osy trati (XZ) pro test clearance — kandidát blíž než TRACK_CLEARANCE se zahodí
+    const trackPts = this.sampleTrackXZ(240);
+
     const half = TERRAIN_SIZE / 2;
     let idx = 0;
     for (let gx = -half; gx <= half; gx += SCENERY_STEP) {
       for (let gz = -half; gz <= half; gz += SCENERY_STEP) {
         idx++;
-        if (hash(idx, 0) > 0.62) continue; // ~38 % míst osázeno (řidší, ne pravidelná mřížka)
         const x = gx + (hash(idx, 1) - 0.5) * SCENERY_STEP; // jitter z pravidelné mřížky
         const z = gz + (hash(idx, 2) - 0.5) * SCENERY_STEP;
-        const r = Math.hypot(x, z);
-        if (r < SCENERY_MIN_R || r > SCENERY_MAX_R) continue; // ne na trať, ne za desku
+        if (Math.hypot(x, z) > SCENERY_MAX_R) continue;     // za deskou ne
+        if (nearTrack(x, z, trackPts)) continue;            // moc blízko koleji → ne (vlak projíždí)
+
+        // hustota osázení roste s lesnatostí: mimo les řídce (~12 %), v lese hustě (~85 %) → shluky = lesy
+        const forest = forestDensity(x, z);
+        if (hash(idx, 0) > 0.12 + forest * 0.73) continue;
+
         const y = terrainHeight(x, z, amplitude);
         const spot: Spot = { x, z, y, scale: 0.7 + hash(idx, 3) * 0.8, rot: hash(idx, 4) * Math.PI * 2 };
-        // nad horní hranicí lesa skály, pod ní převážně stromy (občas balvan i v lese)
-        if (y > TREE_LINE || hash(idx, 5) > 0.8) rocks.push(spot);
+        // nad horní hranicí lesa skály, pod ní převážně stromy (les), kameny jen občas
+        if (y > TREE_LINE || hash(idx, 5) > 0.85) rocks.push(spot);
         else trees.push(spot);
       }
     }
@@ -310,6 +336,16 @@ export class WorldView {
     this.addTrees(trees);
     this.addRocks(rocks);
     this.scene.add(this.sceneryGroup);
+  }
+
+  // Vzorky osy trati v XZ — pro test vzdálenosti dekorace od koleje (clearance, viz nearTrack).
+  private sampleTrackXZ(n: number): { x: number; z: number }[] {
+    const pts: { x: number; z: number }[] = [];
+    for (let i = 0; i < n; i++) {
+      const p = this.track.curve.getPointAt(i / n);
+      pts.push({ x: p.x, z: p.z });
+    }
+    return pts;
   }
 
   // strom = kmen (válec) + koruna (kužel), dvě InstancedMesh sdílející transformace míst.

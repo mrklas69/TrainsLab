@@ -45,7 +45,7 @@ const SECTIONS: Section[] = [
       // amplituda terénních vln pod tratí (DD-20) — vyšší = strmější krajina = výraznější slack
       // action (do kopce draft, z kopce buff). Přestaví terén i trať (action). Most je fixní (clearance
       // = inženýrská konstanta, ne věc slideru), proto se s ním nemění.
-      { key: 'trackAmplitude', label: 'Sklon (vlny terénu)', min: 0, max: 8, step: 0.2, unit: 'm',
+      { key: 'trackAmplitude', label: 'Sklon (vlny terénu)', min: 0, max: 16, step: 0.2, unit: 'm',
         action: (h) => h.onAmplitudeChange() },
       // rázy z trati (rozšíření kývání skříně): dilatační spáry (klikot ∝ rychlost) + skok křivosti
       // / výhybky (boční trh). railLength = rozteč spár (vyšší = řidší tik, „svařovaná" na maximu);
@@ -109,6 +109,8 @@ const SECTIONS: Section[] = [
     sliders: [
       { key: 'trackGauge', label: 'Rozchod koleje', min: 1, max: 2, step: 0.05, unit: 'm' },
       { key: 'comHeight', label: 'Výška těžiště', min: 0.5, max: 4, step: 0.1, unit: 'm' },
+      // energie srážky (½·m_red·v_close²) nad tímhle prahem → vykolejení; vyšší = odolnější vůči nárazu
+      { key: 'collisionDerailEnergy', label: 'Mez srážky (vykolejení)', min: 0, max: 3000, step: 50, unit: 'kJ' },
     ],
   },
   {
@@ -207,7 +209,9 @@ export function createControlPanel(
     const n = train.notch;
     const notch = n > 0 ? `+${n}` : String(n);
     const flags =
-      (train.derailed ? ` · VYKOLEJENO při ${train.derailSpeed.toFixed(1)} m/s` : '') +
+      (train.derailed
+        ? ` · VYKOLEJENO (${train.derailReason === 'collision' ? 'srážka' : 'převrácení'}) při ${train.derailSpeed.toFixed(1)} m/s`
+        : '') +
       (train.isBraking ? ' · BRZDA' : '') +
       (train.slipping ? ' · PROKLUZ' : '') +
       // klesající/nulový parní tlak — vidět jen při otevřeném regulátoru (jinak tah neřešíme)

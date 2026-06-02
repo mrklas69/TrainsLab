@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import type { Track } from '../sim/Track';
 import type { Train } from '../sim/Train';
+import type { Body } from '../sim/Body';
 import { buildCarModel, CAR_HEIGHT, CRANK_RADIUS, type CarType, type CarVisual } from './carModels';
 import { SmokeView } from './SmokeView';
 import { WorldView, RAIL_RADIUS } from './WorldView';
@@ -44,7 +45,8 @@ export class Renderer {
   private readonly gl: THREE.WebGLRenderer;
   private readonly world: WorldView;            // statická scéna (terén + dekorace + trať/pilíře)
   private readonly cameraCtrl: CameraController; // veškeré řízení kamery (orbit/dron/WASD)
-  private readonly carVisuals: CarVisual[]; // lowpoly modely vozů (group + tintovaný skin materiál)
+  private readonly carVisuals: CarVisual[]; // lowpoly modely vozů soupravy (group + tintovaný skin materiál)
+  private readonly freeCarVisuals: CarVisual[]; // modely volných (nespřažených) vozů — odstavené na trati
   private readonly couplerMeshes: THREE.Mesh[]; // marker napětí mezi sousedními vozy
   private readonly smoke: SmokeView;        // faceted kouř z komína loko (čistě view)
   private readonly chimneyWorld = new THREE.Vector3(); // přepoužitý buffer pro world pozici ústí komína
@@ -63,6 +65,7 @@ export class Renderer {
     drone: DroneParams, // sdílená instance kamery — předá se CameraControlleru (slidery ji ladí)
     trackAmplitude: number, // počáteční amplituda terénu (slider sklonu) — terén vede trať (DD-20)
     private readonly carTypes: CarType[], // typ modelu per vůz (ryze view — DD-01); délka 1:1 s train.bodies
+    private readonly freeCarTypes: CarType[], // typ modelu per volný vůz; 1:1 s train.freeBodies
     private readonly exhaust: ExhaustClock, // sdílený rytmus výfuku — kouř pufá v taktu se zvukem
   ) {
     this.gl = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -71,11 +74,11 @@ export class Renderer {
     this.cameraCtrl = new CameraController(canvas, track, train, drone);
 
     this.scene.background = new THREE.Color(0x87ceeb);
-    // bělavý opar nad krajinou: rozpustí tvrdý okraj terénní desky (±350 m) v dálce a dodá
-    // hloubku. Fog počítá vzdálenost od kamery → souprava i blízké stromy zůstanou ostré,
-    // jen vzdálené facety blednou k oparu. Lineární: čisté do `near`, plný opar od `far`
-    // (těsně před okrajem desky). Atmosféra scény patří k Rendereru, geometrie do WorldView.
-    this.scene.fog = new THREE.Fog(0xccd6dd, 130, 340);
+    // bělavý opar nad krajinou: dodá hloubku a změkčí dálku. Fog počítá vzdálenost od kamery →
+    // souprava i blízké stromy zůstanou ostré, jen vzdálené facety blednou k oparu. Lineární:
+    // čisté do `near`, plný opar od `far`. Dohlednost zdvojnásobena (260/680) — pozor: terénní
+    // deska má poloměr ~350 m, takže za ní může její okraj prosvítat (řeší se zvětšením desky).
+    this.scene.fog = new THREE.Fog(0xccd6dd, 260, 680);
     // nižší ambient + silnější slunce = směrový kontrast mezi facetami → lowpoly vzhled
     // (rovnoměrné světlo by faceting setřelo, i kdyby geometrie byla zubatá).
     this.scene.add(new THREE.HemisphereLight(0xffffff, 0x404030, 0.55));
@@ -84,7 +87,8 @@ export class Renderer {
     this.scene.add(sun);
 
     this.world = new WorldView(this.scene, track, trackAmplitude);
-    this.carVisuals = this.buildCars(train);
+    this.carVisuals = this.buildCars(train.bodies, this.carTypes);
+    this.freeCarVisuals = this.buildCars(train.freeBodies, this.freeCarTypes);
     this.couplerMeshes = this.buildCouplers(train);
     this.smoke = new SmokeView(this.scene);
 
@@ -97,35 +101,8 @@ export class Renderer {
     const train = this.train;
     this.cameraCtrl.update(dt); // dron/orbit/WASD — kamera je samostatná view starost (SLAP)
     train.bodies.forEach((body, i) => {
-      const { position, tangent } = this.track.at(body.s);
       const vis = this.carVisuals[i];
-      const group = vis.group;
-      group.position.copy(position);
-      group.position.y += CAR_HEIGHT / 2 + RAIL_RADIUS;
-      group.lookAt(this.lookTarget.copy(group.position).add(tangent)); // čelo (−Z) ve směru jízdy
-      // kývání skříně: po orientaci podél tratě nakloň lokálně — pitch kolem příčné osy (X),
-      // roll kolem podélné (Z). lookAt kvaternion každý frame resetuje, takže se náklon nehromadí.
-      group.rotateX(body.pitch);
-      group.rotateZ(body.roll);
-
-      // valení kol: úhel ∝ ujetá dráha / poloměr (každý vůz dle své pozice s).
-      // Loko při prokluzu navíc „závodí" — driverSlipPhase se akumuluje, takže se hnací kola
-      // protáčejí rychleji než jede vlak (viditelný prokluz) a spojnice zběsile krouží.
-      if (i === 0 && train.slipping) {
-        // prokluz = obvodová rychlost kol > rychlost vlaku → kola se protáčejí ve směru valení,
-        // jen rychleji (ne couvání!). Valecí fáze jde jako -s/r, takže tah vpřed (notch≥0) = záporný
-        // přírůstek (kola „vpřed"), reverz (notch<0) = kladný.
-        const dir = train.notch >= 0 ? -1 : 1;
-        this.driverSlipPhase += dir * SLIP_SPIN_RATE * dt;
-      }
-      const phase = -body.s / vis.wheelRadius + (i === 0 ? this.driverSlipPhase : 0);
-      for (const w of vis.wheels) w.rotation.x = phase * vis.wheelDir;
-      // hnací spojnice loko: čep kliky obíhá kolem středu kola → tyč krouží v rovině Y-Z.
-      // Záporná fáze ladí směr obíhání s otáčením kol (jinak by se spojnice točila opačně).
-      for (const rod of vis.rods) {
-        rod.position.y = vis.rodBaseY + CRANK_RADIUS * Math.sin(-phase);
-        rod.position.z = CRANK_RADIUS * Math.cos(-phase);
-      }
+      this.placeCar(body, vis, i === 0, dt); // umístění + orientace + náklon + valení kol (sdíleno s volnými)
 
       // barva skříně (skin materiál modelu): vykolejení přebíjí vše (celá souprava rudá);
       // jinak lokomotiva stavovým semaforem (prokluz > brzda > tah > volnoběh), vozy klidovou barvou typu.
@@ -143,6 +120,16 @@ export class Renderer {
       const glow = train.derailed ? 1 : tipGlow(train.tipRatio(i));
       vis.skin.emissive.copy(DANGER_GLOW).multiplyScalar(glow * MAX_GLOW);
     });
+
+    // volné (nespřažené) vozy: klidová barva typu + žár blízkosti převrácení (po nárazu se
+    // můžou rozjet do oblouku). Nemají stavový semafor (žádná trakce) ani prokluz kol.
+    train.freeBodies.forEach((body, i) => {
+      const vis = this.freeCarVisuals[i];
+      this.placeCar(body, vis, false, dt);
+      vis.skin.color.copy(vis.baseColor);
+      vis.skin.emissive.copy(DANGER_GLOW).multiplyScalar(tipGlow(train.tipRatioOf(body)) * MAX_GLOW);
+    });
+
     if (this.couplerMarkersVisible) this.renderCouplers(train); // skryté = nemutuj (zbytečná práce)
 
     // kouř z komína loko: emisní bod = world pozice ústí (getWorldPosition vyřeší flip/náklon
@@ -168,6 +155,15 @@ export class Renderer {
   /** Toggle auto-kamery „dron" (klávesa C) — deleguje na CameraController. */
   toggleDrone(): void {
     this.cameraCtrl.toggleDrone();
+  }
+
+  /**
+   * Vzdálenost kamery od lokomotivy ve world-space (m) — podklad pro distanční hlasitost zvuku
+   * (AudioView). Bere world pozici loko z jejího modelu (nastaví ji render loop); o frame zpožděná
+   * proti simu, což je pro hlasitost neznatelné.
+   */
+  get cameraDistance(): number {
+    return this.cameraCtrl.camera.position.distanceTo(this.carVisuals[0].group.position);
   }
 
   /** Slider sklonu: přestav statickou scénu (terén + dekorace + trať). Křivka už je v Track.rebuild(). */
@@ -215,11 +211,44 @@ export class Renderer {
     return meshes;
   }
 
-  // lowpoly model na každý vůz dle typu z `carTypes` (loko/cisterna/skříň/otevřený).
-  // Délku bere ze sim tělesa (per vůz). Barvu skříně řídí render loop: loko semaforem, vozy klidovou.
-  private buildCars(train: Train): CarVisual[] {
-    return train.bodies.map((body, i) => {
-      const vis = buildCarModel(this.carTypes[i], body.length);
+  // Umístí model vozu na trať podle `s`: pozice + orientace (čelo podél tečny) + náklon skříně
+  // (pitch/roll z kývání) + valení kol a hnacích spojnic. Sdíleno soupravou i volnými vozy (DRY);
+  // `isLoco` zapíná prokluz hnacích kol (driverSlipPhase) a animaci spojnic.
+  private placeCar(body: Body, vis: CarVisual, isLoco: boolean, dt: number): void {
+    const { position, tangent } = this.track.at(body.s);
+    const group = vis.group;
+    group.position.copy(position);
+    group.position.y += CAR_HEIGHT / 2 + RAIL_RADIUS;
+    group.lookAt(this.lookTarget.copy(group.position).add(tangent)); // čelo (−Z) ve směru jízdy
+    // kývání skříně: po orientaci podél tratě nakloň lokálně — pitch kolem příčné osy (X),
+    // roll kolem podélné (Z). lookAt kvaternion každý frame resetuje, takže se náklon nehromadí.
+    group.rotateX(body.pitch);
+    group.rotateZ(body.roll);
+
+    // valení kol: úhel ∝ ujetá dráha / poloměr. Loko při prokluzu navíc „závodí" — driverSlipPhase
+    // se akumuluje, takže se hnací kola protáčejí rychleji než jede vlak (viditelný prokluz).
+    if (isLoco && this.train.slipping) {
+      // prokluz = obvodová rychlost kol > rychlost vlaku → kola se protáčejí ve směru valení,
+      // jen rychleji (ne couvání!). Valecí fáze jde jako -s/r, takže tah vpřed (notch≥0) = záporný
+      // přírůstek (kola „vpřed"), reverz (notch<0) = kladný.
+      const dir = this.train.notch >= 0 ? -1 : 1;
+      this.driverSlipPhase += dir * SLIP_SPIN_RATE * dt;
+    }
+    const phase = -body.s / vis.wheelRadius + (isLoco ? this.driverSlipPhase : 0);
+    for (const w of vis.wheels) w.rotation.x = phase * vis.wheelDir;
+    // hnací spojnice loko: čep kliky obíhá kolem středu kola → tyč krouží v rovině Y-Z.
+    // Záporná fáze ladí směr obíhání s otáčením kol (jinak by se spojnice točila opačně).
+    for (const rod of vis.rods) {
+      rod.position.y = vis.rodBaseY + CRANK_RADIUS * Math.sin(-phase);
+      rod.position.z = CRANK_RADIUS * Math.cos(-phase);
+    }
+  }
+
+  // lowpoly model na každé těleso dle typu (loko/cisterna/skříň/otevřený). Délku bere ze sim
+  // tělesa (per vůz). Sdílené pro soupravu i volné vozy. Barvu skříně řídí render loop.
+  private buildCars(bodies: readonly Body[], types: CarType[]): CarVisual[] {
+    return bodies.map((body, i) => {
+      const vis = buildCarModel(types[i], body.length);
       this.scene.add(vis.group);
       return vis;
     });

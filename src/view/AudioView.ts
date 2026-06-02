@@ -2,8 +2,20 @@ import type { Train } from '../sim/Train';
 import type { PhysicsParams } from '../sim/params';
 import type { CouplerMode } from '../sim/Coupler';
 import type { ExhaustClock } from './ExhaustClock';
+import { smoothstep } from '../sim/terrain';
 
 const MASTER_VOLUME = 0.35;
+// Distanční útlum: hlasitost klesá se vzdáleností kamery od lokomotivy. Do REF plná (kamera
+// u soupravy), dál ~1/d (fyzikální pokles intenzity zvuku), s měkkým dotlumením k nule u horizontu
+// mlhy (vzdálená scéna utichne docela, sladěno s Fog far ≈ 340). Násobí master gain (vedle mute).
+const AUDIO_REF_DISTANCE = 30;      // m — uvnitř plná hlasitost (zhruba poloměr orbitu dronu)
+const AUDIO_SILENCE_DISTANCE = 320; // m — za touhle ticho (souhlasí s koncem mlhy)
+
+function distanceGain(d: number): number {
+  const inverse = AUDIO_REF_DISTANCE / Math.max(d, AUDIO_REF_DISTANCE);    // 1 do REF, pak 1/d
+  const horizon = 1 - smoothstep(AUDIO_REF_DISTANCE, AUDIO_SILENCE_DISTANCE, d); // měkce k 0 u mlhy
+  return inverse * horizon;
+}
 // brzdová smyčka: rychlost přehrávání (= výška/tempo skřípání) roste lineárně s rychlostí
 // jen do BRAKE_FUSE_SPEED, pak drží strop (analogie chuff fuse v ExhaustClock). Nahrávka je
 // ~2× delší a sama skřípe rychle („cikáda") → playbackRate poloviční, aby tón sjel na realistické
@@ -53,6 +65,7 @@ export class AudioView {
 
   private prevModes: CouplerMode[];
   private muted = false;
+  private distanceVolume = 1; // distanční útlum (0..1), přepočítává update() z cameraDistance
 
   // Nahrané samply (public/audio/). One-shoty drží AudioBuffer (přehrají se přes playSample),
   // trvalé hlasy drží voice objekt (loop + gain). Vše null, dokud async load nedoběhne / když soubor chybí.
@@ -251,14 +264,29 @@ export class AudioView {
 
   toggleMute(): void {
     this.muted = !this.muted;
-    this.master.gain.value = this.muted ? 0 : MASTER_VOLUME;
+    this.applyMasterGain();
   }
 
   get isMuted(): boolean {
     return this.muted;
   }
 
-  update(train: Train): void {
+  // Výsledná hlasitost = základní × distanční útlum (nebo 0 při mute). Jeden zdroj pravdy pro
+  // master gain, kam přispívají mute i vzdálenost kamery. setTargetAtTime = plynulý přechod bez lupnutí.
+  private applyMasterGain(): void {
+    const target = this.muted ? 0 : MASTER_VOLUME * this.distanceVolume;
+    this.master.gain.setTargetAtTime(target, this.ctx.currentTime, 0.05);
+  }
+
+  /**
+   * @param cameraDistance vzdálenost kamery od lokomotivy ve world-space (m) — řídí distanční
+   *   útlum hlasitosti (čistě view výpočet, dělá ho Renderer; AudioView nezná kameru → drží DD-01).
+   */
+  update(train: Train, cameraDistance: number): void {
+    // distanční hlasitost: kamera dál od soupravy → tišší (∝ 1/d, ticho u horizontu mlhy)
+    this.distanceVolume = distanceGain(cameraDistance);
+    this.applyMasterGain();
+
     // výfuk páry: puf v taktu sdíleného ExhaustClock (sladěný s kouřem), jen pod párou —
     // otevřený regulátor (notch ≠ 0) A pára v kotli (steamPressure > 0). Bez páry píst
     // nepracuje → žádný výfuk, i když vlak dojíždí setrvačností s otevřeným regulátorem.

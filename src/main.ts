@@ -21,12 +21,16 @@ const track = new Track(makeLoopControlPoints(params.trackAmplitude));
 // `carTypes` je view metadata (typ modelu) 1:1 s tělesy; `carLengths` jde do simu (délka + rozteč spřáhel).
 const carTypes: CarType[] = ['loco', 'tank', 'boxcar', 'flatcar', 'gondola', 'gondola'];
 const carLengths = [8, 7, 6, 6, 7, 7];
-const train = new Train(track, params, carLengths);
+// odstavený volný vagon na protilehlé straně smyčky — souprava ho dokola dožene a ťukne do něj
+// (kontaktní buff, bez spřažení; DD-24). `freeCarTypes` je view metadata 1:1 s train.freeBodies.
+const freeCarTypes: CarType[] = ['boxcar'];
+const freeCars = [{ length: 7, startS: track.length * 0.5 }];
+const train = new Train(track, params, carLengths, 0, freeCars);
 // dron = view parametry kamery (mimo fyziku), sdílená instance pro slidery (live ladění)
 const drone = { ...DEFAULT_DRONE };
 // sdílený rytmus parního výfuku (čistě view) — kouř i zvukový chuff z něj pufají v taktu
 const exhaust = new ExhaustClock(params);
-const renderer = new Renderer(canvas, track, train, drone, params.trackAmplitude, carTypes, exhaust);
+const renderer = new Renderer(canvas, track, train, drone, params.trackAmplitude, carTypes, freeCarTypes, exhaust);
 const audio = new AudioView(train, params, exhaust);
 
 // Klávesové akce — single source pro keydown handler, nápovědu i tlačítka panelu.
@@ -80,7 +84,7 @@ function frame(): void {
   const dt = Math.min(clock.getDelta(), 0.05);
   train.update(dt);
   exhaust.advance(train.speed, dt); // posuň takt výfuku (čtou ho audio i renderer)
-  audio.update(train);
+  audio.update(train, renderer.cameraDistance); // distanční hlasitost ∝ vzdálenost kamery od loko
   updatePanel(train);
   renderer.render(dt);
   requestAnimationFrame(frame);

@@ -34,12 +34,26 @@ export function makeLoopControlPoints(amplitude: number): Vector3[] {
   const points: Vector3[] = [];
   const A = 150; // šířka osmičky (poloviční rozpětí v X, m) — větší = mírnější oblouky
   const B = 150; // výška laloků (rozpětí v Z, m)
-  const count = 24;
+  // asymetrie laloků: pravý lalok (t≈0) zvětšíme, levý (t≈π) necháme beze změny. Klíčové je
+  // škálovat lalok IZOTROPNĚ (x i z týmž faktorem) — tím roste i jeho poloměr (větší lalok =
+  // mírnější oblouk). Dřív jsme škálovali jen x → lalok se zploštil a vznikla neprojetelná špička.
+  // Faktor (1+cos t)/2: pravý vrchol → 1, levý → 0; v křížení (cos t=0) nevadí, protože cos t=0
+  // tam stejně vynuluje x i z (most drží v počátku). E = míra zvětšení pravého laloku.
+  //
+  // MINIMÁLNÍ POLOMĚR & CLEARANCE: ověřeno `tools/check-radius.ts`. Při E=0.5 a count=96 je
+  // min r ≈ 52 m (projetelné do ~20 m/s, bezpečně nad baseline 33 m symetrické osmičky). count
+  // je hustota kontrolních bodů: musí být dost vysoká, aby Catmull-Rom mezi nimi nepodstřelil
+  // zvlněný terén (trať pod zem) — při řídkých 24 bodech a vlnité krajině zapadala kolej pod terén.
+  // count=96 drží clearance ≈ 0 i pro nejvlnitější trať (slider sklonu na maximu). Sklon je
+  // horizontálně nezávislý (poloměr drží při jakékoli amplitudě), takže vlnitost poloměr neohrozí.
+  const E = 0.5;
+  const count = 96;
   for (let i = 0; i < count; i++) {
     const t = (i / count) * Math.PI * 2;
     const denom = 1 + Math.sin(t) * Math.sin(t); // Bernoulli — kulaté laloky místo špičatých (Gerono)
-    const x = (A * Math.cos(t)) / denom;
-    const z = (B * Math.sin(t) * Math.cos(t)) / denom;
+    const stretch = 1 + E * (1 + Math.cos(t)) / 2; // pravý lalok zvětšen o E, levý beze změny
+    const x = (A * stretch * Math.cos(t)) / denom;
+    const z = (B * stretch * Math.sin(t) * Math.cos(t)) / denom;
     points.push(new Vector3(x, terrainHeight(x, z, amplitude) + bridgeLift(t), z));
   }
   return points;

@@ -48,10 +48,18 @@ export class Train {
   // bodové perturbace v posledním update — čte AudioView (odlišný zvuk dle typu, DD-01):
   switchFired = false;         // výhybka/křížení → tupý clunk
   transitionJerkFired = false; // skok křivosti (chybějící přechodnice) → krátké skřípnutí
-  derailed = false; // vykolejeno převrácením — fail state, čeká na reset (čte renderer)
-  derailSpeed = 0;  // rychlost lokomotivy v okamžiku vykolejení (m/s) — diagnostika do UI
+  derailed = false; // vykolejeno — fail state, čeká na reset (čte renderer)
+  derailSpeed = 0;  // charakteristická rychlost v okamžiku vykolejení (m/s) — diagnostika do UI
+  derailReason: 'overturn' | 'collision' | null = null; // čím vykolejilo (převrácení vs. srážka) — diagnostika
+  // nejtvrdší srážka v posledním update (kJ + rychlost sblížení) — vyhodnocuje se po substepech (jako převrácení)
+  private collisionEnergy = 0;
+  private collisionSpeed = 0;
 
   readonly couplers: Coupler[]; // stav spřáhel čte audio/vizualizace (DD-01)
+  // volná (nespřažená) tělesa na téže trati — odstavené vozy. Mimo couplerový řetězec:
+  // interagují se soupravou jen kontaktním nárazem (buff, viz applyContacts, DD-24). Čte renderer.
+  readonly freeBodies: Body[] = [];
+  private readonly freeStartS: number[] = []; // výchozí pozice volných vozů (pro reset)
   private readonly restGaps: number[];
   private throttle = 0; // −MAX_REVERSE..MAX_FORWARD
   private braking = false;
@@ -65,8 +73,15 @@ export class Train {
     private readonly params: PhysicsParams,
     carLengths: number[], // [0] = lokomotiva (čelo), dál vagony
     private readonly startS = 0,
+    freeCars: { length: number; startS: number }[] = [], // odstavené volné vozy (mimo soupravu)
   ) {
     this.bodies = carLengths.map((length) => new Body(0, length));
+
+    // volné vozy: každý je samostatné těleso na trati se svou výchozí pozicí (mimo řetězec spřáhel)
+    for (const car of freeCars) {
+      this.freeBodies.push(new Body(car.startS, car.length));
+      this.freeStartS.push(car.startS);
+    }
 
     this.restGaps = [];
     for (let i = 0; i < this.bodies.length - 1; i++) {
@@ -145,7 +160,11 @@ export class Train {
    * zrychlení — magnitudu (kritérium převrácení, gradient) z něj bere {@link lateralAccelerationOf}.
    */
   signedLateralAccelerationOf(index: number): number {
-    const body = this.bodies[index];
+    return this.signedLatAccelOf(this.bodies[index]);
+  }
+
+  /** Jádro příčného zrychlení pro libovolné těleso (v²·κ) — sdílí souprava i volné vozy (DRY). */
+  private signedLatAccelOf(body: Body): number {
     return body.v * body.v * this.track.signedCurvature(body.s);
   }
 
@@ -160,7 +179,12 @@ export class Train {
    * blízkosti meze ve vizualizaci (žár skříně) — spojitá předzvěst tvrdého fail state.
    */
   tipRatio(index: number): number {
-    return this.lateralAccelerationOf(index) / this.overturnThreshold;
+    return this.tipRatioOf(this.bodies[index]);
+  }
+
+  /** Blízkost převrácení libovolného tělesa (souprava i volný vůz) — pro žár skříně ve view. */
+  tipRatioOf(body: Body): number {
+    return Math.abs(this.signedLatAccelOf(body)) / this.overturnThreshold;
   }
 
   /**
@@ -228,8 +252,13 @@ export class Train {
       this.bodies[i].s = s;
       this.bodies[i].v = 0;
     }
-    // vynuluj i rotační stav vypružení (roll/pitch), ať reset srovná skříně
-    for (const body of this.bodies) {
+    // volné vozy zpět na výchozí pozice (v klidu)
+    this.freeBodies.forEach((body, i) => {
+      body.s = this.freeStartS[i];
+      body.v = 0;
+    });
+    // vynuluj i rotační stav vypružení (roll/pitch), ať reset srovná skříně (souprava i volné vozy)
+    for (const body of [...this.bodies, ...this.freeBodies]) {
       body.roll = 0; body.rollVel = 0; body.pitch = 0; body.pitchVel = 0;
     }
     this.throttle = 0;
@@ -238,6 +267,7 @@ export class Train {
     this.slipping = false;
     this.derailed = false;
     this.derailSpeed = 0;
+    this.derailReason = null;
     this.coal = this.params.coalCapacity;   // doplnit zásoby (R = nabrat uhlí, vodu i písek)
     this.water = this.params.waterCapacity;
     this.sand = this.params.sandCapacity;
@@ -250,25 +280,41 @@ export class Train {
     if (this.sanding) this.sand = Math.max(0, this.sand - this.params.sandRate * dt);
     // pozice před krokem — z ujeté vzdálenosti se pak detekují přejezdy spár/perturbací
     const sBefore = this.bodies.map((b) => b.s);
+    this.collisionEnergy = 0;   // nejtvrdší srážka tohoto framu — naplní ji contact() v substepech
     const h = dt / SUBSTEPS;
     for (let i = 0; i < SUBSTEPS; i++) this.step(h);
     this.applyTrackImpulses(sBefore); // rázy z trati → kick do kývání skříně (DD-02)
 
-    // kritérium převrácení (DD-11): odstředivka na nejostřejším oblouku překoná rameno
-    // báze kol → vůz se přetočí přes vnější kolo. Tvrdý fail state — souprava se zastaví.
+    // fail state vyhodnocujeme po substepech (jako převrácení). Dvě nezávislé příčiny:
+    //  - **převrácení** (DD-11): odstředivka na nejostřejším oblouku překoná rameno báze kol.
+    //  - **srážka**: energie nárazu (½·m_red·v_close²) překročí práh — tvrdý náraz vyhodí vozy z kolejí.
     if (this.lateralAcceleration > this.overturnThreshold) {
-      this.derailed = true;
-      this.derailSpeed = Math.abs(this.bodies[0].v); // zachyť rychlost před zastavením
-      for (const body of this.bodies) body.v = 0;
+      this.derail('overturn', Math.abs(this.bodies[0].v)); // rychlost loko při převrácení
+    } else if (this.collisionEnergy > this.params.collisionDerailEnergy) {
+      this.derail('collision', this.collisionSpeed); // rychlost sblížení při srážce
     }
   }
 
-  // jeden substep: vlastní síly → spřáhla → trakce/brzda → tření → integrace.
+  // Vykolejení = tvrdý fail state: souprava i volné vozy stojí a čekají na reset (R).
+  // `reason` + `speed` nesou diagnostiku (čím a při jaké rychlosti) do UI.
+  private derail(reason: 'overturn' | 'collision', speed: number): void {
+    this.derailed = true;
+    this.derailReason = reason;
+    this.derailSpeed = speed;
+    for (const body of this.bodies) body.v = 0;
+    for (const fb of this.freeBodies) fb.v = 0;
+  }
+
+  // jeden substep: vlastní síly → spřáhla → kontakty → trakce/brzda → tření → integrace.
   private step(h: number): void {
+    // akumulátor sil nezávislých na spřáhlech/trakci — souprava i volné vozy
     for (let i = 0; i < this.bodies.length; i++) {
       this.bodies[i].beginStep(this.track, this.params, this.massOf(i));
     }
+    for (const fb of this.freeBodies) fb.beginStep(this.track, this.params, this.params.carMass);
+
     for (const coupler of this.couplers) coupler.apply(this.params);
+    this.applyContacts(); // buff náraz mezi nespřaženými tělesy (konce soupravy ↔ volné vozy)
 
     this.applyLocomotive();
 
@@ -280,12 +326,92 @@ export class Train {
       // integrace dělí silou setrvačnou hmotu m·(1+λ) — rotující kola/ojnice (massOf drží tíhu)
       this.bodies[i].integrate(h, mass, this.rotatingFactorOf(i));
     }
+    // volné vozy: bez trakce i brzdy — jen odpory + případný kontaktní ráz (statické tření je drží stát)
+    for (const fb of this.freeBodies) {
+      fb.applyFriction(this.params, this.params.carMass, 0);
+      fb.integrate(h, this.params.carMass, this.params.rotatingMassFactorCar);
+    }
 
     // vypružení skříně (DD-02: rotace, nemění s/v) — buzení z příčného (v²·κ se znaménkem)
     // a podélného (dv/dt) zrychlení; integruje se ve stejných substepech jako zbytek
     this.bodies.forEach((body, i) => {
       body.updateSuspension(this.params, this.signedLateralAccelerationOf(i), body.accel, h);
     });
+    for (const fb of this.freeBodies) {
+      fb.updateSuspension(this.params, this.signedLatAccelOf(fb), fb.accel, h);
+    }
+  }
+
+  /**
+   * Kontaktní náraz mezi nespřaženými tělesy = jednostranná pružina jen v tlaku (buff, DD-24).
+   * Působí jen když se skříně překrývají (vzdálenost středů < součet půldélek + {@link COUPLER_GAP});
+   * jinak nula. Žádný draft ani vůle → vozy se odrazí, ale **nespřáhnou** (scénář A).
+   *
+   * Recykluje tuhost/tlumení spřáhla (`couplerStiffness`/`couplerDamping`) — náraz se „cítí"
+   * jako buff nárazníku (izomorfismus), žádné nové parametry. Kontakt řešíme jen na **odhalených
+   * koncích soupravy** (loko / poslední vůz) ↔ volné vozy a volné vozy navzájem; vnitřek soupravy
+   * drží spřáhla, takže projet skrz nelze. Na smyčce se rozteč počítá přes {@link wrappedDelta}.
+   */
+  private applyContacts(): void {
+    if (this.freeBodies.length === 0) return;
+    // odhalené konce soupravy (s hmotami pro energii srážky): čelo (loko) a záď (poslední vůz);
+    // u jednovozové soupravy týž
+    const last = this.bodies.length - 1;
+    const ends = last === 0
+      ? [{ b: this.bodies[0], m: this.massOf(0) }]
+      : [{ b: this.bodies[0], m: this.massOf(0) }, { b: this.bodies[last], m: this.massOf(last) }];
+    const carMass = this.params.carMass;
+
+    for (const fb of this.freeBodies) {
+      for (const end of ends) this.contact(end.b, end.m, fb, carMass);
+    }
+    // volné vozy navzájem (řada odstavených vozů do sebe ťuká jako biliár)
+    for (let i = 0; i < this.freeBodies.length; i++) {
+      for (let j = i + 1; j < this.freeBodies.length; j++) {
+        this.contact(this.freeBodies[i], carMass, this.freeBodies[j], carMass);
+      }
+    }
+  }
+
+  // jedna kontaktní dvojice: odpudivá síla ∝ překryv skříní + tlumení; zároveň měří energii srážky.
+  private contact(a: Body, massA: number, b: Body, massB: number): void {
+    const d = this.wrappedDelta(a.s, b.s);                    // + = b je „před" a (rostoucí s)
+    const minGap = a.length / 2 + b.length / 2 + COUPLER_GAP; // rozteč středů při dotyku
+    const dist = Math.abs(d);
+    if (dist >= minGap) return;                               // skříně se nedotýkají → bez síly
+
+    const dir = Math.sign(d) || 1;       // osa kontaktu od a k b
+    const overlap = minGap - dist;       // jak hluboko se skříně „vmáčkly" (m)
+    const approach = -(b.v - a.v) * dir; // rychlost přibližování (> 0 = blíží se k sobě)
+
+    // energie srážky (nepružná, ½·m_red·v_close²) v kJ — nejvyšší na náběhu kontaktu, než ji
+    // pružina zbrzdí. Držíme maximum přes substepy; update() ho porovná s prahem → vykolejení.
+    if (approach > 0) {
+      const mRed = (massA * massB) / (massA + massB); // redukovaná hmota dvojice
+      const energyKJ = (0.5 * mRed * approach * approach) / 1000;
+      if (energyKJ > this.collisionEnergy) {
+        this.collisionEnergy = energyKJ;
+        this.collisionSpeed = approach;
+      }
+    }
+
+    // pružina (vždy odpudivá) + tlumení (jen při přibližování — odraz nesmí přilepit)
+    const force = this.params.couplerStiffness * overlap
+      + (approach > 0 ? this.params.couplerDamping * approach : 0);
+    a.applyForce(-dir * force);
+    b.applyForce(dir * force);
+  }
+
+  /**
+   * Nejkratší rozdíl pozic po smyčce: `sTo − sFrom` zabalený do [−délka/2, délka/2).
+   * Tělesa mají nezabalené (monotónní) `s` na různých „kolech" smyčky — kontakt potřebuje
+   * skutečnou rozteč po trati, ne rozdíl surových arc-length. Kladný = `sTo` je před `sFrom`.
+   */
+  private wrappedDelta(sFrom: number, sTo: number): number {
+    const loop = this.track.length;
+    let d = (((sTo - sFrom) % loop) + loop) % loop; // [0, loop)
+    if (d > loop / 2) d -= loop;                    // → [−loop/2, loop/2)
+    return d;
   }
 
   /**

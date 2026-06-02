@@ -37,6 +37,7 @@ export interface PhysicsParams {
   transitionQuality: number; // 0..1 — kvalita přechodnic (klotoid): 1 = dokonalá (0 κ-trh), 0 = žádná (plný boční trh)
   trackGauge: number;        // rozchod koleje (m) — báze kol, polovina = rameno proti převrácení
   comHeight: number;         // výška těžiště vozu nad kolejí (m) — páka odstředivky při převrácení
+  collisionDerailEnergy: number; // práh energie srážky pro vykolejení (kJ) — nad ním tvrdý náraz vozy vyhodí z kolejí
   suspensionFreq: number;    // Hz — vlastní frekvence kývání skříně (nižší = měkčí, víc se klopí)
   suspensionDamping: number; // poměrné tlumení ζ kývání (0 = nedotlumené, 1 = kritické)
   coalCapacity: number;      // kapacita uhlí v tendru (kg)
@@ -70,12 +71,13 @@ export const DEFAULT_PARAMS: PhysicsParams = {
   brakeForceMax: 180_000,
   brakeFade: 0.4,      // litinový špalík: tření při vysoké rychlosti ~−40 % → decelerace roste, jak vlak zpomaluje
 
-  trackAmplitude: 4,
+  trackAmplitude: 8,  // výrazně vlnitá krajina → trať hodně stoupá/klesá (slack action, ~16% sklon)
   railLength: 20,       // klasická kolejnice ~18–25 m → tikot „klikety-klak" se škáluje rychlostí
   trackImpulse: 0.012,  // jemné cuknutí skříně; 0 = dokonalá trať (svařovaná + přechodnice)
   transitionQuality: 0.3, // mírná přechodnice — κ-trh znát, ale ne plný (1 = úplně rozetřený, 0 = ostrý)
   trackGauge: 1.435, // normální rozchod
   comHeight: 0.9,    // nízké těžiště (rám, kola, nápravy, podvozek dole) → práh převrácení ~7,8 m/s²; výrazně méně náchylné k překlopení
+  collisionDerailEnergy: 500, // kJ — náraz nad ~7 m/s (loko↔vagon) vykolejí; jemné dloučení (pár m/s) ustojí
   suspensionFreq: 0.6,     // pomalé houpání skříně (Hz)
   suspensionDamping: 0.25, // lehce dotlumené — pár kmitů doznívá
   coalCapacity: 1500,  // ~250 s plného výkonu (demo dojezd)
