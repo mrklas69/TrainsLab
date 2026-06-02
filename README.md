@@ -81,9 +81,10 @@ napětí ve spřáhlech — osciloskop slack action, default skrytý).
 | **F6** | příčná dynamika — esíčko (osmička), most/podjezd, převrácení/vykolejení, kývání skříně, gradient meze, rázy z trati (spáry / skok křivosti) | ✅ |
 | **F3** | palivo & zásoby — uhlí/voda (parní tlak), proměnná adheze + písek | ✅ |
 | **F4** | záclony — lowpoly terén/most/stromy ✅, párové koleje ✅, mostovka + mlha na horizontu ✅, modely vozů (kola + hnací spojnice + prokluz) ✅, kouř z komína (sladěný s výfukem) ✅, zvuk: samply ✅ (8 z 8 hlasů + houkačka/únik páry) | ✅ |
-| **F5** | sloshing kapaliny v cisterně → posun těžiště | ⬜ |
 
-Aktuální úkoly: [`TODO.md`](TODO.md) · hotové: [`DONE.md`](DONE.md).
+**PoC dokončen** — všechny fáze hotové. Další směry (sloshing kapaliny, síť/výhybky, ASCII
+renderer, jiskry…) jsou nezralé nápady mimo rozsah PoC, žijí v [`IDEAS.md`](IDEAS.md).
+Hotové úkoly: [`DONE.md`](DONE.md).
 
 ## Architektura
 
