@@ -4,8 +4,11 @@ import type { TrackSegment, TrackSample } from './TrackSegment';
 /** Popis sítě — segmenty + topologie (kdo na koho navazuje). Staví ho factory v trackData. */
 export interface NetworkSpec {
   segments: TrackSegment[];
-  next: number[]; // next[seg] = segment za koncem `seg`
-  prev: number[]; // prev[seg] = segment před začátkem `seg`
+  // možná pokračování za koncem / před začátkem segmentu. Jeden prvek = obyčejné napojení,
+  // víc prvků = **výhybka** (volba trasy). Pořadí: [0] = hlavní smyčka (osmička) — deterministická
+  // jízda bere vždy [0], náhodná (volný vagon, DD-25 fáze 2) vybírá libovolný.
+  next: number[][]; // next[seg] = segmenty za koncem `seg` (exit při s ≥ length)
+  prev: number[][]; // prev[seg] = segmenty před začátkem `seg` (exit při s < 0)
 }
 
 /** Poloha tělesa na síti: na kterém segmentu a kde (lokální arc-length, m). */
@@ -25,9 +28,10 @@ export interface TrackLocation {
  */
 export class TrackNetwork {
   segments!: TrackSegment[];
-  totalLength!: number;             // součet délek segmentů (pro kontakty/kola na smyčce)
-  private next!: number[];          // next[seg] = segment za koncem `seg` (exit při s ≥ length)
-  private prev!: number[];          // prev[seg] = segment před začátkem `seg` (exit při s < 0)
+  totalLength!: number;             // délka hlavní jízdní smyčky (cyklus z next) — gap/rázy/kola wrapují přes ni;
+                                    // větve mimo cyklus (rovinky) se do ní nepočítají (DD-25 fáze 2)
+  private next!: number[][];        // možná pokračování za koncem `seg` (víc = výhybka)
+  private prev!: number[][];        // možná pokračování před začátkem `seg` (víc = výhybka)
   private startGlobal!: number[];   // kumulativní arc-length začátku každého segmentu
 
   constructor(spec: NetworkSpec) {
@@ -43,13 +47,25 @@ export class TrackNetwork {
     this.segments = spec.segments;
     this.next = spec.next;
     this.prev = spec.prev;
+    // kumulativní arc-length začátku každého segmentu (v pořadí pole; pro globalS na hlavní smyčce
+    // jsou segmenty smyčky 0..k-1 v pořadí cyklu, větve za nimi)
     this.startGlobal = [];
     let acc = 0;
     for (const seg of spec.segments) {
       this.startGlobal.push(acc);
       acc += seg.length;
     }
-    this.totalLength = acc;
+    // délka hlavní jízdní smyčky = součet segmentů v cyklu z next[0] (osmička). Větve (rovinky) jsou
+    // mimo → do smyčkové délky nepatří; gap/rázy by jinak wrapovaly na špatnou (delší) délku.
+    let loopLen = 0;
+    let s = 0;
+    const seen = new Set<number>();
+    while (!seen.has(s)) {
+      seen.add(s);
+      loopLen += spec.segments[s].length;
+      s = spec.next[s][0]; // [0] = hlavní smyčka (osmička)
+    }
+    this.totalLength = loopLen;
   }
 
   /** Unikátní master křivky (pořadí vložení) — view z nich kreslí kolejnice/pražce (fáze 1: jedna). */
@@ -76,17 +92,20 @@ export class TrackNetwork {
 
   /**
    * Znormalizuje polohu po pohybu: přeteče-li lokální `s` za konec segmentu (≥ length) nebo pod
-   * začátek (< 0), přejde na navazující/předchozí segment a přenese přebytek. Smyčka projде víc
+   * začátek (< 0), přejde na navazující/předchozí segment a přenese přebytek. Smyčka projde víc
    * uzlů, je-li krok velký (guard proti zacyklení). Mění `loc` in-place.
+   *
+   * `choose` vybírá pokračování ve **výhybce** (uzel s víc možnostmi). Default = `[0]` (hlavní
+   * smyčka, osmička) → deterministická jízda soupravy. Volný vagon předá náhodný výběr (DD-25 fáze 2).
    */
-  advance(loc: TrackLocation): void {
+  advance(loc: TrackLocation, choose: (opts: number[]) => number = (o) => o[0]): void {
     for (let guard = 0; guard < 100; guard++) {
       const seg = this.segments[loc.seg];
       if (loc.s >= seg.length) {
         loc.s -= seg.length;
-        loc.seg = this.next[loc.seg];
+        loc.seg = choose(this.next[loc.seg]);
       } else if (loc.s < 0) {
-        loc.seg = this.prev[loc.seg];
+        loc.seg = choose(this.prev[loc.seg]);
         loc.s += this.segments[loc.seg].length;
       } else {
         return;

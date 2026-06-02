@@ -63,9 +63,10 @@ export function makeLoopControlPoints(amplitude: number): Vector3[] {
 
 /**
  * Síť trati (graf segmentů) z osmičky. **Fáze 1:** jedna hladká master křivka (lemniskáta)
- * rozdělená na 2 segmenty → deterministická smyčka, žádné větvení (`next`/`prev` jednoznačné).
- * Dělení na u=0.5 je libovolné (chování beze změny). Fáze 2 přemístí uzly na křížení a přidá
- * vnější ovál; fáze 3 doplní volbu (výhybky).
+ * rozdělená na 2 segmenty → deterministická smyčka, žádné větvení. `next`/`prev` jsou seznamy
+ * možností (infrastruktura pro výhybky, DD-25): zde jediný prvek = jednoznačné napojení; výhybky
+ * (víc možností + volba v `advance`) přidá fáze 2 spolu s geometrií kolejiště (ovál + osmička).
+ * Dělení na u=0.5 je libovolné (chování beze změny).
  */
 export function buildLoopNetwork(amplitude: number): NetworkSpec {
   const curve = new CatmullRomCurve3(makeLoopControlPoints(amplitude), true, 'centripetal');
@@ -74,7 +75,7 @@ export function buildLoopNetwork(amplitude: number): NetworkSpec {
     new TrackSegment(curve, 0, 0.5, len),
     new TrackSegment(curve, 0.5, 1, len),
   ];
-  return { segments, next: [1, 0], prev: [1, 0] };
+  return { segments, next: [[1], [0]], prev: [[1], [0]] };
 }
 
 /** Typ bodové nespojitosti — rozlišuje fyzikálně různé jevy (zvuk i škálování v {@link Train}). */

@@ -33,8 +33,14 @@ export class TrackSegment {
     return this.uStart + (s / this.length) * (this.uEnd - this.uStart);
   }
 
-  /** Zabalí u do [0,1) — master křivka je uzavřená, takže vzorky u krajů segmentu nepřetečou. */
+  /**
+   * Namapuje u na platný rozsah master křivky. **Uzavřená** křivka (osmička): zabal do [0,1)
+   * — vzorky u krajů segmentu i wrap-segment (uEnd > 1) přetečou hladce přes u=1≡0. **Otevřená**
+   * křivka (rovinka): u=1 je konec, ne ekvivalent začátku → jen clamp do [0,1] (zabalení by konec
+   * rovinky chybně mapovalo na začátek). `curve.closed` říká, který případ nastal.
+   */
   private wrapU(u: number): number {
+    if (!this.curve.closed) return Math.min(1, Math.max(0, u));
     return ((u % 1) + 1) % 1;
   }
 
