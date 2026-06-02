@@ -14,7 +14,10 @@ const SLEEPER_SPACING = 3;  // rozteč pražců podél trati (m)
 const SLEEPER_COLOR = 0x5a4632; // pražec — hnědá
 const PIER_SPACING = 6;     // rozteč mostních pilířů podél trati (m)
 const PIER_MIN_CLEARANCE = 1.2; // nad tímhle převýšením trati nad terénem už staví pilíř (m)
-const PIER_COLOR = 0x807a70; // pilíř — betonová šeď
+const PIER_COLOR = 0x807a70; // pilíř i mostovka — betonová šeď (jeden most = jedna konstrukce)
+const DECK_SPACING = 2;     // rozteč segmentů mostovky podél trati (m) — hustá, segmenty se překrývají
+const DECK_THICKNESS = 0.4; // tloušťka nosníku mostovky (m)
+const DECK_DROP = 0.35;     // o kolik je střed mostovky pod osou koleje (m) — sedí pod pražci
 
 // poloměr trubky kolejnice (m) — štíhlá pro párový vzhled. Exportováno: render loop i markery
 // spřáhel ho potřebují jako výšku temene koleje nad osou (vozy sedí na koleji).
@@ -140,15 +143,19 @@ export class WorldView {
     }
     this.trackGroup.add(sleepers);
 
+    this.buildDeck(amplitude);
     this.buildPiers(amplitude);
   }
 
-  // Mostní pilíře: tam, kde se trať odlepí od terénu (most nad podjezdem), postaví svislou
-  // podpěru od povrchu ke kolejím. Emergentní — žádná znalost „kde je most"; staví se podle
-  // skutečného převýšení trati nad terénem (funguje i pro budoucí estakády/náspy).
-  private buildPiers(amplitude: number): void {
+  // Body podél trati, kde se kolej odlepí od terénu (clearance > práh) — emergentní detekce
+  // „kde je most", sdílená pro mostovku i pilíře (DRY). `spacing` řídí hustotu vzorků
+  // (mostovka hustá → souvislý nosník, pilíře řidší). Funguje i pro budoucí estakády/náspy.
+  private elevatedSamples(
+    amplitude: number,
+    spacing: number,
+  ): { pts: THREE.Vector3[]; tangents: THREE.Vector3[]; heights: number[] } {
     const curve = this.track.curve;
-    const count = Math.floor(this.track.length / PIER_SPACING);
+    const count = Math.floor(this.track.length / spacing);
     const pts: THREE.Vector3[] = [];
     const tangents: THREE.Vector3[] = [];
     const heights: number[] = [];
@@ -162,6 +169,46 @@ export class WorldView {
         heights.push(clearance);
       }
     }
+    return { pts, tangents, heights };
+  }
+
+  // Mostovka: souvislý nízký nosník pod kolejnicemi v úsecích, kde je trať vyvýšená nad
+  // terén. Hustě vzorkované box-segmenty (rozteč DECK_SPACING) se podél trati překrývají →
+  // souvislá deska i v oblouku. Orientace sleduje tečnu i sklon koleje (jako pražce).
+  private buildDeck(amplitude: number): void {
+    const { pts, tangents } = this.elevatedSamples(amplitude, DECK_SPACING);
+    if (pts.length === 0) return; // plochá trať (slider sklonu ↓) → žádný most
+
+    // segment delší než rozteč (×1.4) → sousední kusy se překryjí a nevzniknou mezery v oblouku
+    const deck = new THREE.InstancedMesh(
+      new THREE.BoxGeometry(RAIL_GAUGE + 1.0, DECK_THICKNESS, DECK_SPACING * 1.4),
+      new THREE.MeshStandardMaterial({ color: PIER_COLOR }),
+      pts.length,
+    );
+    const m = new THREE.Matrix4();
+    const q = new THREE.Quaternion();
+    const x = new THREE.Vector3();
+    const y = new THREE.Vector3();
+    const z = new THREE.Vector3();
+    const pos = new THREE.Vector3();
+    const scale = new THREE.Vector3(1, 1, 1);
+    pts.forEach((p, i) => {
+      z.copy(tangents[i]);               // podél trati
+      x.crossVectors(UP, z).normalize(); // příčně (rozchod)
+      y.crossVectors(z, x).normalize();  // ~svisle, sleduje sklon koleje
+      q.setFromRotationMatrix(new THREE.Matrix4().makeBasis(x, y, z));
+      pos.set(p.x, p.y - DECK_DROP, p.z); // střed nosníku pod pražci
+      m.compose(pos, q, scale);
+      deck.setMatrixAt(i, m);
+    });
+    this.trackGroup.add(deck);
+  }
+
+  // Mostní pilíře: tam, kde se trať odlepí od terénu (most nad podjezdem), postaví svislou
+  // podpěru od povrchu ke kolejím. Emergentní — žádná znalost „kde je most"; staví se podle
+  // skutečného převýšení trati nad terénem (funguje i pro budoucí estakády/náspy).
+  private buildPiers(amplitude: number): void {
+    const { pts, tangents, heights } = this.elevatedSamples(amplitude, PIER_SPACING);
     if (pts.length === 0) return; // plochá trať (slider sklonu ↓) → žádné pilíře
 
     // box 1×1×1, výšku (Y) škálujeme per pilíř na převýšení; stojí svisle, natočený podél trati

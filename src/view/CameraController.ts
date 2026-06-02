@@ -9,18 +9,19 @@ const UP = new THREE.Vector3(0, 1, 0);
 const CAMERA_KEYS = ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyQ', 'KeyE', 'KeyZ', 'KeyX'];
 const PAN_SPEED = 120;  // m/s — posun v rovině (WASD)
 const ELEV_SPEED = 90;  // m/s — výška (QE)
-const ZOOM_SPEED = 120; // m/s — přiblížení/oddálení (ZX)
+const ZOOM_SPEED = 120; // m/s — přiblížení/oddálení (ZX, drženo)
+const WHEEL_ZOOM_STEP = 4; // m na zaškrt kolečka myši (zoom v dron režimu)
 const MIN_DIST = 5;     // m — minimální odstup od cíle (nezoomovat skrz)
 
 // auto-kamera „dron" — laditelné knoby (Lab, izomorfní s vypružením skříně). Ryze view:
 // kamera nikdy nevstupuje do simu (DD-01), proto vlastní typ mimo PhysicsParams.
 export interface DroneParams {
-  height: number;    // výška dronu nad zadním vozem (m)
-  distance: number;  // odstup za zadním vozem, proti směru jízdy (m)
-  stiffness: number; // tuhost dohánění cíle (1/s) — vyšší = tužší/rychlejší přelet
+  height: number;     // výška dronu nad lokomotivou (m)
+  distance: number;   // poloměr kroužení kolem lokomotivy (m)
+  stiffness: number;  // tuhost dohánění cíle (1/s) — jak ostře dron sleduje pohyb vlaku
+  orbitSpeed: number; // úhlová rychlost kroužení kolem lokomotivy (rad/s); 0 = stojí na místě
 }
-export const DEFAULT_DRONE: DroneParams = { height: 18, distance: 35, stiffness: 2 };
-const V_DRONE_DIR = 0.5; // m/s — nad tím dron přebírá směr jízdy; pod tím drží poslední (hystereze u v≈0)
+export const DEFAULT_DRONE: DroneParams = { height: 18, distance: 35, stiffness: 2, orbitSpeed: 0.3 };
 
 /**
  * CameraController = veškeré řízení kamery (čistě view, DD-01) vytažené z Rendereru
@@ -28,7 +29,8 @@ const V_DRONE_DIR = 0.5; // m/s — nad tím dron přebírá směr jízdy; pod t
  *
  * Dva režimy přepínané klávesou C:
  *  - **ruční** — myší orbit ({@link OrbitControls}) + klávesy WASD/QE/ZX,
- *  - **dron** — auto-kamera sleduje soupravu zezadu-shora; orbit i klávesy vypnuté.
+ *  - **dron** — auto-kamera krouží kolem jedoucí lokomotivy a kouká na ni; myší orbit
+ *    a posun vypnuté, aktivní zůstává jen Z/X zoom (mění poloměr kroužení).
  *
  * Drží vlastní {@link camera}; Renderer ji jen čte při `gl.render`. Sám si registruje
  * posluchače kláves (keydown/keyup/blur) — symetricky s tím, jak je dřív držel Renderer.
@@ -38,9 +40,9 @@ export class CameraController {
   private readonly controls: OrbitControls;
   private readonly heldKeys = new Set<string>(); // držené klávesy kamery (WASD/QE/ZX)
 
-  // stav auto-kamery „dron" (toggle C): směr s hysterezí + tlumeně dohánčné pozice/pohled
+  // stav auto-kamery „dron" (toggle C): úhel kroužení + tlumeně dohánčné pozice/pohled
   private droneActive = false;
-  private droneDir = 1;                            // ±1 směr jízdy (hystereze u v≈0)
+  private orbitAngle = 0;                          // azimut kroužení kolem soupravy (rad), roste časem
   private readonly dronePos = new THREE.Vector3(); // tlumená pozice kamery
   private readonly droneLook = new THREE.Vector3();// tlumený bod pohledu
   // přepoužitelné buffery cíle dronu (žádná alokace per-frame — izomorfní s chimneyWorld v Rendereru)
@@ -66,6 +68,14 @@ export class CameraController {
     });
     window.addEventListener('keyup', (e) => this.heldKeys.delete(e.code));
     window.addEventListener('blur', () => this.heldKeys.clear());
+
+    // kolečko myši v dron režimu = zoom (poloměr kroužení). V ručním režimu si wheel bere
+    // OrbitControls sám (necháme ho), tady jen pro dron. passive:false kvůli preventDefault.
+    canvas.addEventListener('wheel', (e) => {
+      if (!this.droneActive) return; // ruční režim: zoom řeší OrbitControls
+      e.preventDefault();            // nescrolluj stránku
+      this.adjustOrbitRadius(Math.sign(e.deltaY) * WHEEL_ZOOM_STEP); // dolů = oddálit (konvence OrbitControls)
+    }, { passive: false });
   }
 
   /** Každý frame: dron řídí kameru sám, jinak orbit damping + klávesy. */
@@ -98,14 +108,18 @@ export class CameraController {
   }
 
   /**
-   * Auto-kamera „dron": sleduje soupravu zezadu-shora ve směru jízdy, kouká na její střed.
-   * Pozici i pohled tlumeně dohání k cíli — reverz jen překlopí cíl na druhý konec a tlumení
-   * udělá plynulý přelet (žádný zvláštní kód). Frame-rate independent: α = 1 − exp(−tuhost·dt).
+   * Auto-kamera „dron": krouží kolem jedoucí lokomotivy konstantní úhlovou rychlostí
+   * (orbitSpeed), drží poloměr (distance) i výšku, kouká na lokomotivu. Loko ujíždí → střed
+   * orbity jede s ní. Pozici i pohled tlumeně dohání k cíli (stiffness), aby sledování pohybu
+   * vlaku bylo hladké. Frame-rate independent: úhel ∝ dt, dohánění α = 1 − exp(−tuhost·dt).
+   * Z/X zoomují i v dronu — mění poloměr kroužení (jediné aktivní klávesy v tomto režimu).
    */
   private updateDroneCamera(dt: number): void {
-    const v = this.train.speed;
-    // hystereze směru: přebírej sign(v) jen za jízdy; u v≈0 drž poslední (jinak slack-houpání třese dronem)
-    if (Math.abs(v) > V_DRONE_DIR) this.droneDir = Math.sign(v);
+    // zoom v dronu: Z přibliž / X oddal (drženo) — stejný vstup jako kolečko myši (adjustOrbitRadius)
+    if (this.heldKeys.has('KeyZ')) this.adjustOrbitRadius(-ZOOM_SPEED * dt);
+    if (this.heldKeys.has('KeyX')) this.adjustOrbitRadius(ZOOM_SPEED * dt);
+
+    this.orbitAngle += this.drone.orbitSpeed * dt; // posun azimutu kroužení (nezávislý na FPS)
     this.computeDroneTarget(this.targetPos, this.targetLook);
     const alpha = 1 - Math.exp(-this.drone.stiffness * dt); // tuhost dohánění, nezávislá na FPS
     this.dronePos.lerp(this.targetPos, alpha);
@@ -113,21 +127,22 @@ export class CameraController {
     this.applyDrone();
   }
 
-  /** Cílová pozice kamery a bod pohledu pro aktuální stav soupravy (čte droneDir). */
+  /** Cílová pozice kamery (na kružnici kolem lokomotivy) a bod pohledu (lokomotiva) pro aktuální orbitAngle. */
   private computeDroneTarget(outPos: THREE.Vector3, outLook: THREE.Vector3): void {
-    const bodies = this.train.bodies;
-    const fwd = this.droneDir; // +1 vpřed, −1 vzad
-    // přední/zadní vůz vzhledem ke směru jízdy (couvání prohodí konce → dron přeletí)
-    const frontBody = fwd > 0 ? bodies[0] : bodies[bodies.length - 1];
-    const rearBody = fwd > 0 ? bodies[bodies.length - 1] : bodies[0];
-    const rear = this.track.at(rearBody.s);
-    const frontPos = this.track.positionAt(frontBody.s);
-    // pozice: za zadním vozem (proti směru jízdy) + výška
-    outPos.copy(rear.position).addScaledVector(rear.tangent, -fwd * this.drone.distance);
-    outPos.y += this.drone.height;
-    // pohled: střed mezi konci soupravy (akord) + výška skříně — klidnější než mířit na čelo
-    outLook.copy(frontPos).add(rear.position).multiplyScalar(0.5);
-    outLook.y += CAR_HEIGHT;
+    // střed orbity i bod pohledu = lokomotiva (čelo soupravy, bodies[0]) — kamera krouží kolem ní
+    outLook.copy(this.track.positionAt(this.train.bodies[0].s));
+    // pozice: bod na kružnici poloměru `distance` v horizontální rovině + výška nad loko
+    outPos.set(
+      outLook.x + Math.cos(this.orbitAngle) * this.drone.distance,
+      outLook.y + this.drone.height,
+      outLook.z + Math.sin(this.orbitAngle) * this.drone.distance,
+    );
+    outLook.y += CAR_HEIGHT; // mířit na skříň, ne na temeno koleje
+  }
+
+  /** Zoom v dron režimu: změna poloměru kroužení (jediný zdroj „přibliž/oddal" — sdílí ZX i kolečko). */
+  private adjustOrbitRadius(delta: number): void {
+    this.drone.distance = Math.max(MIN_DIST, this.drone.distance + delta);
   }
 
   /** Promítne tlumený stav dronu do skutečné kamery. */

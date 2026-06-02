@@ -52,6 +52,9 @@ export class Renderer {
 
   // animace prokluzu hnacích kol loko (view-only): navýšení fáze otáčení, akumuluje se při slipping
   private driverSlipPhase = 0;
+  // markery napětí ve spřáhlech (osciloskop slack action) — Lab nástroj, default skryté
+  // (čistá scéna); checkbox v Nastavení je zapne (viz setCouplerMarkersVisible).
+  private couplerMarkersVisible = false;
 
   constructor(
     canvas: HTMLCanvasElement,
@@ -68,6 +71,11 @@ export class Renderer {
     this.cameraCtrl = new CameraController(canvas, track, train, drone);
 
     this.scene.background = new THREE.Color(0x87ceeb);
+    // bělavý opar nad krajinou: rozpustí tvrdý okraj terénní desky (±350 m) v dálce a dodá
+    // hloubku. Fog počítá vzdálenost od kamery → souprava i blízké stromy zůstanou ostré,
+    // jen vzdálené facety blednou k oparu. Lineární: čisté do `near`, plný opar od `far`
+    // (těsně před okrajem desky). Atmosféra scény patří k Rendereru, geometrie do WorldView.
+    this.scene.fog = new THREE.Fog(0xccd6dd, 130, 340);
     // nižší ambient + silnější slunce = směrový kontrast mezi facetami → lowpoly vzhled
     // (rovnoměrné světlo by faceting setřelo, i kdyby geometrie byla zubatá).
     this.scene.add(new THREE.HemisphereLight(0xffffff, 0x404030, 0.55));
@@ -104,7 +112,10 @@ export class Renderer {
       // Loko při prokluzu navíc „závodí" — driverSlipPhase se akumuluje, takže se hnací kola
       // protáčejí rychleji než jede vlak (viditelný prokluz) a spojnice zběsile krouží.
       if (i === 0 && train.slipping) {
-        const dir = train.notch >= 0 ? 1 : -1; // směr protáčení dle stupně regulátoru (reverz = couvá)
+        // prokluz = obvodová rychlost kol > rychlost vlaku → kola se protáčejí ve směru valení,
+        // jen rychleji (ne couvání!). Valecí fáze jde jako -s/r, takže tah vpřed (notch≥0) = záporný
+        // přírůstek (kola „vpřed"), reverz (notch<0) = kladný.
+        const dir = train.notch >= 0 ? -1 : 1;
         this.driverSlipPhase += dir * SLIP_SPIN_RATE * dt;
       }
       const phase = -body.s / vis.wheelRadius + (i === 0 ? this.driverSlipPhase : 0);
@@ -132,7 +143,7 @@ export class Renderer {
       const glow = train.derailed ? 1 : tipGlow(train.tipRatio(i));
       vis.skin.emissive.copy(DANGER_GLOW).multiplyScalar(glow * MAX_GLOW);
     });
-    this.renderCouplers(train);
+    if (this.couplerMarkersVisible) this.renderCouplers(train); // skryté = nemutuj (zbytečná práce)
 
     // kouř z komína loko: emisní bod = world pozice ústí (getWorldPosition vyřeší flip/náklon
     // za nás). Pufá v taktu výfuku (ExhaustClock) jen pod párou; mimo páru jen líný idle kouř.
@@ -164,6 +175,12 @@ export class Renderer {
     this.world.rebuild(amplitude);
   }
 
+  /** Checkbox v Nastavení: zapni/vypni markery napětí ve spřáhlech (osciloskop slack action). */
+  setCouplerMarkersVisible(visible: boolean): void {
+    this.couplerMarkersVisible = visible;
+    for (const m of this.couplerMeshes) m.visible = visible;
+  }
+
   // marker mezi vozy: pozice ve středu rozteče, barva dle režimu spřáhla
   // (draft/tah teplá, buff/tlak studená), jas ∝ napětí → slack run-out je vidět.
   private renderCouplers(train: Train): void {
@@ -191,6 +208,7 @@ export class Renderer {
     const meshes: THREE.Mesh[] = [];
     for (let i = 0; i < train.couplers.length; i++) {
       const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: SLACK_COLOR }));
+      mesh.visible = this.couplerMarkersVisible; // default skryté — zapne checkbox v Nastavení
       this.scene.add(mesh);
       meshes.push(mesh);
     }

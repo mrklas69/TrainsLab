@@ -15,7 +15,8 @@ export interface KeyAction {
 
 // Side-effekty sliderů nad rámec zápisu do params (runtime callbacky z main).
 export interface PanelHandlers {
-  onAmplitudeChange: () => void; // slider sklonu → přestavba tratě (sim + view)
+  onAmplitudeChange: () => void;                  // slider sklonu → přestavba tratě (sim + view)
+  onCouplerMarkers: (visible: boolean) => void;   // checkbox → zobrazení markerů napětí spřáhel (view)
 }
 
 interface SliderDef {
@@ -128,12 +129,13 @@ const SECTIONS: Section[] = [
     ],
   },
   {
-    // auto-kamera „dron" (klávesa C): sleduje soupravu zezadu-shora; tuhost = jak ostře dohání cíl
-    // (izomorfní s vypružením skříně). Ryze view → zapisuje do DroneParams, ne do fyziky.
+    // auto-kamera „dron" (klávesa C): krouží kolem středu soupravy; poloměr + výška + rychlost
+    // kroužení; tuhost = jak ostře dohání pohyb vlaku. Ryze view → zapisuje do DroneParams, ne do fyziky.
     title: 'Dron (kamera)',
     sliders: [
       { key: 'height', label: 'Výška dronu', min: 5, max: 60, step: 1, unit: 'm', source: 'drone' },
-      { key: 'distance', label: 'Odstup dronu', min: 10, max: 100, step: 2, unit: 'm', source: 'drone' },
+      { key: 'distance', label: 'Poloměr kroužení', min: 10, max: 100, step: 2, unit: 'm', source: 'drone' },
+      { key: 'orbitSpeed', label: 'Rychlost kroužení', min: 0, max: 1.5, step: 0.05, unit: 'rad/s', source: 'drone' },
       { key: 'stiffness', label: 'Tuhost dohánění', min: 0.3, max: 6, step: 0.1, unit: '1/s', source: 'drone' },
     ],
   },
@@ -276,6 +278,17 @@ function buildSettingsModal(
     }
     grid.appendChild(sec);
   }
+
+  // sekce „Zobrazení": view přepínače (ne params). Zatím jeden — markery napětí spřáhel,
+  // default vypnuté (čistá scéna), Lab nástroj na vyžádání. Stejný layout jako sekce sliderů.
+  const viewSec = document.createElement('div');
+  const viewHead = document.createElement('div');
+  viewHead.textContent = 'Zobrazení';
+  viewHead.style.cssText = 'margin:8px 0 2px;opacity:0.6;font-size:11px;text-transform:uppercase';
+  viewSec.appendChild(viewHead);
+  viewSec.appendChild(buildCheckbox('Markery napětí spřáhel', false, (v) => handlers.onCouplerMarkers(v)));
+  grid.appendChild(viewSec);
+
   dialog.appendChild(grid);
 
   // nápověda kláves ze stejného seznamu akcí (single source); kamera žije v Rendereru
@@ -365,5 +378,23 @@ function buildSlider(target: Record<string, number>, def: SliderDef, handlers: P
   show();
 
   row.append(head, input);
+  return row;
+}
+
+// Jeden řádek: checkbox + popisek pro view přepínač (boolean stav mimo params).
+// `initial` musí odpovídat výchozímu stavu ve view (jinak by UI lhalo o realitě).
+function buildCheckbox(label: string, initial: boolean, onChange: (v: boolean) => void): HTMLElement {
+  const row = document.createElement('label');
+  row.style.cssText = 'display:flex;align-items:center;gap:8px;margin:6px 0;cursor:pointer';
+
+  const input = document.createElement('input');
+  input.type = 'checkbox';
+  input.checked = initial;
+  input.addEventListener('change', () => onChange(input.checked));
+
+  const name = document.createElement('span');
+  name.textContent = label;
+
+  row.append(input, name);
   return row;
 }

@@ -49,6 +49,8 @@ const updatePanel = createControlPanel(params, drone, actions, {
     track.rebuild(makeLoopControlPoints(params.trackAmplitude));
     renderer.rebuildWorld(params.trackAmplitude); // přestaví terén + dekoraci + trať (WorldView)
   },
+  // checkbox v Nastavení: zobrazit/skrýt markery napětí spřáhel (osciloskop slack action)
+  onCouplerMarkers: (visible) => renderer.setCouplerMarkersVisible(visible),
 });
 
 // Prohlížeč spustí zvuk až po první interakci uživatele (autoplay policy).
