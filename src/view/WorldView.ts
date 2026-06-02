@@ -131,10 +131,12 @@ export class WorldView {
   // Dvě kolejnice (Tube ±rozchod/2 do horizontální kolmice) + pražce (InstancedMesh) podél
   // jedné master křivky. Volá se per křivku sítě.
   private buildCurveRails(curve: CatmullRomCurve3): void {
+    const closed = curve.closed; // uzavřená smyčka (lemniskáta) vs. otevřená slepá odbočka
     const N = 400; // vzorků podél trati — hustota offset křivek i tuby
     const leftPts: THREE.Vector3[] = [];
     const rightPts: THREE.Vector3[] = [];
-    for (let i = 0; i < N; i++) {
+    // uzavřená: i<N (u=0..(N-1)/N, wrap přes u=1≡0); otevřená: i≤N (u=0..1 včetně konce koleje)
+    for (let i = 0; i < (closed ? N : N + 1); i++) {
       const u = i / N;
       const p = curve.getPointAt(u);
       const tan = curve.getTangentAt(u);
@@ -144,8 +146,8 @@ export class WorldView {
     }
     const railMat = new THREE.MeshStandardMaterial({ color: 0x55564f });
     for (const pts of [leftPts, rightPts]) {
-      const railCurve = new THREE.CatmullRomCurve3(pts, true, 'centripetal');
-      const geo = new THREE.TubeGeometry(railCurve, N, RAIL_RADIUS, 6, true);
+      const railCurve = new THREE.CatmullRomCurve3(pts, closed, 'centripetal');
+      const geo = new THREE.TubeGeometry(railCurve, pts.length, RAIL_RADIUS, 6, closed);
       this.trackGroup.add(new THREE.Mesh(geo, railMat));
     }
 

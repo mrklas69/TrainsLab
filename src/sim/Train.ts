@@ -25,10 +25,6 @@ const BRAKE_FADE_RATE = 0.1;      // 1/(m/s) — strmost poklesu tření brzdy s
 
 const JOINT_WEIGHT = 0.4; // spárový ráz je jemnější než bodová perturbace (časté tiknutí, ne trh)
 
-// výběr trasy ve výhybce pro volný vagon (DD-25 fáze 2): náhodně z možných pokračování. Souprava
-// naopak jede deterministicky (advance default = [0] = osmička), takže se na výhybce neroztrhne.
-const randomBranch = (opts: number[]): number => opts[Math.floor(Math.random() * opts.length)];
-
 /**
  * Přejel-li vůz „fázový" bod `sI` s periodou `period` mezi pozicemi `sBefore` a `sNow`?
  * Floor-trik na **nezabaleném** (monotónním) arc-length `s`: funguje pro oba směry jízdy
@@ -335,12 +331,12 @@ export class Train {
       this.network.advance(this.bodies[i]); // posun mohl přejít hranici segmentu → srovnej seg
     }
     // volné vozy: bez trakce i brzdy — jen odpory + případný kontaktní ráz (statické tření je drží stát).
-    // Na výhybce volí trasu NÁHODNĚ (DD-25 fáze 2) — nespřažené těleso, takže žádný problém soudržnosti
-    // soupravy ani gap přes větve (souprava jede deterministickou osmičku, viz advance default).
+    // Zatím jedou deterministicky po hlavní smyčce (advance default = [0]); po spojce nikdo nejede.
+    // Náhodná volba na výhybce + gap/globalS přes větve přijde s příštím partes (DD-25 fáze 4).
     for (const fb of this.freeBodies) {
       fb.applyFriction(this.params, this.params.carMass, 0);
       fb.integrate(h, this.params.carMass, this.params.rotatingMassFactorCar);
-      this.network.advance(fb, randomBranch);
+      this.network.advance(fb);
     }
 
     // vypružení skříně (DD-02: rotace, nemění s/v) — buzení z příčného (v²·κ se znaménkem)

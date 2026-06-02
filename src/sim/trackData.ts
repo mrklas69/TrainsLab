@@ -6,6 +6,14 @@ import type { NetworkSpec } from './TrackNetwork';
 const BRIDGE_HEIGHT = 8;  // m — výška mostu nad podjezdem; clearance > výška vozu (~5,8 m)
 const BRIDGE_WIDTH = 0.5; // rad — pološířka náběhu mostu v parametru t (rampa stoupání/klesání)
 
+// VÝHYBKY — spojka 2→1 (objížďka pravého laloku). Odbočí „kousek pod mostem", levou zatáčkou objede
+// lalok a tečně se napojí zpět za ním (S37, DD-25 fáze 2). Poloha i geometrie ověřeny
+// `tools/check-switch.ts` + `tools/check-connector.ts` PŘED zápisem (lekce S36: žádné slepé iterace).
+const SWITCH_U = 0.713;     // výhybka 1 (rozbočení) — kousek za podjezdem (inflexe, r≈4400 m, sklon 3 %)
+const MERGE_U = 0.86;       // výhybka 2 (sloučení) — na pravém laloku za mostem
+const BRANCH_OFFSET = 12;   // m — max boční odsazení odbočky od hlavní trati (uprostřed úseku)
+const BRANCH_SIDE = 1;      // strana offsetu: +1 = vlevo od směru jízdy, −1 = vpravo
+
 /**
  * Hrb mostu kolem `t=π/2`: jedna větev křížení se zvedne na estakádu, druhá (`t=3π/2`)
  * zůstane na terénu = podjezd pod mostem. Gaussovský náběh = plynulá rampa (žádný zlom).
@@ -62,20 +70,59 @@ export function makeLoopControlPoints(amplitude: number): Vector3[] {
 }
 
 /**
- * Síť trati (graf segmentů) z osmičky. **Fáze 1:** jedna hladká master křivka (lemniskáta)
- * rozdělená na 2 segmenty → deterministická smyčka, žádné větvení. `next`/`prev` jsou seznamy
- * možností (infrastruktura pro výhybky, DD-25): zde jediný prvek = jednoznačné napojení; výhybky
- * (víc možností + volba v `advance`) přidá fáze 2 spolu s geometrií kolejiště (ovál + osmička).
- * Dělení na u=0.5 je libovolné (chování beze změny).
+ * Kontrolní body odbočky (3. hrana θ-grafu) jako **boční offset** hlavní trati: bod = hlavní(u) +
+ * δ(s)·horizontální normála, kde δ(s) = {@link BRANCH_OFFSET}·sin⁴(π·t), t∈[0,1] mapuje úsek
+ * [{@link SWITCH_U}, {@link MERGE_U}]. **Proč sin⁴:** profil má δ=δ'=δ''=0 na obou koncích, takže
+ * odbočka v obou výhybkách navazuje na hlavní trať polohou, tečnou **i křivostí** (plně C² — spojitá,
+ * shora omezená změna vektoru rychlosti, požadavek uživatele; žádný „trh" na výhybce). A protože δ≥0,
+ * odbočka se drží **na jedné straně** trati → konstrukčně **nemůže křížit** (žádná falešná 2↔2 výhybka).
+ * Cena za C² hladkost: odbočka se odděluje pozvolna (souběh ~30 m/konec). Ověřeno `tools/check-connector.ts`
+ * (κ spojitá, max |κ|≈0,02 → r≈47 m, odstup od druhé větve u mostu 10 m).
+ */
+function makeBranchControlPoints(loop: CatmullRomCurve3, amplitude: number): Vector3[] {
+  const N = 80; // vzorků podél odbočky (hustá síť → CatmullRom věrně kopíruje hladký offset)
+  const pts: Vector3[] = [];
+  for (let i = 0; i <= N; i++) {
+    const t = i / N;
+    const u = SWITCH_U + (MERGE_U - SWITCH_U) * t; // úsek hlavní trati, podél kterého offset vede
+    const p = loop.getPointAt(u);
+    const tan = loop.getTangentAt(u);
+    const nl = Math.hypot(tan.x, tan.z); // horizontální normála = tečna otočená o 90° v XZ
+    const nx = -tan.z / nl, nz = tan.x / nl;
+    const delta = BRANCH_SIDE * BRANCH_OFFSET * Math.sin(Math.PI * t) ** 4; // C² bump (0 na koncích)
+    const x = p.x + nx * delta, z = p.z + nz * delta;
+    pts.push(new Vector3(x, terrainHeight(x, z, amplitude), z));
+  }
+  return pts;
+}
+
+/**
+ * Síť trati (graf segmentů) z osmičky + **spojka 2→1** (objížďka pravého laloku, S37). Hlavní jízdní
+ * smyčka je jedna hladká lemniskáta rozdělená na 4 segmenty se **dvěma uzly výhybek** ({@link SWITCH_U}
+ * rozbočení, {@link MERGE_U} sloučení); mezi nimi vede 5. segment (otevřená spojka,
+ * {@link makeBranchControlPoints}). `next`/`prev` jsou seznamy možností (DD-25): jeden prvek = jednoznačné
+ * napojení, víc = výhybka (volba v `advance`). Souprava i volný vagon zatím jedou deterministicky `[0]`
+ * (hlavní smyčka) — po spojce nikdo nejede (jízda + gap/globalS přes větve = příští partes, DD-25 fáze 4).
  */
 export function buildLoopNetwork(amplitude: number): NetworkSpec {
   const curve = new CatmullRomCurve3(makeLoopControlPoints(amplitude), true, 'centripetal');
   const len = curve.getLength();
+  // spojka = otevřená křivka (closed=false → TrackSegment.wrapU clampuje místo wrapu)
+  const connector = new CatmullRomCurve3(makeBranchControlPoints(curve, amplitude), false, 'centripetal');
   const segments = [
-    new TrackSegment(curve, 0, 0.5, len),
-    new TrackSegment(curve, 0.5, 1, len),
+    new TrackSegment(curve, 0, 0.5, len),                     // 0: hlavní (start → půlka)
+    new TrackSegment(curve, 0.5, SWITCH_U, len),              // 1: hlavní do výhybky 1
+    new TrackSegment(curve, SWITCH_U, MERGE_U, len),          // 2: hlavní mezi výhybkami (objížděný lalok)
+    new TrackSegment(curve, MERGE_U, 1, len),                 // 3: hlavní za výhybkou 2 → zpět na 0 (smyčka)
+    new TrackSegment(connector, 0, 1, connector.getLength()), // 4: spojka (výhybka 1 → výhybka 2)
   ];
-  return { segments, next: [[1], [0]], prev: [[1], [0]] };
+  // hlavní smyčka 0→1→2→3→0; výhybka 1 (konec seg1): rovně seg2 ([0]) / spojka seg4; výhybka 2 (konec
+  // seg2 i seg4): obě slévají na seg3. Couvání zrcadlově (prev). totalLength bere cyklus next[·][0] = lemniskáta.
+  return {
+    segments,
+    next: [[1], [2, 4], [3], [0], [3]],
+    prev: [[3], [0], [1], [2, 4], [1]],
+  };
 }
 
 /** Typ bodové nespojitosti — rozlišuje fyzikálně různé jevy (zvuk i škálování v {@link Train}). */
