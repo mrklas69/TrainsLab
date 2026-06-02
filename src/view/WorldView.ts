@@ -10,9 +10,9 @@ import { terrainHeight, smoothstep } from '../sim/terrain';
 // (výškovou matematiku drží `sim/terrain.ts`, mesh/barvy jsou ryze render).
 
 const RAIL_GAUGE = 1.7;     // vizuální rozchod kolejnic (m) — širší než fyzický 1.435 pro čitelnost pod vozy
-const SLEEPER_SPACING = 3;  // rozteč pražců podél trati (m)
+const SLEEPER_SPACING = 1.5; // rozteč pražců podél trati (m) — hustší (2× víc pražců)
 const SLEEPER_COLOR = 0x5a4632; // pražec — hnědá
-const PIER_SPACING = 6;     // rozteč mostních pilířů podél trati (m)
+const PIER_SPACING = 12;    // rozteč mostních pilířů podél trati (m) — řidší (poloviční počet)
 const PIER_MIN_CLEARANCE = 1.2; // nad tímhle převýšením trati nad terénem už staví pilíř (m)
 const PIER_COLOR = 0x807a70; // pilíř i mostovka — betonová šeď (jeden most = jedna konstrukce)
 const DECK_SPACING = 2;     // rozteč segmentů mostovky podél trati (m) — hustá, segmenty se překrývají
