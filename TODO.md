@@ -152,11 +152,23 @@ Sjednocený balík: nespojitosti trati → impulsy do **existujících** roll/pi
 - [x] **Infrastruktura větvení** *(S36)* — `next`/`prev` na **seznam možností** (`number[][]`) +
       `advance(choose)` (deterministická souprava `[0]` / náhodný `randomBranch` volný vagon = scénář A2);
       `TrackSegment.wrapU` dle `curve.closed` (otevřené větve); `totalLength`=délka hlavní smyčky (gap).
-- [~] **Fáze 2 — geometrie kolejiště** *(S36 mnoho pokusů, vráceno — viz diář/IDEAS „výhybková geometrie")*.
-      Poučení: „zdvojení" = souběh u výhybky ∝ úhel napojení (8°≈14 m); **vyhnout se X-přesmyku přes střed**
-      (antipodální tečny → couvání / mine střed / ostrá kolmá odbočka). Hledá projetelnou geometrii bez zdvojení.
-- [ ] **Fáze 3** — větvení v geometrii: výhybkové uzly + napojené větve (infrastruktura volby hotová S36).
-- [ ] **Fáze 4** — vagon/srážky/rázy na grafu (kontakty přes větve — nejtěžší; `gap`/`globalS` přes větve)
+- [x] **Fáze 2 — geometrie odbočky** *(S37, DD-26)* — odbočka (3. hrana) jako **boční offset** hlavní
+      trati: `δ(s)=BRANCH_OFFSET·sin⁴(πt)` podél úseku `[SWITCH_U, MERGE_U]`. C² profil (δ=δ'=δ''=0 na
+      koncích) → **spojitá, shora omezená κ** (žádný trh, max|κ|≈0,02 → r≈47 m); δ≥0 → **konstrukčně
+      nekříží** (žádná falešná 2↔2). θ-graf: **2 uzly** (výhybky), **3 hrany** (krátký/dlouhý úsek
+      lemniskáty + odbočka). Nástroje `tools/check-{switch,connector,merge,network}.ts`.
+      **Poučení (uživatel):** trať se projektuje **profilem κ(s)** (spojitá omezená změna rychlosti =
+      přechodnice/klotoida), ne skládáním oblouků+přímek (dog-bone křížil + skoky κ → ~10 pokusů).
+- [ ] **Fáze 3 — jízda po grafu** *(A2)* — vlak projede **všemi 3 hranami**: řízení výhybky (hráč přepne
+      trasu), `gap`/`globalS`/kontakty/rázy přes větve; vrátit `randomBranch` (volný vagon náhodně bloudí,
+      dočasně odebrán S37). Předpoklad pro auto-doplnění u domku (A1=B).
+- [ ] **Fáze 4** — vagon/srážky/rázy na grafu (kontakty přes větve — nejtěžší)
+
+### Domek s napaječkou *(S37, nové)*
+- [ ] **Domek + napaječka** (lowpoly view, A3) — bouda + vodní jeřáb (rameno nad kolej) + hromada uhlí
+      v **oku odbočky**, v duchu scenérie (stromy/kameny `InstancedMesh`, faceted). WorldView.
+- [ ] **Auto-doplnění zásob** (A2 postupně) — loko zastaví (v≈0) u domku **na odbočce** → plynule doplní
+      vodu + uhlí (jako `reset`, ale jen u domku a postupně). **Závisí na Fázi 3** (jízda po odbočce, A1=B).
 
 ## Backlog / později
 - [x] **Křivkový odpor v obloucích** *(S29)* — `R = −sign(v)·curveResistance·|κ|·m·g`; specifický odpor

@@ -11,19 +11,24 @@ Koncept a kontext: viz `docs/diary/2026-05-29.md`.
 - **Topologie sítě** — výhybky, větvení, křižovatky. Vlastní těžký problém oddělený
   od fyziky. Brána k makro měřítku. **→ rozpracováno (S35, DD-25):** osa trati přešla na **graf
   segmentů** (`TrackSegment`+`TrackNetwork`), fáze 1 hotová (osmička = 2 segmenty, bez větvení).
-  **Infrastruktura větvení hotová (S36):** `next`/`prev` = seznam možností + `advance(choose)`
-  (deterministická souprava / náhodný volný vagon). Chybí jen **projetelná geometrie kolejiště**.
-- **Výhybková geometrie — poučení S36** (5 zahozených pokusů, ať se neopakují):
-  - **„Zdvojení kolejí" = souběh u výhybky**, nevyhnutelný u tečného napojení. Délka (kde koleje
-    < ~2 m = vypadají jako jedna) **klesá lineárně s úhlem napojení**: 5° → ~23 m (paralelka), 8°
-    (reálná 1:7) → ~14 m (vypadá jako výhybka). **Tvar trati o souběhu nerozhoduje — rozhoduje úhel.**
-  - **Napojení ve vrcholu lemniskáty** = dlouhý souběh (tečna `‖x` na dlouhém úseku).
-  - **X-přesmyk přes střed (ovál + 2 úhlopříčky) je past:** úhlopříčka spojuje **antipodální** body
-    s **opačnými** tečnami → bodově symetrický oblouk **couvá** na jednom konci (179°); plynulý Hermit
-    **mine střed** (~70 m, most by nebyl na křížení); přímá úhlopříčka = **ostrá kolmá odbočka** („žárovka").
-  - **Doporučený směr příště:** odbočka pod **realistickým výhybkovým úhlem ~8°** (krátký jazyk ~14 m,
-    přijatý `switch` ráz) na úseku, kde se **hlavní trať zakřivuje pryč** od odbočky; **vyhnout se větvi
-    mezi antipodálními body**. Geometrii ověřovat `tools/check-radius.ts` **před** zápisem do kódu (fungovalo).
+  **Infrastruktura větvení hotová (S36).** **Geometrie odbočky vyřešena (S37, DD-26):** odbočka jako
+  **boční offset** hlavní trati `δ=sin⁴(πt)` — spojitá omezená κ, konstrukčně nekříží; θ-graf 2 uzly /
+  3 hrany. **Chybí jízda po grafu** (fáze 3) — vlak projede všemi hranami (řízení výhybky, gap/globalS přes větve).
+- **Výhybková geometrie — poučení S36/S37** (klíčový princip, ať se ~10 pokusů neopakuje):
+  - **Trať se projektuje profilem křivosti κ(s), spojitým a shora omezeným** (přechodnice/klotoidy),
+    **ne skládáním kruhových oblouků + přímek**. Skok κ (oblouk↔přímka) = skok dostředivého `v²·κ` =
+    boční trh (projekt to jinde modeluje jako `transition` perturbaci). To je **jádro** (poučení uživatele S37).
+  - **C² offset profil `sin⁴` to splňuje konstrukčně** (`δ=δ'=δ''=0` na koncích → spojitá κ; `δ≥0` →
+    nekříží). Cena: pozvolné oddělení (souběh ~30 m/konec). Realizace v `makeBranchControlPoints` (DD-26).
+  - **Dřívější slepé uličky (proč skládání oblouků selhalo):** „zdvojení" = souběh ∝ úhel napojení
+    (8°→14 m); **X-přesmyk přes střed** = antipodální tečny (couvání / mine střed / „žárovka"); **dog-bone
+    s vnitřní tečnou KŘÍŽÍ** hlavní trať (přímka středem S1S2 = na koleji → falešná 2↔2).
+  - Geometrii ověřovat `tools/check-*.ts` **před** zápisem do kódu (fungovalo — jen princip κ chyběl).
+
+## Latentní dluhy (k vyřešení mimochodem)
+- **`TRACK_PERTURBATIONS` switch pozice** — `u=0.25/0.75` byly odvozeny pro symetrickou osmičku, ale po
+  **asymetrii (S35, E=0.5)** je reálné křížení/podjezd na **`u≈0.703`** (a horní na ~0,30). Výhybkové
+  clunky tak zní na lehce posunutém místě. Opravit pozice `switch` perturbací dle skutečného profilu κ.
 
 ## Hlubší fyzika
 - **Sloshing kapaliny v cisterně** (F5) — pohyb kapaliny mění těžiště vagonu, zpětně

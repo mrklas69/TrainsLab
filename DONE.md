@@ -519,3 +519,23 @@ křivosti. Sjednoceno do **jednoho balíku** „rázy z trati" — impulsy do ex
 - `Body` → `(seg, s)`; spřáhla, kontakty, rázy z trati i valení kol přepočítány na `globalS`/`gap`.
 - Osmička = 2 segmenty (deterministická smyčka) → chování identické; `Track.ts` smazán (nahradil `TrackSegment`).
 - Renderer/WorldView/CameraController/AudioView na `network`; WorldView kreslí per master křivku. Ověřeno „sedí to".
+
+## Sezení 36 (2026-06-02)
+
+### Výhybky — infrastruktura větvení (graf s volbou trasy)
+- `TrackNetwork.next`/`prev` z `number[]` na `number[][]` (seznam možností; jeden = napojení, víc = výhybka).
+- `advance(loc, choose)` — `choose` vybírá pokračování (default `[0]` = hlavní smyčka / deterministická souprava).
+- `TrackSegment.wrapU` respektuje `curve.closed` (uzavřená osmička wrap, otevřená větev clamp — jinak degenerace).
+- `totalLength` = délka hlavní jízdní smyčky (cyklus `next[0]`), ne součet všech segmentů (jinak `gap` wrapuje špatně).
+- *(Geometrie kolejiště v S36 vrácena — viz diář; vyřešena až S37.)*
+
+## Sezení 37 (2026-06-03)
+
+### Výhybky — fáze 2: geometrie odbočky (θ-graf, spojitá omezená κ, DD-26)
+- Odbočka (3. hrana θ-grafu) jako **boční offset** hlavní trati: `δ(s)=BRANCH_OFFSET·sin⁴(π·t)` podél `[SWITCH_U=0.713, MERGE_U=0.86]`.
+- Profil **sin⁴** → `δ=δ'=δ''=0` na koncích (C² napojení: poloha+tečna+křivost), `δ≥0` → konstrukčně nekříží hlavní trať.
+- **Spojitá, shora omezená κ** (max|κ|≈0,022 → r≈47 m; max skok Δκ 0,006 vs. dog-bone 0,017 naráz) — poučení uživatele.
+- Topologie: 5 segmentů, **2 výhybkové uzly** (`next/prev` s volbou), 3 hrany; `totalLength` = lemniskáta (odbočka mimo cyklus).
+- `WorldView.buildCurveRails` respektuje `curve.closed` (otevřená větev se nezauzlí).
+- Volný vagon dočasně deterministický (`randomBranch` odebrán — bez jízdy po grafu by vjel na konec a spadl).
+- Nástroje: `tools/check-{switch,connector,merge,network}.ts` — geometrie měřena před kódem (souběh, dosednutí, spojitost κ, nekřížení).

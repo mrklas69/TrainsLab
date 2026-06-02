@@ -281,7 +281,14 @@ Termíny projektu. Anglické identifikátory v kódu, české vysvětlení.
   (kumulativní arc-length po smyčce) a `gap` (nejkratší rozteč po dráze) slouží spřáhlům, kontaktům,
   rázům i valení kol. Fáze 1: orientovaná smyčka (osmička = 2 segmenty, žádné větvení).
 - **segment / uzel / výhybka (topologie)** — *(DD-25)* segment = úsek koleje mezi uzly; uzel = bod
-  napojení segmentů. **Výhybka** = uzel s víc než jedním pokračováním (volba trasy) — zatím není
-  (fáze 1 deterministická smyčka); větvení přijde ve fázi 3. Tím se opouští „jedna smyčka" (Úr. 4
-  žebříku / DD-04), ale drží DD-02 (vůz je pořád 1D `s` podél dráhy).
+  napojení segmentů. **Výhybka** = uzel s víc než jedním pokračováním (volba trasy, `next/prev` =
+  seznam možností, `advance(choose)`). Tím se opouští „jedna smyčka" (Úr. 4 žebříku / DD-04), ale
+  drží DD-02 (vůz je pořád 1D `s` podél dráhy).
+- **odbočka / θ-graf** — *(S37, DD-26)* 3. hrana grafu mezi dvěma výhybkami: odbočka jako **boční
+  offset** hlavní trati `δ(s)=BRANCH_OFFSET·sin⁴(π·t)`. Profil **sin⁴** má `δ=δ'=δ''=0` na koncích →
+  C² napojení (spojitá omezená křivost, žádný trh) a `δ≥0` → drží se na jedné straně (nekříží).
+  Kolejiště = **θ-graf**: 2 uzly (výhybky), 3 hrany (krátký/dlouhý úsek lemniskáty + odbočka).
+- **projektování trati profilem κ(s)** — *(S37, DD-26)* trať se neskládá z kruhových oblouků + přímek
+  (skoky `κ` = skoky `v²·κ` = boční trh), ale navrhuje se **spojitým, shora omezeným profilem křivosti**
+  (přechodnice/klotoidy). Klíčový princip projektování větví — viz `tools/check-connector.ts`.
 - **DD-NN** — design decision; tabulky v `docs/diary/`.

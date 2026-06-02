@@ -81,7 +81,7 @@ napětí ve spřáhlech — osciloskop slack action, default skrytý).
 | **F6** | příčná dynamika — esíčko (osmička), most/podjezd, převrácení/vykolejení, kývání skříně, gradient meze, rázy z trati (spáry / skok křivosti) | ✅ |
 | **F3** | palivo & zásoby — uhlí/voda (parní tlak), proměnná adheze + písek | ✅ |
 | **F4** | záclony — lowpoly terén/most/stromy ✅, párové koleje ✅, mostovka + mlha na horizontu ✅, modely vozů (kola + hnací spojnice + prokluz) ✅, kouř z komína (sladěný s výfukem) ✅, zvuk: samply ✅ (8 z 8 hlasů + houkačka/únik páry) | ✅ |
-| **F7** | interakce vozů — odstavený volný vagon + srážky (mez energie → vykolejení) ✅; **výhybky / topologie sítě** — graf segmentů (fáze 1 ✅, ovál + 4 uzly fáze 2–4 🔧) | 🔧 |
+| **F7** | interakce vozů — odstavený volný vagon + srážky (mez energie → vykolejení) ✅; **výhybky / topologie sítě** — graf segmentů (fáze 1 ✅), **odbočka = θ-graf 2 uzly / 3 hrany, boční offset se spojitou omezenou κ** (fáze 2 ✅, DD-26); jízda po grafu + domek s napaječkou (fáze 3–4 🔧) | 🔧 |
 
 **PoC (F0–F4 + příčná) dokončen.** Po něm **restart** novým směrem (S35): interakce volného vagonu
 a **topologie sítě** (osa trati přešla na graf segmentů — výhybky se staví po fázích, viz
