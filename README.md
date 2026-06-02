@@ -44,15 +44,15 @@ TrainsLab je jeden roh **mřížky experimentů** (měřítko × věrnost) — z
 | `P` (drž) | pískování — vrací adhezi na mokré koleji (drž klávesu/tlačítko) |
 | `R` | reset (doplní i palivo a písek) |
 | `M` | zvuk on/off |
-| `C` | auto-kamera „dron" — toggle sledování soupravy (vypne ruční ovládání kamery) |
-| `W` `A` `S` `D` | posun kamery v rovině |
-| `Q` / `E` | výška kamery (dolů / nahoru) |
-| `Z` / `X` | zoom kamery (přiblížit / oddálit) |
+| `C` | auto-kamera „dron" — toggle kroužení kolem lokomotivy (vypne ruční ovládání kamery) |
+| `W` `A` `S` `D` | posun kamery v rovině (ruční režim) |
+| `Q` / `E` | výška kamery (dolů / nahoru, ruční režim) |
+| `Z` / `X` | zoom (přiblížit / oddálit) — i v dronu (mění poloměr kroužení); v dronu i kolečkem myši |
 
 Notch regulátoru: **3 vpřed · 0 · 1 vzad**. Kamerou lze otáčet i myší (OrbitControls).
-**Dron** (`C`) sleduje soupravu zezadu-shora a při reverzu přeletí na druhý konec; ruční ovládání
-kamery je při něm vypnuté (vypni dron a vrátíš se k orbitu). Akce jsou i jako tlačítka v **dolním
-baru** (vč. ⚙ Nastavení); pískování drž.
+**Dron** (`C`) krouží kolem jedoucí lokomotivy a kouká na ni (`Z`/`X` či kolečko myši mění poloměr
+kroužení); ruční ovládání kamery je při něm vypnuté (vypni dron a vrátíš se k orbitu). Akce jsou i jako
+tlačítka v **dolním baru** (vč. ⚙ Nastavení); pískování drž.
 
 ## Lab knoby
 
@@ -67,8 +67,9 @@ rychlosti = otáčkový strop), **pískování**
 dynamiku (rozchod koleje, výška těžiště — určují práh převrácení; amplituda terénních vln = sklon trati;
 rozteč dilatačních spár, síla rázů z trati a kvalita přechodnic oblouků = kvalita trati), vypružení skříně (frekvence / tlumení kývání)
 a palivo (kapacity a spotřeby uhlí / vody).
-Sekce **Dron** ladí kameru (výška / odstup / tuhost dohánění) — to je view, ne fyzika, takže žije
-mimo `params.ts` (drží DD-01).
+Sekce **Dron** ladí kameru (výška / poloměr a rychlost kroužení / tuhost dohánění) — to je view, ne
+fyzika, takže žije mimo `params.ts` (drží DD-01). V Nastavení je i sekce **Zobrazení** (přepínač markerů
+napětí ve spřáhlech — osciloskop slack action, default skrytý).
 
 ## Stav
 
@@ -79,7 +80,7 @@ mimo `params.ts` (drží DD-01).
 | **F2** | trakce & adheze — notch, prokluz, brzda jako řízené tření | ✅ |
 | **F6** | příčná dynamika — esíčko (osmička), most/podjezd, převrácení/vykolejení, kývání skříně, gradient meze, rázy z trati (spáry / skok křivosti) | ✅ |
 | **F3** | palivo & zásoby — uhlí/voda (parní tlak), proměnná adheze + písek | ✅ |
-| **F4** | záclony — lowpoly terén/most/stromy ✅, párové koleje ✅, modely vozů (kola + hnací spojnice + prokluz) ✅, kouř z komína (sladěný s výfukem) ✅, zvuk: samply ✅ (8 z 8 hlasů + houkačka/únik páry); volitelně mostovka/mlha 🚧 | 🚧 |
+| **F4** | záclony — lowpoly terén/most/stromy ✅, párové koleje ✅, mostovka + mlha na horizontu ✅, modely vozů (kola + hnací spojnice + prokluz) ✅, kouř z komína (sladěný s výfukem) ✅, zvuk: samply ✅ (8 z 8 hlasů + houkačka/únik páry) | ✅ |
 | **F5** | sloshing kapaliny v cisterně → posun těžiště | ⬜ |
 
 Aktuální úkoly: [`TODO.md`](TODO.md) · hotové: [`DONE.md`](DONE.md).

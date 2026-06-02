@@ -82,8 +82,9 @@ Udělat z A2 měřitelné hypotézy, ne filozofování (proto Lab):
 - Každý experiment testuje jednu hypotézu.
 
 ## Vizualizace
-- Kamera „sledující" konkrétní vagon vs. nadhled celé smyčky. → **DONE** (S15) — **auto-kamera „dron"**
-  (toggle `C`): za+nad zadním vozem, lookAt střed soupravy, přelet při reverzu, hystereze směru (DD-19).
+- Kamera „sledující" konkrétní vagon vs. nadhled celé smyčky. → **DONE** (S15, přepracováno S32) —
+  **auto-kamera „dron"** (toggle `C`): **krouží kolem lokomotivy** a kouká na ni (zoom `Z`/`X` i kolečkem);
+  DD-19 (params ve view). *(S15 byl chase zezadu s reverz-přeletem; S32 → orbit, prostší a nezávislý na směru.)*
 - **Svět (F4)** → **DONE** (S17): lowpoly terén (heightfield, faceted), párové kolejnice + pražce,
   **trať vede po povrchu** (sklony z krajiny, DD-20), most u křížení s emergentními pilíři, stromy + kameny.
   *Otevřené (nezralé) doladění:* mostovka mezi pilíři; mlha na horizontu pro hloubku; hustota/velikost stromů;

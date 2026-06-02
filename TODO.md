@@ -72,12 +72,15 @@ Kontext a rozhodnutí: viz `docs/diary/2026-05-29.md`.
       `throttleFraction·steamPressure` (uhlíkový kouř ↔ světlá pára), idle obláčky při notch 0. Sladěn se
       zvukovým chuff přes **`ExhaustClock`** (sdílený fyzikální rytmus výfuku, 4×/otáčku kola). `chimneyTip`
       marker přes `getWorldPosition` (flip/náklon vyřeší three).
-- [~] Osvětlení doladěno pro lowpoly (S17); kamera „dron" hotová (S15). Volitelně: mostovka, mlha na horizontu
-- [x] **Auto-kamera „dron"** *(S15, DD-19)* — toggle `C` vypne OrbitControls/WASD a každý frame řídí
-      kameru: pozice za+nad *zadním* vozem (dle směru jízdy), `lookAt` **střed soupravy** (volba uživatele,
-      klidnější než čelo). Směr `sign(v)` s **hysterezí u `v≈0`**. **Reverz = přelet** (prohození konců →
-      cíl skočí, tlumení `α=1−exp(−tuhost·dt)` doletí plynule; snap při zapnutí = bez letáku přes mapu).
-      Params mimo fyziku (`DroneParams` ve view, DD-01), slidery Dron: výška / odstup / tuhost dohánění.
+- [x] Osvětlení doladěno pro lowpoly (S17); kamera „dron" hotová (S15). **Mostovka + mlha na horizontu** *(S32)* —
+      mostovka = plná betonová deska pod kolejí na estakádě (`elevatedSamples` sdílený s pilíři, DRY);
+      mlha = `THREE.Fog` (bělavý opar, schová tvrdý okraj terénní desky). Dron přepnut chase → **orbit kolem loko**.
+- [x] **Auto-kamera „dron"** *(S15, DD-19; S32 přepracováno chase → orbit)* — toggle `C` vypne
+      OrbitControls/WASD a každý frame řídí kameru. **Aktuálně (S32):** **krouží kolem lokomotivy** a kouká
+      na ni (azimut `orbitSpeed`, poloměr `distance`, výška; tlumené dohánění `α=1−exp(−tuhost·dt)`); zoom
+      `Z`/`X` i kolečko myši mění poloměr (`adjustOrbitRadius`). Orbit nezávislý na směru → bez hystereze /
+      reverz-přeletu (ty měl původní chase z S15). Params mimo fyziku (`DroneParams` ve view, DD-01), slidery
+      Dron: výška / poloměr a rychlost kroužení / tuhost dohánění.
 - [x] Zvuk: prototyp `AudioView` (procedurální) *(S3, vědomě předsunuto)* — nahrazen samply, procedurální vrstva odstraněna *(S27)*
 - [x] **Zvuk: vyměnit procedurální generátor za nahrané samply** *(S23–S27)* — **8 z 8 manifestu** + bonusy.
       `steam_chuff` (takt `ExhaustClock`), `steam_leak` (loop ∝ parní tlak, `makeSampleLoop`), `horn_on`

@@ -197,12 +197,14 @@ Termíny projektu. Anglické identifikátory v kódu, české vysvětlení.
   (`makeRateLoop`). Interfacy `SustainVoice`/`LevelVoice`/`RateVoice` žijí zde.
 
 ## Kamera (view)
-- **dron (auto-kamera)** — *(DD-19)* režim kamery (toggle `C`), který sleduje soupravu zezadu-shora
-  ve směru jízdy a kouká na její střed. Vypne ruční ovládání (myš + WASD/QE/ZX). Pozice i bod pohledu
-  se **tlumeně dohánějí** k cíli (`α = 1−exp(−tuhost·dt)`, nezávislé na FPS) → při **reverzu** se cíl
-  překlopí na druhý konec a kamera plynule *přeletí*. **Hystereze** směru u `v≈0` (drží poslední, jinak
-  slack-couvání třese dronem). Ryze view — parametry (`DroneParams`: výška/odstup/tuhost) mimo `PhysicsParams`,
-  sim o kameře neví (DD-01).
+- **dron (auto-kamera)** — *(DD-19)* režim kamery (toggle `C`), který **krouží kolem jedoucí
+  lokomotivy** (`bodies[0]`) a kouká na ni. Střed orbity i bod pohledu = loko; azimut roste konstantní
+  úhlovou rychlostí (`orbitSpeed`), drží poloměr (`distance`) i výšku. Vypne ruční ovládání (myš + WASD/QE),
+  aktivní zůstává jen **zoom** (`Z`/`X` i kolečko myši → mění poloměr kroužení, jediná cesta
+  `adjustOrbitRadius`). Pozice i bod pohledu se **tlumeně dohánějí** k cíli (`α = 1−exp(−tuhost·dt)`,
+  nezávislé na FPS) → sledování pohybu vlaku je hladké. Ryze view — parametry (`DroneParams`:
+  výška/poloměr/rychlost kroužení/tuhost) mimo `PhysicsParams`, sim o kameře neví (DD-01). *(S15 chase →
+  S32 orbit kolem loko; orbit je na směru jízdy nezávislý → odpadla hystereze směru i reverz-přelet.)*
 
 ## Krajina a trať (view)
 - **lowpoly terén (heightfield)** — *(DD-20)* zvlněná deska, jejíž výšku dává `terrainHeight(x,z)`
@@ -218,6 +220,13 @@ Termíny projektu. Anglické identifikátory v kódu, české vysvětlení.
 - **mostní pilíře** — *(DD-20)* svislé podpěry tam, kde se trať odlepí od terénu (most nad podjezdem).
   **Emergentní**: žádná znalost „kde je most", staví se podle skutečného převýšení trati nad terénem
   (`trackY − terrainHeight > práh`) → fungují i pro budoucí estakády/náspy.
+- **mostovka (bridge deck)** — *(S32)* souvislý nízký betonový nosník pod kolejnicemi v úsecích, kde je
+  trať vyvýšená (most na pilířích). Plná deska (lowpoly styl), hustě vzorkované překrývající se box-segmenty
+  (`InstancedMesh`) → souvislá i v oblouku, orientace sleduje sklon koleje. **Sdílí** s pilíři emergentní
+  detekci vyvýšení (`elevatedSamples`, jen hustší vzorkování) → žádná znalost „kde je most" (DRY).
+- **mlha / opar na horizontu** — *(S32)* `THREE.Fog` (lineární, bělavý), čistý do `near`, plný opar od `far`
+  (těsně před okrajem terénní desky ±350 m). Počítá vzdálenost **od kamery** → souprava i blízké stromy
+  ostré, jen vzdálené facety blednou → rozpustí tvrdý okraj desky a dodá hloubku. Atmosféra scény (Renderer).
 - **dekorace (stromy / kameny)** — faceted lowpoly: strom = kužel (koruna) + válec (kmen), kámen =
   ikosaedr. `InstancedMesh`, deterministické rozmístění (`hash` z indexu) mimo zónu trati (`r > 180 m`).
   Sedí na terénu, přestaví se se sliderem sklonu.

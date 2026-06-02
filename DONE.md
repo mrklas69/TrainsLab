@@ -459,3 +459,36 @@ křivosti. Sjednoceno do **jednoho balíku** „rázy z trati" — impulsy do ex
   - **D2:** doc drift po dnešní změně clunk — `GLOSSARY` přepsán (globální `CLUNK_GAIN` + relativní /3 nárazníku).
   - **D1 (split, KO3 z S18):** vytažen **`view/WorldView.ts`** (statická scéna: terén + dekorace + trať/pilíře, `rebuild`, export `RAIL_RADIUS`); `Renderer.ts` 436 → ~210 ř., řeší jen aktéry (vozy/spřáhla/kouř) + kameru + loop. `main.ts`: `rebuildTerrain`+`rebuildTrack` → `rebuildWorld`. SLAP jako S25 (CameraController/AudioView), drží DD-01.
 - Docs: GLOSSARY (clunk + termín WorldView), README (strom view), CLAUDE.md (Key Files), `docs/PROMPTS.md` (cadence ledger CODE → S31). **21 modulů** (+1 WorldView). **Žádné nové DD** (split = aplikace SLAP).
+
+## Sezení 32 (2026-06-02)
+
+### F4 dotažení — mlha + mostovka (view-only; `tsc` + build zelené)
+- **Mlha na horizontu** — `Renderer.scene.fog = THREE.Fog(0xccd6dd, 130, 340)`, bělavý opar (volba uživatele).
+  Fog ∝ vzdálenost od kamery → souprava ostrá, okraj terénní desky (±350 m) vybledne. Atmosféra scény = Renderer.
+- **Mostovka** — `WorldView.buildDeck`: souvislý betonový nosník pod kolejí v úsecích vyvýšení (plná deska,
+  volba uživatele). Box-segmenty `InstancedMesh` (`DECK_SPACING=2 m`, ×1.4 překryv → souvislé i v oblouku),
+  sleduje sklon koleje, `DECK_DROP=0.35 m` pod pražce.
+- **DRY refaktor** — detekce vyvýšení trati vytažena z `buildPiers` do sdíleného `elevatedSamples(amplitude,
+  spacing)` (body+tangenty+výšky); pilíře řidší vzorkování, mostovka hustší. Emergence drží (žádná znalost „kde je most").
+
+### Markery napětí spřáhel → toggle (čistá scéna)
+- `Renderer` — flag `couplerMarkersVisible` (default skryté), `setCouplerMarkersVisible(v)` (+ skip
+  `renderCouplers` když skryté). `buildCouplers` staví skryté.
+- `ControlPanel` — nová sekce **„Zobrazení"** v Nastavení + helper `buildCheckbox` (boolean přepínač mimo
+  params, izomorfní s `buildSlider`); `PanelHandlers.onCouplerMarkers`. `main.ts` — handler.
+- Oponováno smazání: koule = osciloskop slack action (F1 ★) → kompromis toggle (volba uživatele).
+
+### Dron: chase → orbit kolem lokomotivy
+- `CameraController` — `updateDroneCamera`/`computeDroneTarget` přepsány: orbit kolem **lokomotivy**
+  (`bodies[0]`, `lookAt` loko), azimut `orbitAngle += orbitSpeed·dt`, poloměr `distance` + výška, tlumené
+  dohánění (`stiffness`). **Odpadla** hystereze směru (`droneDir`/`V_DRONE_DIR`) i reverz-přelet (orbit
+  nezávislý na směru jízdy).
+- **Zoom v dronu** — `Z`/`X` i **kolečko myši** → poloměr kroužení jednou cestou `adjustOrbitRadius(delta)`
+  (DRY); ruční zoom ponechán na `OrbitControls`. `wheel` listener se v ručním režimu hned vrací.
+- `DroneParams` + `orbitSpeed` (default 0,3 rad/s); slidery „Poloměr kroužení" / „Rychlost kroužení" + výška/tuhost.
+- **DD-19 drží** (rozhodnutí = `DroneParams` ve view, ne chování); aktualizován GLOSSARY termín „dron".
+
+### Bug fix — prokluz kol se točil obráceně
+- Valecí fáze jde jako `-body.s/r` (vpřed = klesá), slip přírůstek byl při `notch≥0` kladný → kola se při
+  prokluzu protáčela dozadu. Prokluz = obvodová rychlost kol > rychlost vlaku (kola hrabou vpřed). Oprava:
+  `dir = notch≥0 ? -1 : 1` (slip ve směru valení). Promítne se i do hnacích spojnic (sdílí `phase`).
