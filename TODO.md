@@ -138,6 +138,22 @@ Sjednocený balík: nespojitosti trati → impulsy do **existujících** roll/pi
       „Nastavení" se slidery (CSS Grid auto-fill = multi-column na wide, 1 na mobilu). Mobilně použitelné.
       Nahradilo minimalizační toggle. Tlačítko písku jako press-hold (pointer events, drž = sype).
 
+## Interakce vozů & topologie sítě  *(S35+, restart po „dokončeném" PoC)*
+
+### Volný vagon + srážky *(S35, DD-24)*
+- [x] Volné nespřažené těleso na trati (`Train.freeBodies`), projede týž integrátor bez trakce/brzdy
+- [x] Kontaktní náraz (buff bez spřažení, `applyContacts`) — konce soupravy ↔ volné vozy + volné navzájem
+- [x] Mez energie srážky `½·m_red·v²` → vykolejení (slider, `derail(reason)`, diagnostika collision/overturn)
+- *Nezralé:* automatické spřažení (scénář B), dva řízené vlaky (scénář C) → viz IDEAS.
+
+### Výhybky — topologie sítě *(S35+, DD-25; geometrie „osmička + opsaný ovál ve 4 uzlech")*
+- [x] **Fáze 1** — osa trati z jedné křivky na **graf segmentů** (`TrackSegment` + `TrackNetwork`),
+      `Body`→`(seg,s)`, vše přes `globalS`/`gap`; osmička = 2 segmenty, chování identické *(ověřeno)*
+- [ ] **Fáze 2** — geometrie: osmička + **vnější ovál tečně napojený ve 4 uzlech** (konstruktivně:
+      uzly na osmičce + 4 Hermitovy oblouky se shodnou tečnou → bez zlomů). Zatím deterministicky (bez volby).
+- [ ] **Fáze 3** — větvení: uzel s víc pokračováními + **náhodná volba** trasy (placeholder za pozdější `←`/`→`)
+- [ ] **Fáze 4** — vagon/srážky/rázy na grafu (kontakty přes větve — nejtěžší; `gap`/`globalS` přestanou stačit)
+
 ## Backlog / později
 - [x] **Křivkový odpor v obloucích** *(S29)* — `R = −sign(v)·curveResistance·|κ|·m·g`; specifický odpor
       úměrný křivosti (Röcklův charakter `c/r`), rychlostně nezávislý. Geometrický člen vedle gravitace

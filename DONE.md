@@ -492,3 +492,30 @@ křivosti. Sjednoceno do **jednoho balíku** „rázy z trati" — impulsy do ex
 - Valecí fáze jde jako `-body.s/r` (vpřed = klesá), slip přírůstek byl při `notch≥0` kladný → kola se při
   prokluzu protáčela dozadu. Prokluz = obvodová rychlost kol > rychlost vlaku (kola hrabou vpřed). Oprava:
   `dir = notch≥0 ? -1 : 1` (slip ve směru valení). Promítne se i do hnacích spojnic (sdílí `phase`).
+
+## Sezení 35 (2026-06-02)
+
+### Volný vagon + kontaktní srážky (DD-24)
+- `Train.freeBodies` — volná nespřažená tělesa mimo couplerový řetězec, projedou týž integrátor (bez trakce/brzdy).
+- `applyContacts` — jednostranná buff pružina (jen tlak) mezi konci soupravy ↔ volné vozy + volné navzájem; bez spřažení.
+- Mez energie srážky `½·m_red·v_close²` (kJ) → vykolejení; slider „Mez srážky" (default 500 kJ), `derail(reason, speed)`.
+- Diagnostika `derailReason` (collision/overturn) + rychlost ve statusu; derail zastaví soupravu i volné vozy.
+- `boxcar` jako odstavený vagon na protilehlé straně smyčky (`main.ts`).
+
+### Asymetrická + vlnitější trať
+- Asymetrická osmička: izotropní stretch `(1+E·(1+cos t)/2)`, pravý lalok větší, levý beze změny (E=0.5).
+- Min poloměr **změřen** `tools/check-radius.ts` (kalkulačka poloměru/sklonu/clearance) — ≈52 m při count 96.
+- Hustota kontrolních bodů 24→96 (Catmull-Rom přestane podstřelovat zvlněný terén — kolej už nezapadá pod zem).
+- Vlnitější trať: `trackAmplitude` 4→8, slider strop 8→16.
+
+### Distanční zvuk + scenérie + mlha
+- Distanční hlasitost `AudioView` (inverse-distance, plno do 30 m, ticho u 320 m), `Renderer.cameraDistance` (DD-01).
+- Scenérie: clearance od osy trati (`nearTrack`) místo radiální zóny → vlak neprojíždí dekorací, roste i uprostřed osmičky.
+- Lesy: `forestDensity` (nízkofrekvenční pole) moduluje hustotu → shluky stromů. `SCENERY_STEP` 22→18.
+- Mlha dohlednost 2× (260/680).
+
+### Výhybky — fáze 1: graf segmentů (DD-25)
+- `TrackSegment` (okno nad master křivkou, spojitá křivost přes hranice) + `TrackNetwork` (graf, `next`/`prev`, `advance`, `globalS`/`gap`).
+- `Body` → `(seg, s)`; spřáhla, kontakty, rázy z trati i valení kol přepočítány na `globalS`/`gap`.
+- Osmička = 2 segmenty (deterministická smyčka) → chování identické; `Track.ts` smazán (nahradil `TrackSegment`).
+- Renderer/WorldView/CameraController/AudioView na `network`; WorldView kreslí per master křivku. Ověřeno „sedí to".

@@ -81,10 +81,12 @@ napětí ve spřáhlech — osciloskop slack action, default skrytý).
 | **F6** | příčná dynamika — esíčko (osmička), most/podjezd, převrácení/vykolejení, kývání skříně, gradient meze, rázy z trati (spáry / skok křivosti) | ✅ |
 | **F3** | palivo & zásoby — uhlí/voda (parní tlak), proměnná adheze + písek | ✅ |
 | **F4** | záclony — lowpoly terén/most/stromy ✅, párové koleje ✅, mostovka + mlha na horizontu ✅, modely vozů (kola + hnací spojnice + prokluz) ✅, kouř z komína (sladěný s výfukem) ✅, zvuk: samply ✅ (8 z 8 hlasů + houkačka/únik páry) | ✅ |
+| **F7** | interakce vozů — odstavený volný vagon + srážky (mez energie → vykolejení) ✅; **výhybky / topologie sítě** — graf segmentů (fáze 1 ✅, ovál + 4 uzly fáze 2–4 🔧) | 🔧 |
 
-**PoC dokončen** — všechny fáze hotové. Další směry (sloshing kapaliny, síť/výhybky, ASCII
-renderer, jiskry…) jsou nezralé nápady mimo rozsah PoC, žijí v [`IDEAS.md`](IDEAS.md).
-Hotové úkoly: [`DONE.md`](DONE.md).
+**PoC (F0–F4 + příčná) dokončen.** Po něm **restart** novým směrem (S35): interakce volného vagonu
+a **topologie sítě** (osa trati přešla na graf segmentů — výhybky se staví po fázích, viz
+[`TODO.md`](TODO.md)). Nezralé směry (sloshing, ASCII renderer, jiskry…) v [`IDEAS.md`](IDEAS.md);
+hotové úkoly v [`DONE.md`](DONE.md).
 
 ## Architektura
 
@@ -94,7 +96,7 @@ vzniká až při renderu (DD-02).
 
 ```
 src/
-  sim/    fyzika — Track, trackData, terrain, params, Body, Coupler, Train
+  sim/    fyzika — TrackSegment + TrackNetwork (graf trati), trackData, terrain, params, Body, Coupler, Train
   view/   výstupy — Renderer (Three.js, aktéři + loop) + WorldView (terén/koleje/dekorace)
           + CameraController (orbit/dron) + carModels (modely vozů) + SmokeView (kouř)
           + AudioView (samply) + ExhaustClock (rytmus výfuku)

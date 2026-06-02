@@ -9,6 +9,17 @@ Termíny projektu. Anglické identifikátory v kódu, české vysvětlení.
 - **slack run-out** — postupné vybírání vůle vozem za vozem → podélná vlna soupravou.
 - **coupler (spřáhlo)** — spoj mezi sousedními vozy = pružina s **vůlí** (mrtvým pásmem):
   v rozsahu vůle síla 0, za hranou spring-damper (táhne/tlačí).
+- **volný vagon (`freeBodies`)** — *(DD-24)* odstavené nespřažené těleso na téže trati, mimo
+  couplerový řetězec soupravy. Projede týž integrátor (gravitace, odpor, **statické tření ho drží
+  stát**, kývání), ale bez trakce/brzdy. Souprava ho dokola dožene a ťukne do něj.
+- **kontaktní náraz (buff bez spřažení)** — *(DD-24)* `applyContacts`: jednostranná pružina **jen
+  v tlaku** mezi konci soupravy (loko/poslední vůz) ↔ volné vozy (a volné navzájem). Působí jen při
+  překryvu skříní; žádný draft/vůle → vozy se odrazí, ale **nespřáhnou**. Recykluje tuhost/tlumení
+  spřáhla (náraz „cítí" jako buff nárazníku). Rozteč po dráze počítá `TrackNetwork.gap`.
+- **energie srážky → vykolejení** — *(DD-24)* `½·m_red·v_close²` (kJ, redukovaná hmota dvojice ×
+  rychlost sblížení²), maximum přes substepy. Nad práh `collisionDerailEnergy` (slider, default
+  500 kJ ≈ náraz loko↔vagon nad ~7 m/s) souprava vykolejí. Diagnostika `derailReason` (collision
+  vs. overturn) + rychlost do statusu.
 
 ## Trať a kinematika
 - **arc-length parametrizace** — poloha vozu daná délkou `s` (m) podél křivky, ne parametrem
@@ -36,9 +47,10 @@ Termíny projektu. Anglické identifikátory v kódu, české vysvětlení.
 - **kritérium převrácení** — `a_lat > (gauge/2)/comHeight · g`: odstředivka přes výšku těžiště
   překoná tíhu přes poloviční rozchod → vůz se přetočí přes vnější kolo. Statická momentová
   rovnováha na ploché koleji (bez klopení, DD-11).
-- **vykolejení (derailment)** — fail state po překročení kritéria převrácení: souprava se
-  zastaví, zrudne, čeká na reset (`R`). První fail state projektu (homomorfní s budoucím
-  přetržením vlaku).
+- **vykolejení (derailment)** — fail state: souprava se zastaví, zrudne, čeká na reset (`R`).
+  Dvě příčiny *(S35)*: **převrácení** (odstředivka > kritérium) nebo **srážka** (energie nárazu >
+  práh). Sjednoceno do `derail(reason, speed)` — zastaví soupravu i volné vozy; `derailReason`
+  rozliší příčinu ve statusu. Homomorfní s budoucím přetržením vlaku.
 - **znaménková křivost (signed curvature)** — křivost **horizontálního** průmětu trati `κ`
   se znaménkem; **primitiv příčné dynamiky** (S12). Magnituda `1/r` (odstředivka `v²·κ`),
   znaménko rozlišuje stranu zatáčky (na kterou se skříň naklání). Izomorfní s **grade**: grade =
@@ -224,12 +236,15 @@ Termíny projektu. Anglické identifikátory v kódu, české vysvětlení.
   trať vyvýšená (most na pilířích). Plná deska (lowpoly styl), hustě vzorkované překrývající se box-segmenty
   (`InstancedMesh`) → souvislá i v oblouku, orientace sleduje sklon koleje. **Sdílí** s pilíři emergentní
   detekci vyvýšení (`elevatedSamples`, jen hustší vzorkování) → žádná znalost „kde je most" (DRY).
-- **mlha / opar na horizontu** — *(S32)* `THREE.Fog` (lineární, bělavý), čistý do `near`, plný opar od `far`
-  (těsně před okrajem terénní desky ±350 m). Počítá vzdálenost **od kamery** → souprava i blízké stromy
-  ostré, jen vzdálené facety blednou → rozpustí tvrdý okraj desky a dodá hloubku. Atmosféra scény (Renderer).
+- **mlha / opar na horizontu** — *(S32)* `THREE.Fog` (lineární, bělavý), čistý do `near`, plný opar od `far`.
+  Počítá vzdálenost **od kamery** → souprava i blízké stromy ostré, jen vzdálené facety blednou → dodá
+  hloubku. Atmosféra scény (Renderer). *(S35)* dohlednost zdvojnásobena (130/340 → **260/680**) — pozor:
+  deska má poloměr ~350 m, takže za ní může okraj prosvítat (řeší se zvětšením desky, zatím otevřené).
 - **dekorace (stromy / kameny)** — faceted lowpoly: strom = kužel (koruna) + válec (kmen), kámen =
-  ikosaedr. `InstancedMesh`, deterministické rozmístění (`hash` z indexu) mimo zónu trati (`r > 180 m`).
-  Sedí na terénu, přestaví se se sliderem sklonu.
+  ikosaedr. `InstancedMesh`, deterministické rozmístění (`hash` z indexu). *(S35)* Filtr je
+  **clearance od osy trati** (`nearTrack`, < 14 m → nesázet; nahradil radiální zónu `r>180`) → vlak
+  nikým neprojíždí a dekorace roste **i uprostřed osmičky**. Hustota kolísá **lesnatostí**
+  (`forestDensity`, nízkofrekvenční pole) → shluky = lesy. Sedí na terénu, přestaví se se sliderem sklonu.
 
 ## Modely vozů (view)
 - **model vozu (`CarVisual`)** — *(DD-22)* lowpoly faceted reprezentace vozu: `group` (transformovaný
@@ -258,4 +273,15 @@ Termíny projektu. Anglické identifikátory v kódu, české vysvětlení.
   samostatná view třída vytažená z Rendereru (SLAP, izomorfně s `CameraController`): drží `terrainMesh`/
   `trackGroup`/`sceneryGroup`, `rebuild` na slider sklonu. Renderer pak řeší jen **aktéry** (vozy, markery
   spřáhel, kouř) + render loop. Exportuje `RAIL_RADIUS` (výška temene koleje, čte ji render loop).
+- **TrackSegment** — *(DD-25)* úsek trati = okno `[uStart, uEnd]` nad jednou hladkou „master"
+  křivkou, adresované **lokální** arc-length `s ∈ [0, length]`. Sklon i křivost čtou master křivku
+  **spojitě** (vzorky u±du i přes hranice segmentu) → na uzlu mezi segmenty **žádný zlom**.
+- **TrackNetwork** — *(DD-25)* graf segmentů + uzly (kdo na koho navazuje, `next`/`prev`). Nahradil
+  dřívější `Track`: poloha tělesa = `(seg, s)`, `advance` ji posune přes hranice segmentů, `globalS`
+  (kumulativní arc-length po smyčce) a `gap` (nejkratší rozteč po dráze) slouží spřáhlům, kontaktům,
+  rázům i valení kol. Fáze 1: orientovaná smyčka (osmička = 2 segmenty, žádné větvení).
+- **segment / uzel / výhybka (topologie)** — *(DD-25)* segment = úsek koleje mezi uzly; uzel = bod
+  napojení segmentů. **Výhybka** = uzel s víc než jedním pokračováním (volba trasy) — zatím není
+  (fáze 1 deterministická smyčka); větvení přijde ve fázi 3. Tím se opouští „jedna smyčka" (Úr. 4
+  žebříku / DD-04), ale drží DD-02 (vůz je pořád 1D `s` podél dráhy).
 - **DD-NN** — design decision; tabulky v `docs/diary/`.

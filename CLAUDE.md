@@ -37,14 +37,15 @@ K obecným bodům globálního `%THINK` přidej:
 | Vrstva | Soubor | Obsah |
 |--------|--------|-------|
 | sim | `sim/params.ts` | `PhysicsParams` — laditelné parametry, single source of truth |
-| sim | `sim/Track.ts` | arc-length křivka, `grade(s)`, `signedCurvature(s)`, `positionAt`, `rebuild` |
-| sim | `sim/trackData.ts` | ležatá osmička (Bernoulliho lemniskáta); výška `Y` z terénu + most u křížení (DD-20) |
+| sim | `sim/TrackSegment.ts` | úsek master křivky `[uStart,uEnd]`, lokální `s`; `grade`/`signedCurvature`/`positionAt` spojitě přes hranice (DD-25) |
+| sim | `sim/TrackNetwork.ts` | graf segmentů + uzly (`next`/`prev`), `advance`/`globalS`/`gap`, `rebuild`, `masterCurves` (DD-25) |
+| sim | `sim/trackData.ts` | ležatá osmička (asymetrická, izotropní stretch); výška `Y` z terénu + most u křížení (DD-20); `buildLoopNetwork` (graf) |
 | sim | `sim/terrain.ts` | `terrainHeight` — výšková matematika, single source pro sim (trať) i view (mesh), DD-20 |
-| sim | `sim/Body.ts` | 1D hmota (`s`,`v`), tření, rotační stav (kývání skříně, DD-13) |
-| sim | `sim/Coupler.ts` | pružina s vůlí — draft/buff, `mode`/`relVel`/`force` |
-| sim | `sim/Train.ts` | řetězec těles, integrace, trakce/adheze/brzda, palivo, příčná diagnostika |
-| view | `view/Renderer.ts` | Three.js — čistá funkce stavu → obraz; **aktéři** (vozy, markery spřáhel, kouř) + render loop + světla; deleguje statickou scénu na `WorldView`, kameru na `CameraController` (S25/S31) |
-| view | `view/WorldView.ts` | statická scéna (SLAP, vytaženo S31): lowpoly terén/dekorace, párové koleje + pražce, most+pilíře (DD-20); `rebuild` na slider sklonu; exportuje `RAIL_RADIUS` |
+| sim | `sim/Body.ts` | 1D hmota (`seg`,`s`,`v`), tření, rotační stav (kývání skříně, DD-13) |
+| sim | `sim/Coupler.ts` | pružina s vůlí — draft/buff, `mode`/`relVel`/`force`; rozteč přes `network.gap` |
+| sim | `sim/Train.ts` | řetězec těles + volné vozy (`freeBodies`), integrace, trakce/brzda, kontakty/srážky (`applyContacts`, `derail`), příčná diagnostika (DD-24) |
+| view | `view/Renderer.ts` | Three.js — čistá funkce stavu → obraz; **aktéři** (vozy, volné vozy, markery spřáhel, kouř) + render loop + světla; deleguje statickou scénu na `WorldView`, kameru na `CameraController` (S25/S31) |
+| view | `view/WorldView.ts` | statická scéna (SLAP, vytaženo S31): lowpoly terén/dekorace (clearance od trati, lesy), párové koleje + pražce per master křivku, most+pilíře (DD-20); `rebuild` na slider sklonu; exportuje `RAIL_RADIUS` |
 | view | `view/CameraController.ts` | řízení kamery (orbit/dron/WASD), `DroneParams`/`DEFAULT_DRONE` (DD-19) — vytaženo z Rendereru (S25, SLAP) |
 | view | `view/AudioView.ts` | zvuk — view nad simem (DD-01): nahrané samply (`loadSample`) + orchestrace; čistě sample-based (S27, `proceduralAudio` odstraněn), tvary hlasů `makeSampleLoop`/`makeRateLoop`/`makeRandomizedLoop`/`makeSampleLevelLoop` |
 | view | `view/ExhaustClock.ts` | sdílený rytmus výfuku (DD-23) pro chuff i kouř; cap `CHUFF_FUSE_SPEED` |

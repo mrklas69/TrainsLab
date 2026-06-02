@@ -9,12 +9,16 @@ Koncept a kontext: viz `docs/diary/2026-05-29.md`.
 - **ASCII renderer** (mikro × nízká věrnost) — vyměnitelný renderer nad týmž modelem
   jako PoC. Levný sanity check / nostalgie. Demonstruje sílu sim/view splitu (DD-01).
 - **Topologie sítě** — výhybky, větvení, křižovatky. Vlastní těžký problém oddělený
-  od fyziky. Brána k makro měřítku.
+  od fyziky. Brána k makro měřítku. **→ rozpracováno (S35, DD-25):** osa trati přešla na **graf
+  segmentů** (`TrackSegment`+`TrackNetwork`), fáze 1 hotová (osmička = 2 segmenty, bez větvení).
+  Plán „osmička + opsaný ovál ve 4 uzlech" → fáze 2–4 v `TODO.md`.
 
 ## Hlubší fyzika
 - **Sloshing kapaliny v cisterně** (F5) — pohyb kapaliny mění těžiště vagonu, zpětně
   ovlivňuje dynamiku. „Tu pak rozpohybujeme."
 - **Přetržení vlaku** — když draft síla překročí mez spřáhla. Emergentní fail state.
+  *(S35: homomorfní s volným vagonem / kontaktem DD-24 — opačná operace nad couplerem: spřažení ↔
+  rozpojení. Volný vagon už existuje jako těleso mimo řetězec, takže odpojený vůz má kam „odejít".)*
 - **Příčná dynamika & vykolejení** → DONE (S6–S9, jádro) — odstředivka v oblouku (`m·v²/r`),
   převrácení kolem vnější kolejnice (výška těžiště × rozchod). Úroveň A: 1D + příčná
   **diagnostika**, vykolejení = emergentní fail state (drží DD-02), homomorfní s přetržením
@@ -33,6 +37,7 @@ Koncept a kontext: viz `docs/diary/2026-05-29.md`.
     monorail** — vzniká příčná výchylka `y` dvojkolí, boří DD-02 = Úroveň B z DD-11.
     Slouží jiné nice (vedení kola), ne slack action → **jiný roh mřížky, vědomě, ne plíživě.**
   - **Úr. 4 — síť, výhybky**: graf místo smyčky (viz Topologie sítě výše), makro osa.
+    **→ rozpracováno (S35, DD-25):** graf segmentů hotov (fáze 1); větvení/výhybky = fáze 3.
 - **Rázy z trati (track impulses)** → DONE (S19, DD-21) — sjednocený balík nespojitostí buzení kývání
   skříně (rozšíření Úr. 1 / DD-13, drží DD-02: impuls do roll/pitch, **nemění `s`/`v`**). Tři zdroje,
   jeden mechanismus = kick do **existujících** oscilátorů (recyklace, žádný nový bounce DOF — volba A2):
