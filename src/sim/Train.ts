@@ -1,7 +1,7 @@
 import { Body } from './Body';
 import { Coupler } from './Coupler';
 import { TRACK_PERTURBATIONS } from './trackData';
-import type { Track } from './Track';
+import type { TrackNetwork } from './TrackNetwork';
 import type { PhysicsParams } from './params';
 
 const SUBSTEPS = 8;        // tužší spřáhla → víc substepů pro stabilitu integrátoru
@@ -69,17 +69,18 @@ export class Train {
   sand = 0;  // zásoba písku (kg) — čte UI
 
   constructor(
-    private readonly track: Track,
+    private readonly network: TrackNetwork,
     private readonly params: PhysicsParams,
     carLengths: number[], // [0] = lokomotiva (čelo), dál vagony
     private readonly startS = 0,
     freeCars: { length: number; startS: number }[] = [], // odstavené volné vozy (mimo soupravu)
   ) {
-    this.bodies = carLengths.map((length) => new Body(0, length));
+    this.bodies = carLengths.map((length) => new Body(0, 0, length));
 
-    // volné vozy: každý je samostatné těleso na trati se svou výchozí pozicí (mimo řetězec spřáhel)
+    // volné vozy: každý je samostatné těleso na trati se svou výchozí pozicí (mimo řetězec spřáhel).
+    // startS je globální arc-length (reset ho přes advance rozloží na segment + lokální s).
     for (const car of freeCars) {
-      this.freeBodies.push(new Body(car.startS, car.length));
+      this.freeBodies.push(new Body(0, car.startS, car.length));
       this.freeStartS.push(car.startS);
     }
 
@@ -90,7 +91,7 @@ export class Train {
       );
     }
     this.couplers = this.restGaps.map(
-      (gap, i) => new Coupler(this.bodies[i], this.bodies[i + 1], gap),
+      (gap, i) => new Coupler(this.bodies[i], this.bodies[i + 1], gap, this.network),
     );
 
     this.reset();
@@ -165,7 +166,7 @@ export class Train {
 
   /** Jádro příčného zrychlení pro libovolné těleso (v²·κ) — sdílí souprava i volné vozy (DRY). */
   private signedLatAccelOf(body: Body): number {
-    return body.v * body.v * this.track.signedCurvature(body.s);
+    return body.v * body.v * this.network.signedCurvature(body);
   }
 
   /** Velikost příčného (odstředivého) zrychlení vozu `index` (m/s²): |v²·κ|. */
@@ -244,19 +245,19 @@ export class Train {
 
   /** Souprava do klidu, vozy v klidové rozteči za lokomotivou, řízení vynulováno. */
   reset(): void {
+    // souprava: loko na startS, vozy za ním (klesající arc-length). Pozice zadáme globálně na
+    // segment 0 a advance() je rozloží na správné segmenty (záporné/přetečené s přejde přes uzel).
     let s = this.startS;
-    this.bodies[0].s = s;
-    this.bodies[0].v = 0;
+    this.bodies[0].seg = 0; this.bodies[0].s = s; this.bodies[0].v = 0;
     for (let i = 1; i < this.bodies.length; i++) {
       s -= this.restGaps[i - 1];
-      this.bodies[i].s = s;
-      this.bodies[i].v = 0;
+      this.bodies[i].seg = 0; this.bodies[i].s = s; this.bodies[i].v = 0;
     }
-    // volné vozy zpět na výchozí pozice (v klidu)
     this.freeBodies.forEach((body, i) => {
-      body.s = this.freeStartS[i];
-      body.v = 0;
+      body.seg = 0; body.s = this.freeStartS[i]; body.v = 0;
     });
+    // srovnej segment podle zadaného (globálního) s
+    for (const body of [...this.bodies, ...this.freeBodies]) this.network.advance(body);
     // vynuluj i rotační stav vypružení (roll/pitch), ať reset srovná skříně (souprava i volné vozy)
     for (const body of [...this.bodies, ...this.freeBodies]) {
       body.roll = 0; body.rollVel = 0; body.pitch = 0; body.pitchVel = 0;
@@ -278,8 +279,8 @@ export class Train {
     this.consumeFuel(dt);      // uhlí + voda → klesající parní tlak (čte applyLocomotive)
     // písek se spotřebovává jen při aktivním pískování (zvyšuje adhezi, viz effectiveAdhesion)
     if (this.sanding) this.sand = Math.max(0, this.sand - this.params.sandRate * dt);
-    // pozice před krokem — z ujeté vzdálenosti se pak detekují přejezdy spár/perturbací
-    const sBefore = this.bodies.map((b) => b.s);
+    // globální pozice před krokem — z ujeté vzdálenosti se pak detekují přejezdy spár/perturbací
+    const sBefore = this.bodies.map((b) => this.network.globalS(b));
     this.collisionEnergy = 0;   // nejtvrdší srážka tohoto framu — naplní ji contact() v substepech
     const h = dt / SUBSTEPS;
     for (let i = 0; i < SUBSTEPS; i++) this.step(h);
@@ -307,11 +308,13 @@ export class Train {
 
   // jeden substep: vlastní síly → spřáhla → kontakty → trakce/brzda → tření → integrace.
   private step(h: number): void {
-    // akumulátor sil nezávislých na spřáhlech/trakci — souprava i volné vozy
+    // akumulátor sil nezávislých na spřáhlech/trakci — souprava i volné vozy (na svém segmentu)
     for (let i = 0; i < this.bodies.length; i++) {
-      this.bodies[i].beginStep(this.track, this.params, this.massOf(i));
+      this.bodies[i].beginStep(this.network.segmentOf(this.bodies[i].seg), this.params, this.massOf(i));
     }
-    for (const fb of this.freeBodies) fb.beginStep(this.track, this.params, this.params.carMass);
+    for (const fb of this.freeBodies) {
+      fb.beginStep(this.network.segmentOf(fb.seg), this.params, this.params.carMass);
+    }
 
     for (const coupler of this.couplers) coupler.apply(this.params);
     this.applyContacts(); // buff náraz mezi nespřaženými tělesy (konce soupravy ↔ volné vozy)
@@ -325,11 +328,13 @@ export class Train {
       this.bodies[i].applyFriction(this.params, mass, i === 0 ? brake : 0);
       // integrace dělí silou setrvačnou hmotu m·(1+λ) — rotující kola/ojnice (massOf drží tíhu)
       this.bodies[i].integrate(h, mass, this.rotatingFactorOf(i));
+      this.network.advance(this.bodies[i]); // posun mohl přejít hranici segmentu → srovnej seg
     }
     // volné vozy: bez trakce i brzdy — jen odpory + případný kontaktní ráz (statické tření je drží stát)
     for (const fb of this.freeBodies) {
       fb.applyFriction(this.params, this.params.carMass, 0);
       fb.integrate(h, this.params.carMass, this.params.rotatingMassFactorCar);
+      this.network.advance(fb);
     }
 
     // vypružení skříně (DD-02: rotace, nemění s/v) — buzení z příčného (v²·κ se znaménkem)
@@ -350,7 +355,7 @@ export class Train {
    * Recykluje tuhost/tlumení spřáhla (`couplerStiffness`/`couplerDamping`) — náraz se „cítí"
    * jako buff nárazníku (izomorfismus), žádné nové parametry. Kontakt řešíme jen na **odhalených
    * koncích soupravy** (loko / poslední vůz) ↔ volné vozy a volné vozy navzájem; vnitřek soupravy
-   * drží spřáhla, takže projet skrz nelze. Na smyčce se rozteč počítá přes {@link wrappedDelta}.
+   * drží spřáhla, takže projet skrz nelze. Rozteč po dráze počítá TrackNetwork.gap (segment + wrap).
    */
   private applyContacts(): void {
     if (this.freeBodies.length === 0) return;
@@ -375,7 +380,7 @@ export class Train {
 
   // jedna kontaktní dvojice: odpudivá síla ∝ překryv skříní + tlumení; zároveň měří energii srážky.
   private contact(a: Body, massA: number, b: Body, massB: number): void {
-    const d = this.wrappedDelta(a.s, b.s);                    // + = b je „před" a (rostoucí s)
+    const d = this.network.gap(a, b);                         // + = b je „před" a (rostoucí s)
     const minGap = a.length / 2 + b.length / 2 + COUPLER_GAP; // rozteč středů při dotyku
     const dist = Math.abs(d);
     if (dist >= minGap) return;                               // skříně se nedotýkají → bez síly
@@ -403,18 +408,6 @@ export class Train {
   }
 
   /**
-   * Nejkratší rozdíl pozic po smyčce: `sTo − sFrom` zabalený do [−délka/2, délka/2).
-   * Tělesa mají nezabalené (monotónní) `s` na různých „kolech" smyčky — kontakt potřebuje
-   * skutečnou rozteč po trati, ne rozdíl surových arc-length. Kladný = `sTo` je před `sFrom`.
-   */
-  private wrappedDelta(sFrom: number, sTo: number): number {
-    const loop = this.track.length;
-    let d = (((sTo - sFrom) % loop) + loop) % loop; // [0, loop)
-    if (d > loop / 2) d -= loop;                    // → [−loop/2, loop/2)
-    return d;
-  }
-
-  /**
    * Rázy z trati → impulsy do kývání skříně (rozšíření DD-13). Jeden balík, dva zdroje
    * nespojitosti řešené týmž {@link crossed} testem nad ujetou vzdáleností (`sBefore`→`s`):
    *  - **dilatační spáry** (perioda `railLength`): svislý ráz → **pitch**, znaménko střídá
@@ -433,7 +426,7 @@ export class Train {
     const strength = this.params.trackImpulse;
     if (strength <= 0) return;
     const railLength = this.params.railLength;
-    const loop = this.track.length;
+    const loop = this.network.totalLength;
     const transitionFactor = 1 - this.params.transitionQuality; // přechodnice tlumí κ-trh
 
     for (let i = 0; i < this.bodies.length; i++) {
@@ -441,19 +434,25 @@ export class Train {
       const speed = Math.abs(body.v);
       if (speed === 0) continue; // stojící vůz spáru „nepřejede" — žádný ráz
 
+      // globální arc-length po smyčce (s je teď lokální per segment); rozbal wrap, ať crossed()
+      // dostane monotónní úsek (krok je malý → velký skok = přejezd přes konec smyčky)
+      let sNow = this.network.globalS(body);
+      if (sNow - sBefore[i] > loop / 2) sNow -= loop;
+      else if (sBefore[i] - sNow > loop / 2) sNow += loop;
+
       // dilatační spáry: pitch ráz, znaménko podle parity přejeté spáry (poskok nahoru/dolů)
-      if (railLength > 0 && crossed(sBefore[i], body.s, 0, railLength)) {
-        const parity = (Math.floor(body.s / railLength) & 1) === 0 ? 1 : -1;
+      if (railLength > 0 && crossed(sBefore[i], sNow, 0, railLength)) {
+        const parity = (Math.floor(sNow / railLength) & 1) === 0 ? 1 : -1;
         body.applyImpulse(0, parity * JOINT_WEIGHT * strength * speed);
       }
 
       // bodové perturbace: roll ve směru oblouku (skok křivosti) + pitch (výhybka)
       for (const p of TRACK_PERTURBATIONS) {
-        if (!crossed(sBefore[i], body.s, p.u * loop, loop)) continue;
+        if (!crossed(sBefore[i], sNow, p.u * loop, loop)) continue;
         // přechodnice rozetře jen skok křivosti; výhybka/křížení je radiální závada (nezávislá)
         const scale = p.kind === 'transition' ? transitionFactor : 1;
         if (scale <= 0) continue; // dokonalá přechodnice → transition ráz zmizí (i jeho zvuk)
-        const rollDir = Math.sign(this.track.signedCurvature(body.s)) || 1;
+        const rollDir = Math.sign(this.network.signedCurvature(body)) || 1;
         body.applyImpulse(rollDir * p.roll * strength * speed * scale, p.pitch * strength * speed * scale);
         if (p.kind === 'switch') this.switchFired = true;
         else this.transitionJerkFired = true;

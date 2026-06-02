@@ -1,4 +1,4 @@
-import type { Track } from './Track';
+import type { TrackSegment } from './TrackSegment';
 import type { PhysicsParams } from './params';
 
 const V_STATIC = 0.05; // m/s — pod tímhle se těleso považuje za stojící
@@ -32,7 +32,8 @@ export class Body {
   pitchVel = 0; // úhlová rychlost pitche (rad/s)
 
   constructor(
-    public s: number,        // arc-length pozice středu vozu (m)
+    public seg: number,      // index segmentu trati, na kterém vůz je (viz TrackNetwork)
+    public s: number,        // lokální arc-length pozice středu vozu na segmentu (m)
     readonly length: number, // délka vozu (m), pro render i rozteč spřáhel
   ) {}
 
@@ -58,9 +59,9 @@ export class Body {
    * Všechny odporové členy proti pohybu (znaménko `v`). Drží DD-02: `κ` je jen skalár,
    * křivkový odpor je podélná síla (mění `v` podél `s`), nezavádí příčný DOF.
    */
-  beginStep(track: Track, params: PhysicsParams, mass: number): void {
-    const grade = track.grade(this.s);                 // sin(θ)
-    const curvature = track.signedCurvature(this.s);   // 1/m (znaménko = strana oblouku, tady jen |κ|)
+  beginStep(seg: TrackSegment, params: PhysicsParams, mass: number): void {
+    const grade = seg.grade(this.s);                 // sin(θ)
+    const curvature = seg.signedCurvature(this.s);   // 1/m (znaménko = strana oblouku, tady jen |κ|)
     const fGravity = -mass * params.gravity * grade;   // do kopce brzdí
     // odpor v oblouku: specifický C·|κ| (bezrozm.) krát tíha; proti pohybu (sign), na rovince κ=0 → 0
     const fCurve = -Math.sign(this.v) * params.curveResistance * Math.abs(curvature) * mass * params.gravity;

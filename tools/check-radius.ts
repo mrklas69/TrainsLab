@@ -3,8 +3,8 @@
 //   2. min „clearance" trati nad terénem (Catmull-Rom mezi řídkými body podstřeluje terén →
 //      kolej zapadne pod zem). Roste s délkou laloku a hustotou kontrolních bodů (count).
 // Spouštět: `npx tsx tools/check-radius.ts`. Mění E i count pro porovnání → ladění geometrie.
-import { Vector3 } from 'three';
-import { Track } from '../src/sim/Track';
+import { CatmullRomCurve3, Vector3 } from 'three';
+import { TrackSegment } from '../src/sim/TrackSegment';
 import { terrainHeight } from '../src/sim/terrain';
 
 // práh převrácení z DEFAULT_PARAMS: (gauge/2)/comHeight · g ≈ 7.82 m/s²
@@ -32,17 +32,19 @@ function points(E: number, count: number, amp: number): Vector3[] {
 }
 
 function measure(E: number, count: number, amp: number): void {
-  const track = new Track(points(E, count, amp));
+  // celou osmičku vyšetříme jako jeden segment nad master křivkou (uStart=0, uEnd=1)
+  const curve = new CatmullRomCurve3(points(E, count, amp), true, 'centripetal');
+  const seg = new TrackSegment(curve, 0, 1, curve.getLength());
   let minR = Infinity, minClear = Infinity, atC = 0, maxGrade = 0;
   const N = 5000;
   for (let i = 0; i < N; i++) {
-    const s = (i / N) * track.length;
-    const k = Math.abs(track.signedCurvature(s));
+    const s = (i / N) * seg.length;
+    const k = Math.abs(seg.signedCurvature(s));
     const r = k > 1e-9 ? 1 / k : Infinity;
     if (r < minR) minR = r;
-    const g = Math.abs(track.grade(s)); // |sin θ| sklonu
+    const g = Math.abs(seg.grade(s)); // |sin θ| sklonu
     if (g > maxGrade) maxGrade = g;
-    const p = track.at(s).position;
+    const p = seg.positionAt(s);
     const clear = p.y - terrainHeight(p.x, p.z, amp); // záporné = trať pod terénem
     if (clear < minClear) { minClear = clear; atC = i / N; }
   }

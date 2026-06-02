@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import type { Track } from '../sim/Track';
+import type { TrackNetwork } from '../sim/TrackNetwork';
 import type { Train } from '../sim/Train';
 import type { Body } from '../sim/Body';
 import { buildCarModel, CAR_HEIGHT, CRANK_RADIUS, type CarType, type CarVisual } from './carModels';
@@ -60,8 +60,8 @@ export class Renderer {
 
   constructor(
     canvas: HTMLCanvasElement,
-    private readonly track: Track,
-    private readonly train: Train, // živý sim, čtený per-frame (symetrie s track)
+    private readonly network: TrackNetwork,
+    private readonly train: Train, // živý sim, čtený per-frame (symetrie s network)
     drone: DroneParams, // sdílená instance kamery — předá se CameraControlleru (slidery ji ladí)
     trackAmplitude: number, // počáteční amplituda terénu (slider sklonu) — terén vede trať (DD-20)
     private readonly carTypes: CarType[], // typ modelu per vůz (ryze view — DD-01); délka 1:1 s train.bodies
@@ -71,7 +71,7 @@ export class Renderer {
     this.gl = new THREE.WebGLRenderer({ canvas, antialias: true });
     this.gl.setPixelRatio(window.devicePixelRatio);
 
-    this.cameraCtrl = new CameraController(canvas, track, train, drone);
+    this.cameraCtrl = new CameraController(canvas, network, train, drone);
 
     this.scene.background = new THREE.Color(0x87ceeb);
     // bělavý opar nad krajinou: dodá hloubku a změkčí dálku. Fog počítá vzdálenost od kamery →
@@ -86,7 +86,7 @@ export class Renderer {
     sun.position.set(50, 80, 30);
     this.scene.add(sun);
 
-    this.world = new WorldView(this.scene, track, trackAmplitude);
+    this.world = new WorldView(this.scene, network, trackAmplitude);
     this.carVisuals = this.buildCars(train.bodies, this.carTypes);
     this.freeCarVisuals = this.buildCars(train.freeBodies, this.freeCarTypes);
     this.couplerMeshes = this.buildCouplers(train);
@@ -184,7 +184,8 @@ export class Renderer {
       const front = train.bodies[i];
       const rear = train.bodies[i + 1];
       const mesh = this.couplerMeshes[i];
-      mesh.position.copy(this.track.at((front.s + rear.s) / 2).position);
+      // střed mezi vozy z jejich world pozic (průměr lokálních s by přes hranici segmentu nesedl)
+      mesh.position.copy(this.network.at(front).position).lerp(this.network.at(rear).position, 0.5);
       mesh.position.y += RAIL_RADIUS + CAR_HEIGHT;
 
       const base = coupler.mode > 0 ? DRAFT_COLOR : coupler.mode < 0 ? BUFF_COLOR : SLACK_COLOR;
@@ -215,7 +216,7 @@ export class Renderer {
   // (pitch/roll z kývání) + valení kol a hnacích spojnic. Sdíleno soupravou i volnými vozy (DRY);
   // `isLoco` zapíná prokluz hnacích kol (driverSlipPhase) a animaci spojnic.
   private placeCar(body: Body, vis: CarVisual, isLoco: boolean, dt: number): void {
-    const { position, tangent } = this.track.at(body.s);
+    const { position, tangent } = this.network.at(body);
     const group = vis.group;
     group.position.copy(position);
     group.position.y += CAR_HEIGHT / 2 + RAIL_RADIUS;
@@ -234,7 +235,8 @@ export class Renderer {
       const dir = this.train.notch >= 0 ? -1 : 1;
       this.driverSlipPhase += dir * SLIP_SPIN_RATE * dt;
     }
-    const phase = -body.s / vis.wheelRadius + (isLoco ? this.driverSlipPhase : 0);
+    // valecí fáze z globální arc-length (spojitá přes hranice segmentů — lokální s by skákalo)
+    const phase = -this.network.globalS(body) / vis.wheelRadius + (isLoco ? this.driverSlipPhase : 0);
     for (const w of vis.wheels) w.rotation.x = phase * vis.wheelDir;
     // hnací spojnice loko: čep kliky obíhá kolem středu kola → tyč krouží v rovině Y-Z.
     // Záporná fáze ladí směr obíhání s otáčením kol (jinak by se spojnice točila opačně).

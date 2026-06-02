@@ -1,5 +1,6 @@
 import * as THREE from 'three';
-import type { Track } from '../sim/Track';
+import type { CatmullRomCurve3 } from 'three';
+import type { TrackNetwork } from '../sim/TrackNetwork';
 import { terrainHeight, smoothstep } from '../sim/terrain';
 
 // WorldView = statická scéna kolem soupravy (terén, dekorace, trať/pilíře) jako samostatná
@@ -87,7 +88,7 @@ export class WorldView {
 
   constructor(
     private readonly scene: THREE.Scene,
-    private readonly track: Track,
+    private readonly network: TrackNetwork,
     trackAmplitude: number, // počáteční amplituda terénu (slider sklonu) — terén vede trať (DD-20)
   ) {
     this.buildTerrain(trackAmplitude);
@@ -118,11 +119,18 @@ export class WorldView {
     this.populateTrack(amplitude);
   }
 
-  // Naplní group dvěma kolejnicemi (osa ± rozchod/2 do horizontální kolmice), pražci a
-  // mostními pilíři (kde se trať odlepí od terénu). Sim zná jen osu koleje (track.curve,
-  // DD-02); kolejnice jsou ryze vizuální offset. `amplitude` pro výšku terénu pod pilíři.
+  // Naplní group kolejnicemi a pražci pro každou master křivku sítě (fáze 1: jedna; fáze 2:
+  // osmička + ovál) + mostovkou a pilíři tam, kde se trať odlepí od terénu. Sim zná jen osu
+  // koleje (DD-02); kolejnice jsou ryze vizuální offset. `amplitude` pro výšku terénu pod pilíři.
   private populateTrack(amplitude: number): void {
-    const curve = this.track.curve;
+    for (const curve of this.network.masterCurves) this.buildCurveRails(curve);
+    this.buildDeck(amplitude);
+    this.buildPiers(amplitude);
+  }
+
+  // Dvě kolejnice (Tube ±rozchod/2 do horizontální kolmice) + pražce (InstancedMesh) podél
+  // jedné master křivky. Volá se per křivku sítě.
+  private buildCurveRails(curve: CatmullRomCurve3): void {
     const N = 400; // vzorků podél trati — hustota offset křivek i tuby
     const leftPts: THREE.Vector3[] = [];
     const rightPts: THREE.Vector3[] = [];
@@ -142,7 +150,7 @@ export class WorldView {
     }
 
     // pražce: InstancedMesh kvádrů napříč tratí (osa X = příčně, Z = podél tečny).
-    const count = Math.max(1, Math.floor(this.track.length / SLEEPER_SPACING));
+    const count = Math.max(1, Math.floor(curve.getLength() / SLEEPER_SPACING));
     const sleeperGeo = new THREE.BoxGeometry(RAIL_GAUGE + 0.5, 0.08, 0.35);
     const sleepers = new THREE.InstancedMesh(sleeperGeo, new THREE.MeshStandardMaterial({ color: SLEEPER_COLOR }), count);
     const m = new THREE.Matrix4();
@@ -161,9 +169,6 @@ export class WorldView {
       sleepers.setMatrixAt(i, m);
     }
     this.trackGroup.add(sleepers);
-
-    this.buildDeck(amplitude);
-    this.buildPiers(amplitude);
   }
 
   // Body podél trati, kde se kolej odlepí od terénu (clearance > práh) — emergentní detekce
@@ -173,19 +178,20 @@ export class WorldView {
     amplitude: number,
     spacing: number,
   ): { pts: THREE.Vector3[]; tangents: THREE.Vector3[]; heights: number[] } {
-    const curve = this.track.curve;
-    const count = Math.floor(this.track.length / spacing);
     const pts: THREE.Vector3[] = [];
     const tangents: THREE.Vector3[] = [];
     const heights: number[] = [];
-    for (let i = 0; i < count; i++) {
-      const u = i / count;
-      const p = curve.getPointAt(u);
-      const clearance = p.y - terrainHeight(p.x, p.z, amplitude);
-      if (clearance > PIER_MIN_CLEARANCE) {
-        pts.push(p);
-        tangents.push(curve.getTangentAt(u).normalize());
-        heights.push(clearance);
+    for (const curve of this.network.masterCurves) {
+      const count = Math.floor(curve.getLength() / spacing);
+      for (let i = 0; i < count; i++) {
+        const u = i / count;
+        const p = curve.getPointAt(u);
+        const clearance = p.y - terrainHeight(p.x, p.z, amplitude);
+        if (clearance > PIER_MIN_CLEARANCE) {
+          pts.push(p);
+          tangents.push(curve.getTangentAt(u).normalize());
+          heights.push(clearance);
+        }
       }
     }
     return { pts, tangents, heights };
@@ -338,12 +344,15 @@ export class WorldView {
     this.scene.add(this.sceneryGroup);
   }
 
-  // Vzorky osy trati v XZ — pro test vzdálenosti dekorace od koleje (clearance, viz nearTrack).
+  // Vzorky os trati v XZ (přes všechny master křivky) — pro test vzdálenosti dekorace od koleje
+  // (clearance, viz nearTrack). `n` vzorků na křivku.
   private sampleTrackXZ(n: number): { x: number; z: number }[] {
     const pts: { x: number; z: number }[] = [];
-    for (let i = 0; i < n; i++) {
-      const p = this.track.curve.getPointAt(i / n);
-      pts.push({ x: p.x, z: p.z });
+    for (const curve of this.network.masterCurves) {
+      for (let i = 0; i < n; i++) {
+        const p = curve.getPointAt(i / n);
+        pts.push({ x: p.x, z: p.z });
+      }
     }
     return pts;
   }

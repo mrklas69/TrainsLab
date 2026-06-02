@@ -1,5 +1,6 @@
 import type { Body } from './Body';
 import type { PhysicsParams } from './params';
+import type { TrackNetwork } from './TrackNetwork';
 
 /** Režim spřáhla: −1 = buff (tlak nárazníků), 0 = ve vůli, +1 = draft (tah). */
 export type CouplerMode = -1 | 0 | 1;
@@ -22,10 +23,12 @@ export class Coupler {
     private readonly front: Body, // vůz vepředu (větší s)
     private readonly rear: Body,  // vůz vzadu (menší s)
     private readonly restGap: number, // rozteč středů ve středu vůle (m)
+    private readonly network: TrackNetwork, // pro rozteč po síti (přes segment i wrap smyčky)
   ) {}
 
   apply(params: PhysicsParams): void {
-    const stretch = this.front.s - this.rear.s - this.restGap; // + natažení, − stlačení
+    // rozteč po dráze (gap = globalS(front) − globalS(rear), nejkratší po smyčce) − klidová rozteč
+    const stretch = this.network.gap(this.rear, this.front) - this.restGap; // + natažení, − stlačení
     const half = params.couplerSlack / 2;
     this.relVel = this.front.v - this.rear.v;
 

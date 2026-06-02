@@ -1,5 +1,7 @@
-import { Vector3 } from 'three';
+import { CatmullRomCurve3, Vector3 } from 'three';
 import { terrainHeight } from './terrain';
+import { TrackSegment } from './TrackSegment';
+import type { NetworkSpec } from './TrackNetwork';
 
 const BRIDGE_HEIGHT = 8;  // m — výška mostu nad podjezdem; clearance > výška vozu (~5,8 m)
 const BRIDGE_WIDTH = 0.5; // rad — pološířka náběhu mostu v parametru t (rampa stoupání/klesání)
@@ -57,6 +59,22 @@ export function makeLoopControlPoints(amplitude: number): Vector3[] {
     points.push(new Vector3(x, terrainHeight(x, z, amplitude) + bridgeLift(t), z));
   }
   return points;
+}
+
+/**
+ * Síť trati (graf segmentů) z osmičky. **Fáze 1:** jedna hladká master křivka (lemniskáta)
+ * rozdělená na 2 segmenty → deterministická smyčka, žádné větvení (`next`/`prev` jednoznačné).
+ * Dělení na u=0.5 je libovolné (chování beze změny). Fáze 2 přemístí uzly na křížení a přidá
+ * vnější ovál; fáze 3 doplní volbu (výhybky).
+ */
+export function buildLoopNetwork(amplitude: number): NetworkSpec {
+  const curve = new CatmullRomCurve3(makeLoopControlPoints(amplitude), true, 'centripetal');
+  const len = curve.getLength();
+  const segments = [
+    new TrackSegment(curve, 0, 0.5, len),
+    new TrackSegment(curve, 0.5, 1, len),
+  ];
+  return { segments, next: [1, 0], prev: [1, 0] };
 }
 
 /** Typ bodové nespojitosti — rozlišuje fyzikálně různé jevy (zvuk i škálování v {@link Train}). */

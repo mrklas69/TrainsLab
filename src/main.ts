@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import { Track } from './sim/Track';
-import { makeLoopControlPoints } from './sim/trackData';
+import { TrackNetwork } from './sim/TrackNetwork';
+import { buildLoopNetwork } from './sim/trackData';
 import { Train } from './sim/Train';
 import { DEFAULT_PARAMS } from './sim/params';
 import { Renderer } from './view/Renderer';
@@ -16,7 +16,7 @@ if (!canvas) throw new Error('Chybí <canvas id="scene">');
 // Jedna sdílená instance parametrů: čte ji fyzika i slidery (live ladění).
 const params = { ...DEFAULT_PARAMS };
 
-const track = new Track(makeLoopControlPoints(params.trackAmplitude));
+const network = new TrackNetwork(buildLoopNetwork(params.trackAmplitude));
 // souprava: lokomotiva (čelo) + cisterna + krytý + plošinový (plato) + 2 otevřené vozy.
 // `carTypes` je view metadata (typ modelu) 1:1 s tělesy; `carLengths` jde do simu (délka + rozteč spřáhel).
 const carTypes: CarType[] = ['loco', 'tank', 'boxcar', 'flatcar', 'gondola', 'gondola'];
@@ -24,13 +24,13 @@ const carLengths = [8, 7, 6, 6, 7, 7];
 // odstavený volný vagon na protilehlé straně smyčky — souprava ho dokola dožene a ťukne do něj
 // (kontaktní buff, bez spřažení; DD-24). `freeCarTypes` je view metadata 1:1 s train.freeBodies.
 const freeCarTypes: CarType[] = ['boxcar'];
-const freeCars = [{ length: 7, startS: track.length * 0.5 }];
-const train = new Train(track, params, carLengths, 0, freeCars);
+const freeCars = [{ length: 7, startS: network.totalLength * 0.5 }];
+const train = new Train(network, params, carLengths, 0, freeCars);
 // dron = view parametry kamery (mimo fyziku), sdílená instance pro slidery (live ladění)
 const drone = { ...DEFAULT_DRONE };
 // sdílený rytmus parního výfuku (čistě view) — kouř i zvukový chuff z něj pufají v taktu
 const exhaust = new ExhaustClock(params);
-const renderer = new Renderer(canvas, track, train, drone, params.trackAmplitude, carTypes, freeCarTypes, exhaust);
+const renderer = new Renderer(canvas, network, train, drone, params.trackAmplitude, carTypes, freeCarTypes, exhaust);
 const audio = new AudioView(train, params, exhaust);
 
 // Klávesové akce — single source pro keydown handler, nápovědu i tlačítka panelu.
@@ -50,7 +50,7 @@ const updatePanel = createControlPanel(params, drone, actions, {
   // slider sklonu: terén vede trať (DD-20) → přestav terén i křivku (sim) i kolejnice (view);
   // souprava jede dál (s je v metrech, wrap přes novou délku)
   onAmplitudeChange: () => {
-    track.rebuild(makeLoopControlPoints(params.trackAmplitude));
+    network.rebuild(buildLoopNetwork(params.trackAmplitude));
     renderer.rebuildWorld(params.trackAmplitude); // přestaví terén + dekoraci + trať (WorldView)
   },
   // checkbox v Nastavení: zobrazit/skrýt markery napětí spřáhel (osciloskop slack action)

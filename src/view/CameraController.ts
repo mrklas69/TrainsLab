@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import type { Track } from '../sim/Track';
+import type { TrackNetwork } from '../sim/TrackNetwork';
 import type { Train } from '../sim/Train';
 import { CAR_HEIGHT } from './carModels';
 
@@ -51,7 +51,7 @@ export class CameraController {
 
   constructor(
     canvas: HTMLCanvasElement,
-    private readonly track: Track,
+    private readonly network: TrackNetwork,
     private readonly train: Train,
     private readonly drone: DroneParams, // sdílená instance — slidery ji ladí za běhu
   ) {
@@ -130,7 +130,7 @@ export class CameraController {
   /** Cílová pozice kamery (na kružnici kolem lokomotivy) a bod pohledu (lokomotiva) pro aktuální orbitAngle. */
   private computeDroneTarget(outPos: THREE.Vector3, outLook: THREE.Vector3): void {
     // střed orbity i bod pohledu = lokomotiva (čelo soupravy, bodies[0]) — kamera krouží kolem ní
-    outLook.copy(this.track.positionAt(this.train.bodies[0].s));
+    outLook.copy(this.network.positionAt(this.train.bodies[0]));
     // pozice: bod na kružnici poloměru `distance` v horizontální rovině + výška nad loko
     outPos.set(
       outLook.x + Math.cos(this.orbitAngle) * this.drone.distance,
