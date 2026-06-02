@@ -146,13 +146,17 @@ Sjednocený balík: nespojitosti trati → impulsy do **existujících** roll/pi
 - [x] Mez energie srážky `½·m_red·v²` → vykolejení (slider, `derail(reason)`, diagnostika collision/overturn)
 - *Nezralé:* automatické spřažení (scénář B), dva řízené vlaky (scénář C) → viz IDEAS.
 
-### Výhybky — topologie sítě *(S35+, DD-25; geometrie „osmička + opsaný ovál ve 4 uzlech")*
+### Výhybky — topologie sítě *(S35+, DD-25)*
 - [x] **Fáze 1** — osa trati z jedné křivky na **graf segmentů** (`TrackSegment` + `TrackNetwork`),
       `Body`→`(seg,s)`, vše přes `globalS`/`gap`; osmička = 2 segmenty, chování identické *(ověřeno)*
-- [ ] **Fáze 2** — geometrie: osmička + **vnější ovál tečně napojený ve 4 uzlech** (konstruktivně:
-      uzly na osmičce + 4 Hermitovy oblouky se shodnou tečnou → bez zlomů). Zatím deterministicky (bez volby).
-- [ ] **Fáze 3** — větvení: uzel s víc pokračováními + **náhodná volba** trasy (placeholder za pozdější `←`/`→`)
-- [ ] **Fáze 4** — vagon/srážky/rázy na grafu (kontakty přes větve — nejtěžší; `gap`/`globalS` přestanou stačit)
+- [x] **Infrastruktura větvení** *(S36)* — `next`/`prev` na **seznam možností** (`number[][]`) +
+      `advance(choose)` (deterministická souprava `[0]` / náhodný `randomBranch` volný vagon = scénář A2);
+      `TrackSegment.wrapU` dle `curve.closed` (otevřené větve); `totalLength`=délka hlavní smyčky (gap).
+- [~] **Fáze 2 — geometrie kolejiště** *(S36 mnoho pokusů, vráceno — viz diář/IDEAS „výhybková geometrie")*.
+      Poučení: „zdvojení" = souběh u výhybky ∝ úhel napojení (8°≈14 m); **vyhnout se X-přesmyku přes střed**
+      (antipodální tečny → couvání / mine střed / ostrá kolmá odbočka). Hledá projetelnou geometrii bez zdvojení.
+- [ ] **Fáze 3** — větvení v geometrii: výhybkové uzly + napojené větve (infrastruktura volby hotová S36).
+- [ ] **Fáze 4** — vagon/srážky/rázy na grafu (kontakty přes větve — nejtěžší; `gap`/`globalS` přes větve)
 
 ## Backlog / později
 - [x] **Křivkový odpor v obloucích** *(S29)* — `R = −sign(v)·curveResistance·|κ|·m·g`; specifický odpor

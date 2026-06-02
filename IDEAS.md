@@ -11,7 +11,19 @@ Koncept a kontext: viz `docs/diary/2026-05-29.md`.
 - **Topologie sítě** — výhybky, větvení, křižovatky. Vlastní těžký problém oddělený
   od fyziky. Brána k makro měřítku. **→ rozpracováno (S35, DD-25):** osa trati přešla na **graf
   segmentů** (`TrackSegment`+`TrackNetwork`), fáze 1 hotová (osmička = 2 segmenty, bez větvení).
-  Plán „osmička + opsaný ovál ve 4 uzlech" → fáze 2–4 v `TODO.md`.
+  **Infrastruktura větvení hotová (S36):** `next`/`prev` = seznam možností + `advance(choose)`
+  (deterministická souprava / náhodný volný vagon). Chybí jen **projetelná geometrie kolejiště**.
+- **Výhybková geometrie — poučení S36** (5 zahozených pokusů, ať se neopakují):
+  - **„Zdvojení kolejí" = souběh u výhybky**, nevyhnutelný u tečného napojení. Délka (kde koleje
+    < ~2 m = vypadají jako jedna) **klesá lineárně s úhlem napojení**: 5° → ~23 m (paralelka), 8°
+    (reálná 1:7) → ~14 m (vypadá jako výhybka). **Tvar trati o souběhu nerozhoduje — rozhoduje úhel.**
+  - **Napojení ve vrcholu lemniskáty** = dlouhý souběh (tečna `‖x` na dlouhém úseku).
+  - **X-přesmyk přes střed (ovál + 2 úhlopříčky) je past:** úhlopříčka spojuje **antipodální** body
+    s **opačnými** tečnami → bodově symetrický oblouk **couvá** na jednom konci (179°); plynulý Hermit
+    **mine střed** (~70 m, most by nebyl na křížení); přímá úhlopříčka = **ostrá kolmá odbočka** („žárovka").
+  - **Doporučený směr příště:** odbočka pod **realistickým výhybkovým úhlem ~8°** (krátký jazyk ~14 m,
+    přijatý `switch` ráz) na úseku, kde se **hlavní trať zakřivuje pryč** od odbočky; **vyhnout se větvi
+    mezi antipodálními body**. Geometrii ověřovat `tools/check-radius.ts` **před** zápisem do kódu (fungovalo).
 
 ## Hlubší fyzika
 - **Sloshing kapaliny v cisterně** (F5) — pohyb kapaliny mění těžiště vagonu, zpětně
