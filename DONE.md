@@ -539,3 +539,23 @@ křivosti. Sjednoceno do **jednoho balíku** „rázy z trati" — impulsy do ex
 - `WorldView.buildCurveRails` respektuje `curve.closed` (otevřená větev se nezauzlí).
 - Volný vagon dočasně deterministický (`randomBranch` odebrán — bez jízdy po grafu by vjel na konec a spadl).
 - Nástroje: `tools/check-{switch,connector,merge,network}.ts` — geometrie měřena před kódem (souběh, dosednutí, spojitost κ, nekřížení).
+
+## Sezení 38 (2026-06-11)
+
+### `%AUDIT:CODE` — síť, diagnostika a životní cyklus view
+- Volné vozy vstupují do příčné diagnostiky i kritéria převrácení; vykolejení nese správného viníka a rychlost.
+- `TrackNetwork` validuje topologii a explicitně odmítá nejednoznačné route souřadnice na větvích; křivost se vzorkuje přes hranice segmentů.
+- Otevřené segmenty používají jednostranné diference; skrytě prodloužená řídicí křivka spojky drží spojitou křivost i na koncích.
+- `WorldView` při rebuildu rekurzivně uvolňuje geometrie i materiály; klávesové jednorázové akce ignorují autorepeat.
+- Polohy výhybkových rázů odpovídají skutečným křížením asymetrické osmičky (`u≈0.2966/0.7033`).
+- Diagnostické skripty sjednoceny pod `npm run check`; přidány testy sítě, spojky, převrácení volného vozu a pískování.
+
+### Účinnější pískování
+- Nový Lab parametr `sandAdhesionBoost` násobí suchou adhezi; default 1,20 dává μ=0,36 a při plném výkonu odstraní prokluz.
+- Stejný efektivní adhezní limit platí pro tah i brzdu; UI obsahuje slider účinnosti písku.
+
+### Realistický kouř a parní úniky
+- `SmokeView` nahrazen `SteamView` s 320 měkkými sprite částicemi, procedurální texturou, turbulencí, vztlakem, růstem a vyhasínáním.
+- Emitory jsou součástí modelu lokomotivy: komín, odvodňovací kohouty válců, rozvod a píšťala.
+- Píšťala vypouští páru synchronně se zvukem; pojistné ventily záměrně chybí, dokud sim nemodeluje dynamický tlak kotle.
+- DD-23 rozšířeno, bez nového DD.

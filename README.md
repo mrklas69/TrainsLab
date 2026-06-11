@@ -41,7 +41,7 @@ TrainsLab je jeden roh **mřížky experimentů** (měřítko × věrnost) — z
 | `↑` | přidat stupeň regulátoru |
 | `↓` | ubrat stupeň (notch −1 = reverz / protiproudé brzdění) |
 | `B` / mezerník | brzda lokomotivy |
-| `P` (drž) | pískování — vrací adhezi na mokré koleji (drž klávesu/tlačítko) |
+| `P` (drž) | pískování — zvýší adhezi nad suchou hodnotu (drž klávesu/tlačítko) |
 | `R` | reset (doplní i palivo a písek) |
 | `M` | zvuk on/off |
 | `C` | auto-kamera „dron" — toggle kroužení kolem lokomotivy (vypne ruční ovládání kamery) |
@@ -63,7 +63,7 @@ hmotnosti (lokomotiva = adhezní tíha; rotující hmota = setrvačnost kol/ojni
 ∝ křivost), spřáhlo (vůle / tuhost / tlumení), trakce (výkon, max tažná síla, adheze μ,
 **stav koleje** = sucho/mokro, brzda + pokles jejího tření s rychlostí, průměr hnacího kola a mez pístové
 rychlosti = otáčkový strop), **pískování**
-(kapacita / spotřeba písku), příčnou
+(účinnost / kapacita / spotřeba písku), příčnou
 dynamiku (rozchod koleje, výška těžiště — určují práh převrácení; amplituda terénních vln = sklon trati;
 rozteč dilatačních spár, síla rázů z trati a kvalita přechodnic oblouků = kvalita trati), vypružení skříně (frekvence / tlumení kývání)
 a palivo (kapacity a spotřeby uhlí / vody).
@@ -80,7 +80,7 @@ napětí ve spřáhlech — osciloskop slack action, default skrytý).
 | **F2** | trakce & adheze — notch, prokluz, brzda jako řízené tření | ✅ |
 | **F6** | příčná dynamika — esíčko (osmička), most/podjezd, převrácení/vykolejení, kývání skříně, gradient meze, rázy z trati (spáry / skok křivosti) | ✅ |
 | **F3** | palivo & zásoby — uhlí/voda (parní tlak), proměnná adheze + písek | ✅ |
-| **F4** | záclony — lowpoly terén/most/stromy ✅, párové koleje ✅, mostovka + mlha na horizontu ✅, modely vozů (kola + hnací spojnice + prokluz) ✅, kouř z komína (sladěný s výfukem) ✅, zvuk: samply ✅ (8 z 8 hlasů + houkačka/únik páry) | ✅ |
+| **F4** | záclony — lowpoly svět/modely ✅, párové koleje + mostovka + mlha ✅, realistické měkké částice kouře/páry (komín, válce, rozvod, píšťala) ✅, zvukové samply ✅ | ✅ |
 | **F7** | interakce vozů — odstavený volný vagon + srážky (mez energie → vykolejení) ✅; **výhybky / topologie sítě** — graf segmentů (fáze 1 ✅), **odbočka = θ-graf 2 uzly / 3 hrany, boční offset se spojitou omezenou κ** (fáze 2 ✅, DD-26); jízda po grafu + domek s napaječkou (fáze 3–4 🔧) | 🔧 |
 
 **PoC (F0–F4 + příčná) dokončen.** Po něm **restart** novým směrem (S35): interakce volného vagonu
@@ -98,7 +98,7 @@ vzniká až při renderu (DD-02).
 src/
   sim/    fyzika — TrackSegment + TrackNetwork (graf trati), trackData, terrain, params, Body, Coupler, Train
   view/   výstupy — Renderer (Three.js, aktéři + loop) + WorldView (terén/koleje/dekorace)
-          + CameraController (orbit/dron) + carModels (modely vozů) + SmokeView (kouř)
+          + CameraController (orbit/dron) + carModels (modely vozů) + SteamView (kouř/pára)
           + AudioView (samply) + ExhaustClock (rytmus výfuku)
   ui/     ControlPanel (slidery + status + tlačítka)
   main.ts skládá sim + view + ui, drží render loop

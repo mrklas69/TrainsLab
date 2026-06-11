@@ -26,9 +26,8 @@ Koncept a kontext: viz `docs/diary/2026-05-29.md`.
   - Geometrii ověřovat `tools/check-*.ts` **před** zápisem do kódu (fungovalo — jen princip κ chyběl).
 
 ## Latentní dluhy (k vyřešení mimochodem)
-- **`TRACK_PERTURBATIONS` switch pozice** — `u=0.25/0.75` byly odvozeny pro symetrickou osmičku, ale po
-  **asymetrii (S35, E=0.5)** je reálné křížení/podjezd na **`u≈0.703`** (a horní na ~0,30). Výhybkové
-  clunky tak zní na lehce posunutém místě. Opravit pozice `switch` perturbací dle skutečného profilu κ.
+- **`TRACK_PERTURBATIONS` switch pozice** → DONE (S38) — po asymetrii osmičky přesunuty
+  z historických `u=0.25/0.75` na numerická křížení `u≈0.2966/0.7033`.
 
 ## Hlubší fyzika
 - **Sloshing kapaliny v cisterně** (F5) — pohyb kapaliny mění těžiště vagonu, zpětně
@@ -168,7 +167,7 @@ Udělat z A2 měřitelné hypotézy, ne filozofování (proto Lab):
   (předpočítat poloha/tečna v N bodech, interpolovat) — zlevní `positionAt`/`getTangentAt` na horké cestě.
 
 ## Lab knoby & nástroje
-- **Slider sklonu tratě** → DONE (S5) — `trackAmplitude` v params, `Track.rebuild()`
-  in-place + `Renderer.rebuildTrack()`. Mění sklon za jízdy. Knob sklon × výkon × hmotnost.
+- **Slider sklonu tratě** → DONE (S5) — `trackAmplitude` v params, `TrackNetwork.rebuild()`
+  in-place + `Renderer.rebuildWorld()`. Mění sklon za jízdy. Knob sklon × výkon × hmotnost.
 - **Kalkulačka silové bilance** — z dnešního ověření (max sklon vs. adhezní/výkonový strop
   vs. hmotnost soupravy). Buď jako Lab panel, nebo skript v `tools/`.

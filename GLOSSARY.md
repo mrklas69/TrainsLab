@@ -84,7 +84,8 @@ Termíny projektu. Anglické identifikátory v kódu, české vysvětlení.
   (jerk). V modelu **fenomenologicky** (DD-21, A4 b): perturbace `kind:'transition'` = roll-impuls ve směru
   oblouku na nábězích/výjezdech laloků (`TRACK_PERTURBATIONS`), ne přepis geometrie hladké lemniskáty.
   Sílu tlumí **kvalita přechodnice** (`1−transitionQuality`) — jen tenhle typ, spáry/výhybky nezávisle.
-- **výhybka (jako bodový ráz)** — perturbace `kind:'switch'` u **křížení** osmičky (`u≈0.25/0.75`, inflexe
+- **výhybka (jako bodový ráz)** — perturbace `kind:'switch'` u **křížení** asymetrické osmičky
+  (`u≈0.2966/0.7033`, inflexe
   κ≈0, kde se větve protínají = most/podjezd): **bodový** roll+pitch clunk, ne topologický uzel (síť/větvení =
   Úr. 4 žebříku, jiný roh mřížky). Týž `crossed()` mechanismus jako skok křivosti, na přechodnici nezávislá.
 
@@ -153,11 +154,12 @@ Termíny projektu. Anglické identifikátory v kódu, české vysvětlení.
 - **parní tlak (steamPressure)** — `∈ [0,1]`, odvozený z menší ze zásob: drží 1 nad rezervou
   (15 %), pod ní lineárně klesá k 0. Škáluje tažnou sílu v obou směrech (pára žene písty).
   Po vyčerpání → tah 0 → vlak dojede setrvačností a zastaví na odporech. Brzda nezávisí (vzduchová).
-- **pískování (sanding)** — *(DD-17)* sypání písku pod hnací kola vrací adhezi na suchou hodnotu
-  (`isSanding ? adhesionCoeff : adhesionCoeff·railFactor`). **Písek** = spotřební zásoba (jako uhlí/voda):
+- **pískování (sanding)** — *(DD-17)* sypání písku pod hnací kola zvyšuje adhezi nad suchou
+  hodnotu (`isSanding ? adhesionCoeff·sandAdhesionBoost : adhesionCoeff·railFactor`).
+  Výchozí účinnost `1,20` dává μ=0,36, takže max. tah 200 kN nepřekročí adhezní limit.
+  **Písek** = spotřební zásoba (jako uhlí/voda):
   `sandCapacity`, spotřeba `sandRate` jen po dobu sypání, `R` doplní. Ovládání **held-key** (drž P /
-  drž tlačítko). Smysl má jen při nízké adhezi (mokro/listí) — na suchu je tah pod stropem, písek
-  neviditelný. Zachrání rozjezd (prokluz) i brzdění (skid).
+  drž tlačítko). Zachrání rozjezd (prokluz) i brzdění (skid); účinnost je živý Lab parametr.
 
 ## Zvuk
 - **chuff (výfuk páry)** — nárazový výdech páry komínem **pod párou** (otevřený regulátor `notch≠0`
@@ -172,12 +174,12 @@ Termíny projektu. Anglické identifikátory v kódu, české vysvětlení.
   by interval výfuku (~159 ms) klesl pod délku chuffu (~0,2 s) a pufy by splynuly v rachot („kulomet").
   Cap **na sdíleném clocku** → takt se ustálí pro zvuk i kouř současně (drží DD-23). Práh = fyzikální „interval
   = délka výdechu", vázán na default `driverDiameter`.
-- **kouř (`SmokeView`)** — *(DD-23)* faceted obláčky (ikosaedry, flatShading) emitované z ústí komína loko.
-  Žijí ve **world-space** (children scény, ne loko) → jak loko ujede, kouř visí a vzniká **vlečka**
-  emergentně (bez skriptu). Pod párou výrazné pufy v taktu výfuku (`ExhaustClock`), hustota/velikost/**tmavost**
-  ∝ `throttleFraction·steamPressure` (uhlíkový kouř při zátěži ↔ světlá pára); volnoběh = líné světlé obláčky.
-  Idle kouř je vázán na **hořící oheň** (`fireLit = coalFraction > 0`, S25): došlo uhlí → kotel vyhasne,
-  žádný kouř; došla jen voda → kotel kouří idle dál, ale bez páry = bez chuffu/výfuku.
+- **kouř a pára (`SteamView`)** — *(DD-23, rozšířeno S38)* měkké průsvitné billboard částice
+  s procedurální radiální texturou; žádné lowpoly facety. Žijí ve **world-space** → vlečka za lokomotivou
+  vzniká emergentně. Komín nese turbulentní spaliny (tmavost ∝ výkon) a pufy v taktu `ExhaustClock`;
+  odvodňovací kohouty válců vypouštějí hustou bílou páru při rozjezdu, ucpávky rozvodu jemně prosakují
+  pod výkonem a píšťala má krátký parní výtrysk synchronní s akcí houkačky. Pojistné ventily nejsou
+  modelovány, protože `steamPressure` zatím není dynamický tlak kotle.
 - **tikot / klapot spár** — „klikety-klak" na dilatačních spárách. Sample (`clattering_wheels.wav`)
   jako **smyčka** s `playbackRate ∝ rychlost` (`makeRateLoop`, `RAIL_REF_SPEED`) → frekvence klapotu
   úměrná rychlosti. Aktivní za jízdy; vypne `trackImpulse=0` / svařovaná kolej.
@@ -227,7 +229,7 @@ Termíny projektu. Anglické identifikátory v kódu, české vysvětlení.
   `toNonIndexed`, ale **viditelný je až směrovým kontrastem světla** (nízký ambient + silné slunce);
   rovnoměrné světlo facety setře, i kdyby byla geometrie zubatá.
 - **párové kolejnice / pražce** — vizuální ztvárnění tratě: dvě trubky offsetnuté ±rozchod/2 do
-  horizontální kolmice + příčné pražce (`InstancedMesh`). Sim zná jen osu koleje (`track.curve`, DD-02);
+  horizontální kolmice + příčné pražce (`InstancedMesh`). Sim zná jen síť os kolejí (DD-02/DD-25);
   kolejnice jsou ryze vizuální offset.
 - **mostní pilíře** — *(DD-20)* svislé podpěry tam, kde se trať odlepí od terénu (most nad podjezdem).
   **Emergentní**: žádná znalost „kde je most", staví se podle skutečného převýšení trati nad terénem
@@ -279,7 +281,8 @@ Termíny projektu. Anglické identifikátory v kódu, české vysvětlení.
 - **TrackNetwork** — *(DD-25)* graf segmentů + uzly (kdo na koho navazuje, `next`/`prev`). Nahradil
   dřívější `Track`: poloha tělesa = `(seg, s)`, `advance` ji posune přes hranice segmentů, `globalS`
   (kumulativní arc-length po smyčce) a `gap` (nejkratší rozteč po dráze) slouží spřáhlům, kontaktům,
-  rázům i valení kol. Fáze 1: orientovaná smyčka (osmička = 2 segmenty, žádné větvení).
+  rázům i valení kol na hlavní trase. Síť obsahuje hlavní smyčku i C² spojku; route-aware
+  souřadnice větví jsou samostatná navazující fáze.
 - **segment / uzel / výhybka (topologie)** — *(DD-25)* segment = úsek koleje mezi uzly; uzel = bod
   napojení segmentů. **Výhybka** = uzel s víc než jedním pokračováním (volba trasy, `next/prev` =
   seznam možností, `advance(choose)`). Tím se opouští „jedna smyčka" (Úr. 4 žebříku / DD-04), ale

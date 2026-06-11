@@ -48,8 +48,8 @@ Kontext a rozhodnutí: viz `docs/diary/2026-05-29.md`.
 - [x] **Otáčkový/mechanický strop rychlosti** *(S11, DD-15)* — `v_mech = maxPistonSpeed·π·D/(2·zdvih)`,
       tah padá k mezní rychlosti (kolo = převod); ustálí ~22 m/s místo ~67. Slidery kolo + mez pístu.
 - [x] **Proměnná adheze + písek** *(S14, DD-17)* — `railFactor` (stav koleje: sucho 1 → mokro/listí),
-      efektivní μ = `adhesionCoeff·railFactor`; písek = spotřební zásoba (`sand`), held-key P vrací
-      suchou adhezi. Sdílený `adhesionLimit` → platí pro tah i brzdu. Slidery stav koleje + pískování.
+      efektivní μ = `adhesionCoeff·railFactor`; písek = spotřební zásoba (`sand`), held-key P násobí
+      suchou μ přes `sandAdhesionBoost` *(S38)*. Sdílený `adhesionLimit` → tah i brzda.
 - [x] **Skid při provozní brzdě** *(S14, DD-16)* — brzda nad adhezí (mokro) → kola kloužou, indikováno
       sdíleným `slipping` flagem (PROKLUZ + oranžová loko), s tolerancí (sucho neblikne). Izomorfní s tahem.
 
@@ -72,6 +72,10 @@ Kontext a rozhodnutí: viz `docs/diary/2026-05-29.md`.
       `throttleFraction·steamPressure` (uhlíkový kouř ↔ světlá pára), idle obláčky při notch 0. Sladěn se
       zvukovým chuff přes **`ExhaustClock`** (sdílený fyzikální rytmus výfuku, 4×/otáčku kola). `chimneyTip`
       marker přes `getWorldPosition` (flip/náklon vyřeší three).
+- [x] **Realistický kouř a parní úniky** *(S38)* — faceted ikosaedry nahrazeny měkkými sprite částicemi;
+      komín = turbulentní uhlíkový kouř, odvodňovací kohouty válců = bílá pára při rozjezdu, rozvod =
+      jemný únik pod výkonem, píšťala = krátký výtrysk při houkání. Bez pojistných ventilů, dokud model
+      nemá skutečnou dynamiku tlaku kotle.
 - [x] Osvětlení doladěno pro lowpoly (S17); kamera „dron" hotová (S15). **Mostovka + mlha na horizontu** *(S32)* —
       mostovka = plná betonová deska pod kolejí na estakádě (`elevatedSamples` sdílený s pilíři, DRY);
       mlha = `THREE.Fog` (bělavý opar, schová tvrdý okraj terénní desky). Dron přepnut chase → **orbit kolem loko**.
@@ -122,7 +126,8 @@ Sjednocený balík: nespojitosti trati → impulsy do **existujících** roll/pi
 - [x] Slider „Síla rázů (kvalita trati)" + „Rozteč spár" (sekce Trať); `trackImpulse=0` = ideální trať
 - [x] **Doladění rázů z trati** *(S20)* — `PerturbationKind` (`transition`/`switch`); slider „kvalita
       přechodnic" (`transitionQuality`, tlumí jen κ-trh, default 0,3 — místo toggle); zvuk rozštěpen
-      (`switchFired` clunk vs. `transitionJerkFired` skřípnutí); pozice ověřeny profilem κ (u=0.25/0.75 = křížení)
+      (`switchFired` clunk vs. `transitionJerkFired` skřípnutí); pozice odpovídají reálnému
+      křížení asymetrické osmičky (`u≈0.2966/0.7033`)
 
 ## Dokumentace / infra
 - [x] Deploy dema na GitHub Pages (Actions, base `/TrainsLab/`) *(S4)*

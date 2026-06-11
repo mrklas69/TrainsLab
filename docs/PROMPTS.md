@@ -2,8 +2,8 @@
 
 Projektová makra `%BEGIN` a `%END` (start a konec sezení). Ostatní makra
 (`%THINK`, `%DOCS`, `%AUDIT:CODE`, `%AUDIT:DOCS`, `%CALIBRATE`) jsou definovaná
-**globálně** v `~/.claude/CLAUDE.md` — zde se neopakují (DRY). Doménové rozšíření
-`%THINK` pro TrainsLab je v projektovém `CLAUDE.md`.
+**globálně** v `~/.Codex/AGENTS.md` (Codex) / `~/.claude/CLAUDE.md` (Claude) — zde
+se neopakují (DRY). Doménové rozšíření `%THINK` je v odpovídajícím projektovém overlayi.
 
 ---
 
@@ -53,7 +53,7 @@ o ≥ 2 sezení → spustit jako první bod sezení.
 
 | Audit | Naposledy (sezení) | Práh |
 |-------|--------------------|------|
-| `%AUDIT:CODE` | **S31** | ≥ 6 sez. **nebo** +250 LOC v `src/` |
+| `%AUDIT:CODE` | **S38** | ≥ 6 sez. **nebo** +250 LOC v `src/` |
 | `%AUDIT:DOCS` | **S26** | ≥ 12 sez. |
 | pruning (IDEAS/TODO) | **S26** | ≥ 12 sez. |
 | `%CALIBRATE` | **S28** | ≥ 15 sez. |
