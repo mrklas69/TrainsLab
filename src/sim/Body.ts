@@ -1,4 +1,4 @@
-import type { TrackSegment } from './TrackSegment';
+import type { TrackNetwork } from './TrackNetwork';
 import type { PhysicsParams } from './params';
 
 const V_STATIC = 0.05; // m/s — pod tímhle se těleso považuje za stojící
@@ -59,9 +59,9 @@ export class Body {
    * Všechny odporové členy proti pohybu (znaménko `v`). Drží DD-02: `κ` je jen skalár,
    * křivkový odpor je podélná síla (mění `v` podél `s`), nezavádí příčný DOF.
    */
-  beginStep(seg: TrackSegment, params: PhysicsParams, mass: number): void {
-    const grade = seg.grade(this.s);                 // sin(θ)
-    const curvature = seg.signedCurvature(this.s);   // 1/m (znaménko = strana oblouku, tady jen |κ|)
+  beginStep(network: TrackNetwork, params: PhysicsParams, mass: number): void {
+    const grade = network.grade(this);                 // sin(θ)
+    const curvature = network.signedCurvature(this);   // 1/m; přes uzel vzorkuje sousední segment
     const fGravity = -mass * params.gravity * grade;   // do kopce brzdí
     // odpor v oblouku: specifický C·|κ| (bezrozm.) krát tíha; proti pohybu (sign), na rovince κ=0 → 0
     const fCurve = -Math.sign(this.v) * params.curveResistance * Math.abs(curvature) * mass * params.gravity;

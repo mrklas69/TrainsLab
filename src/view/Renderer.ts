@@ -3,7 +3,7 @@ import type { TrackNetwork } from '../sim/TrackNetwork';
 import type { Train } from '../sim/Train';
 import type { Body } from '../sim/Body';
 import { buildCarModel, CAR_HEIGHT, CRANK_RADIUS, type CarType, type CarVisual } from './carModels';
-import { SmokeView } from './SmokeView';
+import { SteamView } from './SteamView';
 import { WorldView, RAIL_RADIUS } from './WorldView';
 import { CameraController, type DroneParams } from './CameraController';
 import type { ExhaustClock } from './ExhaustClock';
@@ -36,7 +36,7 @@ function tipGlow(ratio: number): number {
 
 /**
  * Renderer = čistá funkce stavu → obraz (DD-01). Drží ThreeJS scénu a každý frame jen čte
- * sim ({@link Body} na {@link Track}); nikdy stav nemění. Stará se o **aktéry** (vozy, markery
+ * sim ({@link Body} na {@link TrackNetwork}); nikdy stav nemění. Stará se o **aktéry** (vozy, markery
  * spřáhel, kouř) a render loop; statickou scénu (terén, dekorace, trať) drží {@link WorldView},
  * kameru {@link CameraController} (SLAP — vytaženo v S25/S31).
  */
@@ -48,8 +48,7 @@ export class Renderer {
   private readonly carVisuals: CarVisual[]; // lowpoly modely vozů soupravy (group + tintovaný skin materiál)
   private readonly freeCarVisuals: CarVisual[]; // modely volných (nespřažených) vozů — odstavené na trati
   private readonly couplerMeshes: THREE.Mesh[]; // marker napětí mezi sousedními vozy
-  private readonly smoke: SmokeView;        // faceted kouř z komína loko (čistě view)
-  private readonly chimneyWorld = new THREE.Vector3(); // přepoužitý buffer pro world pozici ústí komína
+  private readonly steam: SteamView;        // měkké částice kouře a parních úniků lokomotivy
   private readonly lookTarget = new THREE.Vector3();   // přepoužitý buffer pro orientaci vozů (lookAt)
 
   // animace prokluzu hnacích kol loko (view-only): navýšení fáze otáčení, akumuluje se při slipping
@@ -90,7 +89,7 @@ export class Renderer {
     this.carVisuals = this.buildCars(train.bodies, this.carTypes);
     this.freeCarVisuals = this.buildCars(train.freeBodies, this.freeCarTypes);
     this.couplerMeshes = this.buildCouplers(train);
-    this.smoke = new SmokeView(this.scene);
+    this.steam = new SteamView(this.scene);
 
     this.onResize();
     window.addEventListener('resize', () => this.onResize());
@@ -126,28 +125,25 @@ export class Renderer {
     train.freeBodies.forEach((body, i) => {
       const vis = this.freeCarVisuals[i];
       this.placeCar(body, vis, false, dt);
-      vis.skin.color.copy(vis.baseColor);
-      vis.skin.emissive.copy(DANGER_GLOW).multiplyScalar(tipGlow(train.tipRatioOf(body)) * MAX_GLOW);
+      vis.skin.color.copy(train.derailed ? DERAILED_COLOR : vis.baseColor);
+      const glow = train.derailed ? 1 : tipGlow(train.tipRatioOf(body));
+      vis.skin.emissive.copy(DANGER_GLOW).multiplyScalar(glow * MAX_GLOW);
     });
 
     if (this.couplerMarkersVisible) this.renderCouplers(train); // skryté = nemutuj (zbytečná práce)
 
-    // kouř z komína loko: emisní bod = world pozice ústí (getWorldPosition vyřeší flip/náklon
-    // za nás). Pufá v taktu výfuku (ExhaustClock) jen pod párou; mimo páru jen líný idle kouř.
-    // Hustota/velikost/tmavost ∝ otevření regulátoru × parní tlak (bez páry není co kouřit).
+    // Kouř + pára lokomotivy: komín, válcové kohouty, rozvod a píšťala. Emisní body jsou
+    // součást modelu, SteamView je převádí do world-space a drží částice nezávisle na lokomotivě.
     const loco = this.carVisuals[0];
-    if (loco.chimneyTip) {
-      loco.chimneyTip.getWorldPosition(this.chimneyWorld);
-      const power = train.throttleFraction * train.steamPressure;
-      // puf jen pod párou — sladěno se zvukovým chuffem (týž ExhaustClock, izomorfní podmínka).
-      // power už nese steamPressure (puf zhasne při pára=0), flag to drží explicitně na jednom místě.
-      // fireLit (je uhlí) řídí idle kouř: vyhaslý kotel nekouří, kotel bez vody kouří dál.
-      this.smoke.update(
-        dt, this.chimneyWorld, power,
-        this.exhaust.fired && train.notch !== 0 && train.steamPressure > 0,
-        train.coalFraction > 0,
-      );
-    }
+    const power = train.throttleFraction * train.steamPressure;
+    this.steam.update(dt, loco, {
+      power,
+      pressure: train.steamPressure,
+      speed: train.speed,
+      throttleOpen: train.notch !== 0,
+      exhaustFired: this.exhaust.fired && train.notch !== 0 && train.steamPressure > 0,
+      fireLit: train.coalFraction > 0,
+    });
 
     this.gl.render(this.scene, this.cameraCtrl.camera);
   }
@@ -155,6 +151,11 @@ export class Renderer {
   /** Toggle auto-kamery „dron" (klávesa C) — deleguje na CameraController. */
   toggleDrone(): void {
     this.cameraCtrl.toggleDrone();
+  }
+
+  /** Krátký odběr páry píšťalou; zvuk spouští paralelně tatáž KeyAction v main. */
+  triggerWhistleSteam(): void {
+    this.steam.triggerWhistle();
   }
 
   /**
@@ -166,7 +167,7 @@ export class Renderer {
     return this.cameraCtrl.camera.position.distanceTo(this.carVisuals[0].group.position);
   }
 
-  /** Slider sklonu: přestav statickou scénu (terén + dekorace + trať). Křivka už je v Track.rebuild(). */
+  /** Slider sklonu: přestav statickou scénu; síť už obnovil TrackNetwork.rebuild(). */
   rebuildWorld(amplitude: number): void {
     this.world.rebuild(amplitude);
   }

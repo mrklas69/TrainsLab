@@ -1,11 +1,11 @@
 import * as THREE from 'three';
-import type { CatmullRomCurve3 } from 'three';
 import type { TrackNetwork } from '../sim/TrackNetwork';
+import type { TrackCurve } from '../sim/TrackSegment';
 import { terrainHeight, smoothstep } from '../sim/terrain';
 
 // WorldView = statická scéna kolem soupravy (terén, dekorace, trať/pilíře) jako samostatná
 // view vrstva (SLAP) — vytaženo z Rendereru (S31), aby Renderer řešil jen aktéry (vozy, spřáhla,
-// kouř, kamera) a render loop. Drží DD-01: čistě view, sim zná jen osu koleje (track.curve, DD-02).
+// kouř, kamera) a render loop. Drží DD-01: čistě view, sim zná jen síť os kolejí (DD-02/DD-25).
 //
 // Vše „postaveno jednou" v konstruktoru; slider sklonu přestaví terén i trať přes {@link rebuild}
 // (výškovou matematiku drží `sim/terrain.ts`, mesh/barvy jsou ryze render).
@@ -81,6 +81,21 @@ function forestDensity(x: number, z: number): number {
 // místo pro kus dekorace (strom/kámen) na terénu
 type Spot = { x: number; z: number; y: number; scale: number; rot: number };
 
+// Uvolní unikátní GPU prostředky celé větve scény. Materiál může sdílet víc meshů
+// (např. obě kolejnice), proto Set brání opakovanému dispose téhož objektu.
+function disposeObject(root: THREE.Object3D): void {
+  const geometries = new Set<THREE.BufferGeometry>();
+  const materials = new Set<THREE.Material>();
+  root.traverse((object) => {
+    if (!(object instanceof THREE.Mesh)) return;
+    geometries.add(object.geometry);
+    const meshMaterials = Array.isArray(object.material) ? object.material : [object.material];
+    for (const material of meshMaterials) materials.add(material);
+  });
+  for (const geometry of geometries) geometry.dispose();
+  for (const material of materials) material.dispose();
+}
+
 export class WorldView {
   private trackGroup!: THREE.Group;   // dvě kolejnice + pražce + pilíře — přestavitelné sliderem sklonu
   private terrainMesh!: THREE.Mesh;   // lowpoly heightfield — přestavitelný sliderem sklonu
@@ -96,7 +111,7 @@ export class WorldView {
     this.buildTrack(trackAmplitude);
   }
 
-  /** Přestaví terén, dekoraci i trať po změně sklonu (slider). Křivka už je v Track.rebuild(). */
+  /** Přestaví terén, dekoraci i trať po změně sklonu; síť už obnovil TrackNetwork.rebuild(). */
   rebuild(amplitude: number): void {
     this.rebuildTerrain(amplitude);
     this.rebuildTrack(amplitude);
@@ -111,16 +126,13 @@ export class WorldView {
   }
 
   private rebuildTrack(amplitude: number): void {
-    // dispose staré geometrie (kolejnice = Tube, pražce/pilíře = InstancedMesh) než vyčistíme group
-    this.trackGroup.children.forEach((c) => {
-      if (c instanceof THREE.Mesh) c.geometry.dispose();
-    });
+    disposeObject(this.trackGroup);
     this.trackGroup.clear();
     this.populateTrack(amplitude);
   }
 
-  // Naplní group kolejnicemi a pražci pro každou master křivku sítě (fáze 1: jedna; fáze 2:
-  // osmička + ovál) + mostovkou a pilíři tam, kde se trať odlepí od terénu. Sim zná jen osu
+    // Naplní group kolejnicemi a pražci pro každou master křivku sítě (osmička + spojka)
+    // + mostovkou a pilíři tam, kde se trať odlepí od terénu. Sim zná jen osu
   // koleje (DD-02); kolejnice jsou ryze vizuální offset. `amplitude` pro výšku terénu pod pilíři.
   private populateTrack(amplitude: number): void {
     for (const curve of this.network.masterCurves) this.buildCurveRails(curve);
@@ -130,7 +142,7 @@ export class WorldView {
 
   // Dvě kolejnice (Tube ±rozchod/2 do horizontální kolmice) + pražce (InstancedMesh) podél
   // jedné master křivky. Volá se per křivku sítě.
-  private buildCurveRails(curve: CatmullRomCurve3): void {
+  private buildCurveRails(curve: TrackCurve): void {
     const closed = curve.closed; // uzavřená smyčka (lemniskáta) vs. otevřená slepá odbočka
     const N = 400; // vzorků podél trati — hustota offset křivek i tuby
     const leftPts: THREE.Vector3[] = [];
@@ -265,11 +277,11 @@ export class WorldView {
 
   /** Přestaví terén i dekoraci po změně sklonu (slider) — vše drží zákryt (čte terrainHeight). */
   private rebuildTerrain(amplitude: number): void {
-    this.terrainMesh.geometry.dispose();
+    disposeObject(this.terrainMesh);
     this.scene.remove(this.terrainMesh);
     this.buildTerrain(amplitude);
 
-    this.sceneryGroup.children.forEach((c) => { if (c instanceof THREE.Mesh) c.geometry.dispose(); });
+    disposeObject(this.sceneryGroup);
     this.scene.remove(this.sceneryGroup);
     this.buildScenery(amplitude);
   }
@@ -287,6 +299,7 @@ export class WorldView {
     // toNonIndexed rozpojí sdílené vrcholy → každá faceta má vlastní 3 vrcholy:
     // dovolí ostré per-facetu barvy (lowpoly look) i korektní flat normály.
     const mesh = geo.toNonIndexed();
+    geo.dispose(); // toNonIndexed vytvoří novou geometrii; původní už renderer nepoužije
     mesh.computeVertexNormals();
 
     // barva po trojúhelníku (3 vrcholy = 1 faceta): průměrná výška → jeden odstín na facetu.

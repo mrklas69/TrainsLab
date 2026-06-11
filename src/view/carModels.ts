@@ -49,7 +49,12 @@ export interface CarVisual {
   wheelDir: number;                    // ±1 směr otáčení kol — sladí flipnuté loko (Y-flip invertuje rotaci) s vagony
   rods: THREE.Mesh[];                  // hnací spojnice loko (u vagonů prázdné); render loop animuje pozici dle kliky
   rodBaseY: number;                    // klidové y spojnice (osa orbity kliky = výška středu hnacích kol)
-  chimneyTip?: THREE.Object3D;         // ústí komína (jen loko) — render loop z něj bere world pozici pro emisi kouře
+  steamEmitters?: {
+    chimney: THREE.Object3D;           // ústí komína — uhlíkový kouř + parní výfuk
+    cylinderDrains: THREE.Object3D[];  // odvodňovací kohouty válců po obou stranách
+    valveGear: THREE.Object3D[];       // ucpávky válců / rozvod — jemný pracovní únik
+    whistle: THREE.Object3D;           // píšťala na kotli — krátký výtrysk při houkání
+  };
 }
 
 // pomocník: faceted mesh z geometrie a materiálu, posazený na danou lokální pozici
@@ -125,11 +130,17 @@ function buildLoco(length: number): CarVisual {
   // marker ústí komína (těsně nad vrškem) — emisní bod kouře. Prázdný Object3D ve stejném
   // parentu jako komín → render loop přečte world pozici přes getWorldPosition (flip/náklon
   // vyřeší three sám, žádné ruční počítání znamének po Y-flipu loko).
-  const chimneyTip = new THREE.Object3D();
-  chimneyTip.position.set(0, FLOOR_Y + 3.15, -length * 0.34);
-  body.add(chimneyTip);
+  const chimney = new THREE.Object3D();
+  chimney.position.set(0, FLOOR_Y + 3.15, -length * 0.34);
+  body.add(chimney);
   // parní dóm — kratší svislý válec na temeni kotle
   body.add(part(new THREE.CylinderGeometry(0.4, 0.4, 0.5, RADIAL_SEG), detail, 0, FLOOR_Y + 2.5, -length * 0.02));
+  // píšťala u kabiny: malý marker nad zadní částí kotle. Samotný detail modelu je subtilní,
+  // hlavní čitelnost obstará krátký bílý parní výtrysk.
+  body.add(part(new THREE.CylinderGeometry(0.08, 0.1, 0.45, 12), detail, 0, FLOOR_Y + 2.55, length * 0.14));
+  const whistle = new THREE.Object3D();
+  whistle.position.set(0, FLOOR_Y + 2.82, length * 0.14);
+  body.add(whistle);
 
   // hnací kola — 3 nápravy (symetrické v Z → flip nevadí), na kořeni modelu (na kolejnici)
   const wheels: THREE.Mesh[] = [];
@@ -145,8 +156,27 @@ function buildLoco(length: number): CarVisual {
     rods.push(rod);
   }
 
+  // Válce jsou u přední hnací nápravy. Kohouty míří dolů a ven, ucpávky/rozvod unikají
+  // jemně vodorovně podél mechanismu. Markery jsou child modelu, world transform řeší Three.js.
+  const cylinderDrains: THREE.Object3D[] = [];
+  const valveGear: THREE.Object3D[] = [];
+  for (const sx of [-(WHEEL_X + 0.28), WHEEL_X + 0.28]) {
+    const drain = new THREE.Object3D();
+    drain.position.set(sx, FLOOR_Y + 0.22, -length * 0.3);
+    model.add(drain);
+    cylinderDrains.push(drain);
+
+    const valve = new THREE.Object3D();
+    valve.position.set(sx, FLOOR_Y + LOCO_WHEEL_R + 0.18, -length * 0.2);
+    model.add(valve);
+    valveGear.push(valve);
+  }
+
   // loko je Y-flipnuté → rotation.x kol se ve světě obrací; +1 vychází správně (vagony dostanou −1)
-  return { group, skin, baseColor: LOCO_BASE, wheels, wheelRadius: LOCO_WHEEL_R, wheelDir: 1, rods, rodBaseY, chimneyTip };
+  return {
+    group, skin, baseColor: LOCO_BASE, wheels, wheelRadius: LOCO_WHEEL_R, wheelDir: 1, rods, rodBaseY,
+    steamEmitters: { chimney, cylinderDrains, valveGear, whistle },
+  };
 }
 
 // společný závěr pro vagony: 2 nápravy (na kolejnici), žádné spojnice

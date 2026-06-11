@@ -7,9 +7,9 @@ import { smoothstep } from '../sim/terrain';
 const MASTER_VOLUME = 0.35;
 // Distanční útlum: hlasitost klesá se vzdáleností kamery od lokomotivy. Do REF plná (kamera
 // u soupravy), dál ~1/d (fyzikální pokles intenzity zvuku), s měkkým dotlumením k nule u horizontu
-// mlhy (vzdálená scéna utichne docela, sladěno s Fog far ≈ 340). Násobí master gain (vedle mute).
+// mlhy (vzdálená scéna utichne docela, sladěno s Fog far = 680). Násobí master gain (vedle mute).
 const AUDIO_REF_DISTANCE = 30;      // m — uvnitř plná hlasitost (zhruba poloměr orbitu dronu)
-const AUDIO_SILENCE_DISTANCE = 320; // m — za touhle ticho (souhlasí s koncem mlhy)
+const AUDIO_SILENCE_DISTANCE = 680; // m — za touhle ticho (souhlasí s koncem mlhy)
 
 function distanceGain(d: number): number {
   const inverse = AUDIO_REF_DISTANCE / Math.max(d, AUDIO_REF_DISTANCE);    // 1 do REF, pak 1/d

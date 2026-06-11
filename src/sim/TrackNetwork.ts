@@ -1,5 +1,5 @@
-import type { CatmullRomCurve3, Vector3 } from 'three';
-import type { TrackSegment, TrackSample } from './TrackSegment';
+import type { Vector3 } from 'three';
+import type { TrackCurve, TrackSegment, TrackSample } from './TrackSegment';
 
 /** Popis sítě — segmenty + topologie (kdo na koho navazuje). Staví ho factory v trackData. */
 export interface NetworkSpec {
@@ -22,9 +22,8 @@ export interface TrackLocation {
  * je graf místo jediné smyčky). Navenek nahrazuje dřívější `Track` — místo skalárního `s` adresuje
  * polohu přes {@link TrackLocation} (segment + lokální s).
  *
- * **Fáze 1 (zatím):** orientovaná smyčka — každý segment má jednoho následníka (`next`, exit na
- * konci) a předchůdce (`prev`, exit na začátku); žádné větvení. Výhybky (fáze 3) změní `next` na
- * volbu mezi víc segmenty. Topologie tak drží stávající chování (jedna trasa dokola), jen po grafu.
+ * Síť už může obsahovat větvení (`next`/`prev` s více možnostmi). Výchozí volba `[0]`
+ * drží hlavní smyčku; route-aware souřadnice a řízení výhybek doplní další fáze DD-25.
  */
 export class TrackNetwork {
   segments!: TrackSegment[];
@@ -44,32 +43,46 @@ export class TrackNetwork {
   }
 
   private apply(spec: NetworkSpec): void {
+    this.validate(spec);
     this.segments = spec.segments;
     this.next = spec.next;
     this.prev = spec.prev;
-    // kumulativní arc-length začátku každého segmentu (v pořadí pole; pro globalS na hlavní smyčce
-    // jsou segmenty smyčky 0..k-1 v pořadí cyklu, větve za nimi)
-    this.startGlobal = [];
+    // Globální souřadnice existuje zatím jen na hlavní trase next[·][0]. Větve dostanou NaN,
+    // aby se jejich použití v gap/globalS nepočítalo potichu podle náhodného pořadí pole.
+    this.startGlobal = Array(spec.segments.length).fill(Number.NaN);
     let acc = 0;
-    for (const seg of spec.segments) {
-      this.startGlobal.push(acc);
-      acc += seg.length;
-    }
-    // délka hlavní jízdní smyčky = součet segmentů v cyklu z next[0] (osmička). Větve (rovinky) jsou
-    // mimo → do smyčkové délky nepatří; gap/rázy by jinak wrapovaly na špatnou (delší) délku.
-    let loopLen = 0;
-    let s = 0;
+    let segIndex = 0;
     const seen = new Set<number>();
-    while (!seen.has(s)) {
-      seen.add(s);
-      loopLen += spec.segments[s].length;
-      s = spec.next[s][0]; // [0] = hlavní smyčka (osmička)
+    while (!seen.has(segIndex)) {
+      seen.add(segIndex);
+      this.startGlobal[segIndex] = acc;
+      acc += spec.segments[segIndex].length;
+      segIndex = spec.next[segIndex][0]; // [0] = hlavní smyčka
     }
-    this.totalLength = loopLen;
+    if (segIndex !== 0) throw new Error('Hlavní trasa next[·][0] musí tvořit cyklus zpět do segmentu 0.');
+    this.totalLength = acc;
   }
 
-  /** Unikátní master křivky (pořadí vložení) — view z nich kreslí kolejnice/pražce (fáze 1: jedna). */
-  get masterCurves(): CatmullRomCurve3[] {
+  private validate(spec: NetworkSpec): void {
+    const count = spec.segments.length;
+    if (count === 0) throw new Error('TrackNetwork vyžaduje alespoň jeden segment.');
+    if (spec.next.length !== count || spec.prev.length !== count) {
+      throw new Error('TrackNetwork: segments, next a prev musí mít stejnou délku.');
+    }
+    for (const [label, edges] of [['next', spec.next], ['prev', spec.prev]] as const) {
+      edges.forEach((options, from) => {
+        if (options.length === 0) throw new Error(`TrackNetwork: ${label}[${from}] nesmí být prázdné.`);
+        for (const to of options) {
+          if (!Number.isInteger(to) || to < 0 || to >= count) {
+            throw new Error(`TrackNetwork: ${label}[${from}] obsahuje neplatný segment ${to}.`);
+          }
+        }
+      });
+    }
+  }
+
+  /** Unikátní master křivky (pořadí vložení) — view z nich kreslí kolejnice a pražce. */
+  get masterCurves(): TrackCurve[] {
     return [...new Set(this.segments.map((s) => s.curve))];
   }
 
@@ -87,7 +100,20 @@ export class TrackNetwork {
     return this.segments[loc.seg].grade(loc.s);
   }
   signedCurvature(loc: TrackLocation): number {
-    return this.segments[loc.seg].signedCurvature(loc.s);
+    const ds = 0.5;
+    const before = { seg: loc.seg, s: loc.s - ds };
+    const after = { seg: loc.seg, s: loc.s + ds };
+    this.advance(before);
+    this.advance(after);
+    const p0 = this.positionAt(before);
+    const p1 = this.positionAt(loc);
+    const p2 = this.positionAt(after);
+    const d1x = (p2.x - p0.x) / (2 * ds);
+    const d1z = (p2.z - p0.z) / (2 * ds);
+    const d2x = (p2.x - 2 * p1.x + p0.x) / (ds * ds);
+    const d2z = (p2.z - 2 * p1.z + p0.z) / (ds * ds);
+    const speed = Math.hypot(d1x, d1z);
+    return (d1x * d2z - d1z * d2x) / (speed * speed * speed);
   }
 
   /**
@@ -119,7 +145,11 @@ export class TrackNetwork {
    * Platí pro orientovanou smyčku (fáze 1); s větvením (fáze 3) přestane být jednoznačné.
    */
   globalS(loc: TrackLocation): number {
-    return this.startGlobal[loc.seg] + loc.s;
+    const start = this.startGlobal[loc.seg];
+    if (!Number.isFinite(start)) {
+      throw new Error(`Segment ${loc.seg} neleží na hlavní trase; globalS pro větev zatím není definováno.`);
+    }
+    return start + loc.s;
   }
 
   /**

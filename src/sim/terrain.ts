@@ -1,7 +1,7 @@
 /**
  * Lowpoly terén — výšková matematika (geometrie světa).
  *
- * Single source of truth pro výšku krajiny: čte ji **sim** (Track posadí osu koleje na
+ * Single source of truth pro výšku krajiny: čte ji **sim** (trackData posadí osy kolejí na
  * povrch, `Y = terrainHeight + most`) i **view** (mesh terénu). Sdílení drží trať a terén
  * v zákrytu — kolejnice vedou po povrchu (DD-20).
  *

@@ -14,7 +14,7 @@ const CHUFF_FUSE_SPEED = 7.4;
 /**
  * ExhaustClock = sdílený zdroj rytmu parního výfuku (čistě view, DD-01). Není to
  * zvuk ani obraz — jen takt: kdy padl další výfuk. Obě view vrstvy (AudioView puf
- * zvuku, SmokeView puf kouře) ho čtou, aby byly **sladěné z jediného zdroje** (DRY) —
+ * zvuku, SteamView puf kouře) ho čtou, aby byly **sladěné z jediného zdroje** (DRY) —
  * jinak by si každá časovala výfuk po svém a fáze by se rozjely.
  *
  * Rytmus je **fyzikálně odvozený**, ne fenomenologický: frekvence výfuku = otáčky

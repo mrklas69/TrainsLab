@@ -114,10 +114,10 @@ const SECTIONS: Section[] = [
     ],
   },
   {
-    // písek = spotřební zásoba (jako palivo); drž P → sype, dočasně vrátí suchou adhezi.
-    // Smysl dává jen na mokré koleji (Stav koleje < 1) — jinak je tah pod adhezním stropem.
+    // písek = spotřební zásoba (jako palivo); drž P → sype a násobí suchou adhezi účinností.
     title: 'Pískování',
     sliders: [
+      { key: 'sandAdhesionBoost', label: 'Účinnost písku', min: 1, max: 1.5, step: 0.05, unit: '× μ' },
       { key: 'sandCapacity', label: 'Kapacita písku', min: 0, max: 500, step: 10, unit: 'kg' },
       { key: 'sandRate', label: 'Spotřeba písku', min: 1, max: 20, step: 1, unit: 'kg/s' },
     ],
@@ -131,7 +131,7 @@ const SECTIONS: Section[] = [
     ],
   },
   {
-    // auto-kamera „dron" (klávesa C): krouží kolem středu soupravy; poloměr + výška + rychlost
+    // auto-kamera „dron" (klávesa C): krouží kolem lokomotivy; poloměr + výška + rychlost
     // kroužení; tuhost = jak ostře dohání pohyb vlaku. Ryze view → zapisuje do DroneParams, ne do fyziky.
     title: 'Dron (kamera)',
     sliders: [

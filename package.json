@@ -6,13 +6,18 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "check": "npm run check:network && npm run check:connector && npm run check:train",
+    "check:network": "tsx tools/check-network.ts",
+    "check:connector": "tsx tools/check-connector.ts",
+    "check:train": "tsx tools/check-train.ts"
   },
   "dependencies": {
     "three": "^0.160.0"
   },
   "devDependencies": {
     "@types/three": "^0.160.0",
+    "tsx": "^4.20.5",
     "typescript": "^5.4.0",
     "vite": "^5.2.0"
   }

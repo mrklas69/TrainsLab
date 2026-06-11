@@ -1,4 +1,6 @@
-import { CatmullRomCurve3, Vector3 } from 'three';
+import { Curve, Vector3 } from 'three';
+
+export type TrackCurve = Curve<Vector3> & { closed: boolean };
 
 export interface TrackSample {
   position: Vector3; // 3D bod na trati
@@ -20,7 +22,7 @@ export class TrackSegment {
   readonly length: number; // délka segmentu v metrech (část arc-length master křivky)
 
   constructor(
-    readonly curve: CatmullRomCurve3, // master křivka (sdílená víc segmenty)
+    readonly curve: TrackCurve,       // master křivka (sdílená víc segmenty)
     private readonly uStart: number,  // začátek úseku v normalizované arc-length [0,1)
     private readonly uEnd: number,    // konec úseku (uEnd > uStart; getPointAt je arc-length param)
     curveLength: number,              // celková délka master křivky (curve.getLength())
@@ -61,20 +63,43 @@ export class TrackSegment {
   }
 
   /**
-   * Znaménková křivost horizontálního průmětu (1/m) z centrálních diferencí polohy v XZ
-   * (jako dřív v Track). Vzorky s±ds se mapují na master křivku spojitě → na hranici segmentu
-   * vyjde tatáž křivost jako uvnitř sousedního (žádný zlom). Rovinka → ~0.
+   * Znaménková křivost horizontálního průmětu (1/m) z diferencí polohy v XZ.
+   * U uzavřené master křivky i uvnitř otevřené používá centrální rozdíl. Na koncích
+   * otevřené křivky přepne na jednostranný rozdíl, aby clamp nevyráběl falešnou derivaci.
+   * C² napojené segmenty tak na uzlu dávají shodnou křivost až na numerickou chybu.
    */
   signedCurvature(s: number): number {
     const ds = 0.5; // m — krok centrální diference
-    const p0 = this.positionAt(s - ds);
-    const p1 = this.positionAt(s);
-    const p2 = this.positionAt(s + ds);
+    let d1x: number;
+    let d1z: number;
+    let d2x: number;
+    let d2z: number;
 
-    const d1x = (p2.x - p0.x) / (2 * ds);
-    const d1z = (p2.z - p0.z) / (2 * ds);
-    const d2x = (p2.x - 2 * p1.x + p0.x) / (ds * ds);
-    const d2z = (p2.z - 2 * p1.z + p0.z) / (ds * ds);
+    if (!this.curve.closed && s < ds) {
+      const p0 = this.positionAt(0);
+      const p1 = this.positionAt(ds);
+      const p2 = this.positionAt(2 * ds);
+      d1x = (-3 * p0.x + 4 * p1.x - p2.x) / (2 * ds);
+      d1z = (-3 * p0.z + 4 * p1.z - p2.z) / (2 * ds);
+      d2x = (p0.x - 2 * p1.x + p2.x) / (ds * ds);
+      d2z = (p0.z - 2 * p1.z + p2.z) / (ds * ds);
+    } else if (!this.curve.closed && s > this.length - ds) {
+      const p0 = this.positionAt(this.length);
+      const p1 = this.positionAt(this.length - ds);
+      const p2 = this.positionAt(this.length - 2 * ds);
+      d1x = (3 * p0.x - 4 * p1.x + p2.x) / (2 * ds);
+      d1z = (3 * p0.z - 4 * p1.z + p2.z) / (2 * ds);
+      d2x = (p0.x - 2 * p1.x + p2.x) / (ds * ds);
+      d2z = (p0.z - 2 * p1.z + p2.z) / (ds * ds);
+    } else {
+      const p0 = this.positionAt(s - ds);
+      const p1 = this.positionAt(s);
+      const p2 = this.positionAt(s + ds);
+      d1x = (p2.x - p0.x) / (2 * ds);
+      d1z = (p2.z - p0.z) / (2 * ds);
+      d2x = (p2.x - 2 * p1.x + p0.x) / (ds * ds);
+      d2z = (p2.z - 2 * p1.z + p0.z) / (ds * ds);
+    }
 
     const speed = Math.hypot(d1x, d1z);
     return (d1x * d2z - d1z * d2x) / (speed * speed * speed);

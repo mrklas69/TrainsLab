@@ -27,6 +27,7 @@ export interface PhysicsParams {
   maxPistonSpeed: number;    // mezní střední pístová rychlost (m/s) — otáčkový strop tahu
   adhesionCoeff: number;     // součinitel adheze kolo-kolej μ za sucha (≈ 0.30) — pískovaná μ
   railFactor: number;        // stav koleje 0..1: 1 = sucho, níž = mokro/listí. eff. μ = adhesionCoeff·railFactor
+  sandAdhesionBoost: number; // účinnost písku: násobek suché μ při aktivním pískování (>1 = nad suchou kolej)
   sandCapacity: number;      // kapacita pískoven (kg) — spotřební zásoba jako uhlí/voda
   sandRate: number;          // spotřeba písku při pískování (kg/s)
   brakeForceMax: number;     // max brzdná síla lokomotivy (N)
@@ -66,6 +67,7 @@ export const DEFAULT_PARAMS: PhysicsParams = {
   maxPistonSpeed: 6.5,  // klasická mez střední pístové rychlosti (moderní stroje víc)
   adhesionCoeff: 0.3,
   railFactor: 1.0,     // výchozí suchá kolej — hráč ji stáhne na mokro/listí, pak dá písek smysl
+  sandAdhesionBoost: 1.2, // písek zvýší μ na 0,36 → 212 kN, takže udrží max. tah 200 kN
   sandCapacity: 100,   // ~20 s pískování při sandRate (krátké dávky v krizi adheze)
   sandRate: 5,
   brakeForceMax: 180_000,

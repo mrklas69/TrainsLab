@@ -140,7 +140,7 @@ export class Train {
   }
 
   /**
-   * Největší příčné (odstředivé) zrychlení v soupravě (m/s²): max |v²/r| přes vozy.
+   * Největší příčné zrychlení všech těles (m/s²): max |v²/r| přes soupravu i volné vozy.
    *
    * Odvozená diagnostika příčné dynamiky (DD-11): kolmá k jízdě → nemění `s`/`v`,
    * takže drží 1D model (DD-02). Podklad pro budoucí kritérium převrácení a klopení
@@ -148,8 +148,8 @@ export class Train {
    */
   get lateralAcceleration(): number {
     let max = 0;
-    for (let i = 0; i < this.bodies.length; i++) {
-      const aLat = this.lateralAccelerationOf(i);
+    for (const body of [...this.bodies, ...this.freeBodies]) {
+      const aLat = Math.abs(this.signedLatAccelOf(body));
       if (aLat > max) max = aLat;
     }
     return max;
@@ -289,11 +289,26 @@ export class Train {
     // fail state vyhodnocujeme po substepech (jako převrácení). Dvě nezávislé příčiny:
     //  - **převrácení** (DD-11): odstředivka na nejostřejším oblouku překoná rameno báze kol.
     //  - **srážka**: energie nárazu (½·m_red·v_close²) překročí práh — tvrdý náraz vyhodí vozy z kolejí.
-    if (this.lateralAcceleration > this.overturnThreshold) {
-      this.derail('overturn', Math.abs(this.bodies[0].v)); // rychlost loko při převrácení
+    const overturnBody = this.mostCriticalBody();
+    if (overturnBody && this.tipRatioOf(overturnBody) > 1) {
+      this.derail('overturn', Math.abs(overturnBody.v));
     } else if (this.collisionEnergy > this.params.collisionDerailEnergy) {
       this.derail('collision', this.collisionSpeed); // rychlost sblížení při srážce
     }
+  }
+
+  /** Těleso nejblíž převrácení; diagnostika i fail-state tak zahrnují soupravu i volné vozy. */
+  private mostCriticalBody(): Body | null {
+    let result: Body | null = null;
+    let maxRatio = -Infinity;
+    for (const body of [...this.bodies, ...this.freeBodies]) {
+      const ratio = this.tipRatioOf(body);
+      if (ratio > maxRatio) {
+        maxRatio = ratio;
+        result = body;
+      }
+    }
+    return result;
   }
 
   // Vykolejení = tvrdý fail state: souprava i volné vozy stojí a čekají na reset (R).
@@ -310,10 +325,10 @@ export class Train {
   private step(h: number): void {
     // akumulátor sil nezávislých na spřáhlech/trakci — souprava i volné vozy (na svém segmentu)
     for (let i = 0; i < this.bodies.length; i++) {
-      this.bodies[i].beginStep(this.network.segmentOf(this.bodies[i].seg), this.params, this.massOf(i));
+      this.bodies[i].beginStep(this.network, this.params, this.massOf(i));
     }
     for (const fb of this.freeBodies) {
-      fb.beginStep(this.network.segmentOf(fb.seg), this.params, this.params.carMass);
+      fb.beginStep(this.network, this.params, this.params.carMass);
     }
 
     for (const coupler of this.couplers) coupler.apply(this.params);
@@ -332,7 +347,7 @@ export class Train {
     }
     // volné vozy: bez trakce i brzdy — jen odpory + případný kontaktní ráz (statické tření je drží stát).
     // Zatím jedou deterministicky po hlavní smyčce (advance default = [0]); po spojce nikdo nejede.
-    // Náhodná volba na výhybce + gap/globalS přes větve přijde s příštím partes (DD-25 fáze 4).
+    // Volba trasy a route-aware gap/globalS přes větve přijdou v další fázi DD-25.
     for (const fb of this.freeBodies) {
       fb.applyFriction(this.params, this.params.carMass, 0);
       fb.integrate(h, this.params.carMass, this.params.rotatingMassFactorCar);
@@ -464,13 +479,13 @@ export class Train {
 
   /**
    * Efektivní součinitel adheze μ. Mokrá kolej / listí (railFactor < 1) ji snižuje;
-   * pískování ji vrací na suchou hodnotu (adhesionCoeff), dokud je v pískovnách písek.
+   * pískování ji zvýší nad suchou hodnotu násobkem sandAdhesionBoost, dokud je v pískovnách písek.
    * Jediný zdroj μ — přes {@link adhesionLimit} platí pro tah i brzdu (foundations:
    * bez nízké adheze je písek neviditelný, protože tah je pod adhezním stropem).
    */
   get effectiveAdhesion(): number {
     return this.isSanding
-      ? this.params.adhesionCoeff
+      ? this.params.adhesionCoeff * this.params.sandAdhesionBoost
       : this.params.adhesionCoeff * this.params.railFactor;
   }
 
