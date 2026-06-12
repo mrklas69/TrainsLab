@@ -36,4 +36,23 @@ try {
 }
 check(branchGlobalRejected, 'globalS musí odmítnout větev bez definované route-aware souřadnice.');
 
+let invalidChoiceRejected = false;
+try {
+  const invalidChoice = { seg: 1, s: net.segments[1].length + 1 };
+  net.advance(invalidChoice, () => 0);
+} catch {
+  invalidChoiceRejected = true;
+}
+check(invalidChoiceRejected, 'advance musí odmítnout volbu segmentu, který není mezi možnostmi hrany.');
+
+let asymmetricTopologyRejected = false;
+try {
+  const spec = buildLoopNetwork(8);
+  spec.prev[3] = [2];
+  new TrackNetwork(spec);
+} catch {
+  asymmetricTopologyRejected = true;
+}
+check(asymmetricTopologyRejected, 'Síť musí odmítnout next/prev hrany, které nejsou vzájemné.');
+
 console.log(`Síť OK: 5 segmentů, hlavní smyčka ${net.totalLength.toFixed(1)} m.`);

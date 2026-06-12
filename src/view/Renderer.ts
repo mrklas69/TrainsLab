@@ -3,7 +3,7 @@ import type { TrackNetwork } from '../sim/TrackNetwork';
 import type { Train } from '../sim/Train';
 import type { Body } from '../sim/Body';
 import { buildCarModel, CAR_HEIGHT, CRANK_RADIUS, type CarType, type CarVisual } from './carModels';
-import { SteamView } from './SteamView';
+import { SteamView, type WindParams } from './SteamView';
 import { WorldView, RAIL_RADIUS } from './WorldView';
 import { CameraController, type DroneParams } from './CameraController';
 import type { ExhaustClock } from './ExhaustClock';
@@ -62,6 +62,7 @@ export class Renderer {
     private readonly network: TrackNetwork,
     private readonly train: Train, // živý sim, čtený per-frame (symetrie s network)
     drone: DroneParams, // sdílená instance kamery — předá se CameraControlleru (slidery ji ladí)
+    wind: WindParams, // sdílené view parametry větru — SteamView je čte živě
     trackAmplitude: number, // počáteční amplituda terénu (slider sklonu) — terén vede trať (DD-20)
     private readonly carTypes: CarType[], // typ modelu per vůz (ryze view — DD-01); délka 1:1 s train.bodies
     private readonly freeCarTypes: CarType[], // typ modelu per volný vůz; 1:1 s train.freeBodies
@@ -89,7 +90,7 @@ export class Renderer {
     this.carVisuals = this.buildCars(train.bodies, this.carTypes);
     this.freeCarVisuals = this.buildCars(train.freeBodies, this.freeCarTypes);
     this.couplerMeshes = this.buildCouplers(train);
-    this.steam = new SteamView(this.scene);
+    this.steam = new SteamView(this.scene, wind);
 
     this.onResize();
     window.addEventListener('resize', () => this.onResize());

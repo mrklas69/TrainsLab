@@ -79,15 +79,25 @@ export class TrackNetwork {
         }
       });
     }
+    spec.next.forEach((options, from) => {
+      for (const to of options) {
+        if (!spec.prev[to].includes(from)) {
+          throw new Error(`TrackNetwork: hrana next ${from}→${to} chybí v prev[${to}].`);
+        }
+      }
+    });
+    spec.prev.forEach((options, from) => {
+      for (const to of options) {
+        if (!spec.next[to].includes(from)) {
+          throw new Error(`TrackNetwork: hrana prev ${from}→${to} chybí v next[${to}].`);
+        }
+      }
+    });
   }
 
   /** Unikátní master křivky (pořadí vložení) — view z nich kreslí kolejnice a pražce. */
   get masterCurves(): TrackCurve[] {
     return [...new Set(this.segments.map((s) => s.curve))];
-  }
-
-  segmentOf(seg: number): TrackSegment {
-    return this.segments[seg];
   }
 
   at(loc: TrackLocation): TrackSample {
@@ -129,14 +139,25 @@ export class TrackNetwork {
       const seg = this.segments[loc.seg];
       if (loc.s >= seg.length) {
         loc.s -= seg.length;
-        loc.seg = choose(this.next[loc.seg]);
+        const options = this.next[loc.seg];
+        const selected = choose(options);
+        if (!options.includes(selected)) {
+          throw new Error(`TrackNetwork.advance: zvolený segment ${selected} není mezi [${options.join(', ')}].`);
+        }
+        loc.seg = selected;
       } else if (loc.s < 0) {
-        loc.seg = choose(this.prev[loc.seg]);
+        const options = this.prev[loc.seg];
+        const selected = choose(options);
+        if (!options.includes(selected)) {
+          throw new Error(`TrackNetwork.advance: zvolený segment ${selected} není mezi [${options.join(', ')}].`);
+        }
+        loc.seg = selected;
         loc.s += this.segments[loc.seg].length;
       } else {
         return;
       }
     }
+    throw new Error('TrackNetwork.advance překročil 100 hran; topologie nebo krok jsou neplatné.');
   }
 
   /**

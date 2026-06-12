@@ -275,6 +275,10 @@ export class Train {
   }
 
   update(dt: number): void {
+    // Per-frame události musí zhasnout i ve fail state. Jinak poslední ráz před vykolejením
+    // zůstane aktivní a AudioView ho přehrává každý frame až do resetu.
+    this.switchFired = false;
+    this.transitionJerkFired = false;
     if (this.derailed) return; // vykolejená souprava leží — žádná dynamika, čeká na reset (R)
     this.consumeFuel(dt);      // uhlí + voda → klesající parní tlak (čte applyLocomotive)
     // písek se spotřebovává jen při aktivním pískování (zvyšuje adhezi, viz effectiveAdhesion)
@@ -438,8 +442,6 @@ export class Train {
    * Nemění `s`/`v` (DD-02). Per-vůz `s` → ráz proběhne soupravou jako vlna (emergence).
    */
   private applyTrackImpulses(sBefore: number[]): void {
-    this.switchFired = false;
-    this.transitionJerkFired = false;
     const strength = this.params.trackImpulse;
     if (strength <= 0) return;
     const railLength = this.params.railLength;

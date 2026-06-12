@@ -7,7 +7,18 @@ const LIGHT_SMOKE = new THREE.Color(0xb8b8b2);
 const DARK_SMOKE = new THREE.Color(0x262522);
 const UP = new THREE.Vector3(0, 1, 0);
 
-type ParticleKind = 'smoke' | 'steam';
+// Vítr je ryze view jev: ovlivňuje jen world-space částice, ne dynamiku vlaku (DD-01).
+export interface WindParams {
+  strength: number;             // m/s — 0 = bezvětří
+  directionVariability: number; // stupně — max. změna směru při jednom přeladění
+  changeInterval: number;       // s — průměrná doba mezi náhodnými změnami
+}
+
+export const DEFAULT_WIND: WindParams = {
+  strength: 4,
+  directionVariability: 70,
+  changeInterval: 8,
+};
 
 interface Particle {
   sprite: THREE.Sprite;
@@ -21,6 +32,7 @@ interface Particle {
   drag: number;
   buoyancy: number;
   turbulence: number;
+  windResponse: number;
   seed: number;
 }
 
@@ -70,11 +82,18 @@ export class SteamView {
   private whistleTimer = 0;
   private whistleTime = 0;
   private time = 0;
+  private windChangeTimer = 0;
+  private windDirection = Math.random() * Math.PI * 2;
+  private windStrengthFactor = 0.75;
+  private readonly wind = new THREE.Vector3();
+  private readonly targetWind = new THREE.Vector3();
   private readonly position = new THREE.Vector3();
   private readonly quaternion = new THREE.Quaternion();
   private readonly direction = new THREE.Vector3();
 
-  constructor(scene: THREE.Scene) {
+  constructor(scene: THREE.Scene, private readonly windParams: WindParams) {
+    this.chooseWindTarget();
+    this.wind.copy(this.targetWind);
     for (let i = 0; i < MAX_PARTICLES; i++) {
       const material = new THREE.SpriteMaterial({
         map: this.texture,
@@ -99,6 +118,7 @@ export class SteamView {
         drag: 1,
         buoyancy: 1,
         turbulence: 0.5,
+        windResponse: 0.5,
         seed: Math.random() * 1000,
       });
     }
@@ -110,6 +130,7 @@ export class SteamView {
 
   update(dt: number, visual: CarVisual, state: SteamState): void {
     this.time += dt;
+    this.updateWind(dt);
     this.whistleTime = Math.max(0, this.whistleTime - dt);
     const emitters = visual.steamEmitters;
     if (!emitters) return;
@@ -169,7 +190,7 @@ export class SteamView {
     const color = LIGHT_SMOKE.clone().lerp(DARK_SMOKE, darkness);
     const backward = Math.sign(state.speed) * Math.min(Math.abs(state.speed) * 0.22, 3.5);
     this.direction.set(0, 2.2 + state.power * 1.5, backward).applyQuaternion(this.quaternion);
-    this.emit('smoke', this.position, this.direction, {
+    this.emit(this.position, this.direction, {
       color,
       size: burst ? 0.65 + state.power * 0.45 : 0.45 + state.power * 0.35,
       endSize: burst ? 4.2 : 3.2,
@@ -179,6 +200,7 @@ export class SteamView {
       drag: 0.38,
       buoyancy: 0.8,
       turbulence: 0.75,
+      windResponse: 0.32,
     });
   }
 
@@ -188,7 +210,7 @@ export class SteamView {
     // Marker x určuje stranu; lokální vektor míří ven a dolů.
     const side = emitter.position.x < 0 ? -1 : 1;
     this.direction.set(side * 4.8, -2.2, -0.7).applyQuaternion(this.quaternion);
-    this.emit('steam', this.position, this.direction, {
+    this.emit(this.position, this.direction, {
       color: WHITE_STEAM,
       size: 0.28,
       endSize: 2.4,
@@ -198,6 +220,7 @@ export class SteamView {
       drag: 1.35,
       buoyancy: 1.8,
       turbulence: 1.1,
+      windResponse: 0.85,
     });
   }
 
@@ -206,7 +229,7 @@ export class SteamView {
     emitter.getWorldQuaternion(this.quaternion);
     const side = emitter.position.x < 0 ? -1 : 1;
     this.direction.set(side * 1.8, 0.5, 0).applyQuaternion(this.quaternion);
-    this.emit('steam', this.position, this.direction, {
+    this.emit(this.position, this.direction, {
       color: WHITE_STEAM,
       size: 0.2,
       endSize: 1.25,
@@ -216,6 +239,7 @@ export class SteamView {
       drag: 1.8,
       buoyancy: 1.4,
       turbulence: 0.8,
+      windResponse: 0.9,
     });
   }
 
@@ -223,7 +247,7 @@ export class SteamView {
     emitter.getWorldPosition(this.position);
     emitter.getWorldQuaternion(this.quaternion);
     this.direction.copy(UP).multiplyScalar(5.5).applyQuaternion(this.quaternion);
-    this.emit('steam', this.position, this.direction, {
+    this.emit(this.position, this.direction, {
       color: WHITE_STEAM,
       size: 0.22,
       endSize: 1.7,
@@ -233,11 +257,11 @@ export class SteamView {
       drag: 1.1,
       buoyancy: 2.1,
       turbulence: 0.7,
+      windResponse: 0.75,
     });
   }
 
   private emit(
-    kind: ParticleKind,
     position: THREE.Vector3,
     velocity: THREE.Vector3,
     config: {
@@ -250,6 +274,7 @@ export class SteamView {
       drag: number;
       buoyancy: number;
       turbulence: number;
+      windResponse: number;
     },
   ): void {
     const particle = this.particles.find((candidate) => !candidate.sprite.visible);
@@ -270,10 +295,10 @@ export class SteamView {
     particle.drag = config.drag;
     particle.buoyancy = config.buoyancy;
     particle.turbulence = config.turbulence;
+    particle.windResponse = config.windResponse;
     particle.seed = Math.random() * 1000;
     particle.material.color.copy(config.color);
     particle.material.opacity = config.opacity;
-    particle.material.blending = kind === 'steam' ? THREE.NormalBlending : THREE.NormalBlending;
     particle.sprite.scale.setScalar(config.size);
     particle.sprite.visible = true;
   }
@@ -291,6 +316,11 @@ export class SteamView {
       const damping = Math.exp(-particle.drag * dt);
       particle.velocity.multiplyScalar(damping);
       particle.velocity.y += particle.buoyancy * dt;
+      // Pára reaguje na vítr rychleji než hutnější kouř. Vodorovná rychlost se
+      // přibližuje rychlosti vzduchu; svislou dál řídí výstupní impuls a vztlak.
+      const windAlpha = 1 - Math.exp(-particle.windResponse * dt);
+      particle.velocity.x = THREE.MathUtils.lerp(particle.velocity.x, this.wind.x, windAlpha);
+      particle.velocity.z = THREE.MathUtils.lerp(particle.velocity.z, this.wind.z, windAlpha);
       const swirl = this.time * 2.1 + particle.seed;
       particle.velocity.x += Math.sin(swirl * 1.7) * particle.turbulence * dt;
       particle.velocity.z += Math.cos(swirl * 1.3) * particle.turbulence * dt;
@@ -304,5 +334,29 @@ export class SteamView {
       const fadeOut = (1 - t) * (1 - t);
       particle.material.opacity = particle.startOpacity * fadeIn * fadeOut;
     }
+  }
+
+  private updateWind(dt: number): void {
+    this.windChangeTimer -= dt;
+    if (this.windChangeTimer <= 0) this.chooseWindTarget();
+
+    // Síla 0 dává explicitní bezvětří. Změna je plynulá a nezávislá na FPS.
+    const speed = this.windParams.strength * this.windStrengthFactor;
+    this.targetWind.set(
+      Math.cos(this.windDirection) * speed,
+      0,
+      Math.sin(this.windDirection) * speed,
+    );
+    const responseTime = Math.max(0.5, this.windParams.changeInterval * 0.25);
+    const alpha = 1 - Math.exp(-dt / responseTime);
+    this.wind.lerp(this.targetWind, alpha);
+  }
+
+  private chooseWindTarget(): void {
+    const maxTurn = THREE.MathUtils.degToRad(this.windParams.directionVariability);
+    this.windDirection += (Math.random() * 2 - 1) * maxTurn;
+    this.windStrengthFactor = 0.55 + Math.random() * 0.45;
+    const intervalJitter = 0.75 + Math.random() * 0.5;
+    this.windChangeTimer = Math.max(0.5, this.windParams.changeInterval * intervalJitter);
   }
 }

@@ -8,6 +8,7 @@ import { DEFAULT_DRONE } from './view/CameraController';
 import type { CarType } from './view/carModels';
 import { AudioView } from './view/AudioView';
 import { ExhaustClock } from './view/ExhaustClock';
+import { DEFAULT_WIND } from './view/SteamView';
 import { createControlPanel, type KeyAction } from './ui/ControlPanel';
 
 const canvas = document.querySelector<HTMLCanvasElement>('#scene');
@@ -28,9 +29,11 @@ const freeCars = [{ length: 7, startS: network.totalLength * 0.5 }];
 const train = new Train(network, params, carLengths, 0, freeCars);
 // dron = view parametry kamery (mimo fyziku), sdílená instance pro slidery (live ladění)
 const drone = { ...DEFAULT_DRONE };
+// vítr = view parametry pro world-space částice; 0 m/s znamená bezvětří
+const wind = { ...DEFAULT_WIND };
 // sdílený rytmus parního výfuku (čistě view) — kouř i zvukový chuff z něj pufají v taktu
 const exhaust = new ExhaustClock(params);
-const renderer = new Renderer(canvas, network, train, drone, params.trackAmplitude, carTypes, freeCarTypes, exhaust);
+const renderer = new Renderer(canvas, network, train, drone, wind, params.trackAmplitude, carTypes, freeCarTypes, exhaust);
 const audio = new AudioView(train, params, exhaust);
 
 // Klávesové akce — single source pro keydown handler, nápovědu i tlačítka panelu.
@@ -41,15 +44,15 @@ const actions: KeyAction[] = [
   // held-key: drž P → sype písek (zvedne adhezi), pusť → přestane. blur to taky vypne.
   { codes: ['KeyP'], hint: 'P (drž)', label: 'Písek', run: () => train.setSanding(true), onRelease: () => train.setSanding(false) },
   {
-    codes: ['KeyH'], hint: 'H', label: 'Houkačka',
-    run: () => { audio.playHorn(); renderer.triggerWhistleSteam(); },
+    codes: ['KeyH'], hint: 'H', label: 'Píšťala',
+    run: () => { audio.playWhistle(); renderer.triggerWhistleSteam(); },
   },
   { codes: ['KeyM'], hint: 'M', label: 'Zvuk', run: () => audio.toggleMute() },
   { codes: ['KeyC'], hint: 'C', label: 'Dron', run: () => renderer.toggleDrone() },
   { codes: ['KeyR'], hint: 'R', label: 'Reset', run: () => train.reset() },
 ];
 
-const updatePanel = createControlPanel(params, drone, actions, {
+const updatePanel = createControlPanel(params, drone, wind, actions, {
   // slider sklonu: terén vede trať (DD-20) → přestav terén i křivku (sim) i kolejnice (view);
   // souprava jede dál (s je v metrech, wrap přes novou délku)
   onAmplitudeChange: () => {

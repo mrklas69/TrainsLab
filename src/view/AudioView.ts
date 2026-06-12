@@ -57,7 +57,7 @@ interface RateVoice extends SustainVoice {
  *  - skřípění oblouku: trvalá smyčka, hlasitost ∝ příčné zrychlení (v²·κ)
  *  - clunk výhybky: tupý náraz na výhybce/křížení (switchFired)
  *  - trh přechodnice: krátké skřípnutí na skoku křivosti (transitionJerkFired)
- *  - houkačka: one-shot na klávesu/tlačítko
+ *  - parní píšťala: one-shot na klávesu/tlačítko
  */
 export class AudioView {
   private readonly ctx: AudioContext;
@@ -70,7 +70,7 @@ export class AudioView {
   // Nahrané samply (public/audio/). One-shoty drží AudioBuffer (přehrají se přes playSample),
   // trvalé hlasy drží voice objekt (loop + gain). Vše null, dokud async load nedoběhne / když soubor chybí.
   private chuffSample: AudioBuffer | null = null;    // výfuk páry (one-shot v taktu ExhaustClock)
-  private hornSample: AudioBuffer | null = null;     // houkačka (one-shot)
+  private whistleSample: AudioBuffer | null = null;  // parní píšťala (one-shot)
   private clankSample: AudioBuffer | null = null;    // tah spřáhla (draft) — jasný kovový cvak
   private clunkSample: AudioBuffer | null = null;    // nárazník (buff) + výhybka — tupý náraz
   private arcJerkSample: AudioBuffer | null = null;  // trh přechodnice (skok křivosti) — krátké skřípnutí
@@ -90,7 +90,7 @@ export class AudioView {
 
     // asynchronně natáhni samply (fire-and-forget; do načtení příslušný hlas mlčí)
     void this.loadSample('steam_chuff.wav').then((buf) => (this.chuffSample = buf));
-    void this.loadSample('horn_on.wav').then((buf) => (this.hornSample = buf));
+    void this.loadSample('horn_on.wav').then((buf) => (this.whistleSample = buf));
     void this.loadSample('clank.wav').then((buf) => (this.clankSample = buf));
     void this.loadSample('clunk.wav').then((buf) => (this.clunkSample = buf));
     void this.loadSample('arc_jerk.wav').then((buf) => (this.arcJerkSample = buf));
@@ -116,9 +116,9 @@ export class AudioView {
     });
   }
 
-  /** Zahoukání (one-shot) — vyvolané tlačítkem/klávesou. Bez samplu se nic nestane. */
-  playHorn(): void {
-    if (this.hornSample) this.playSample(this.hornSample, 2.7); // hlasitá houkačka (3× proti běžným hlasům)
+  /** Parní píšťala (one-shot) — vyvolaná tlačítkem/klávesou. Bez samplu se nic nestane. */
+  playWhistle(): void {
+    if (this.whistleSample) this.playSample(this.whistleSample, 2.7);
   }
 
   /**
@@ -217,6 +217,18 @@ export class AudioView {
     let src: AudioBufferSourceNode | null = null;
     let gain: GainNode | null = null;
     let timer: number | undefined;
+    let currentRate = 1;
+    let scheduledAt = 0;
+    let scheduledRate = 1;
+    let remainingAudioSeconds = 0;
+
+    const scheduleReshuffle = (audioSeconds: number): void => {
+      if (timer !== undefined) clearTimeout(timer);
+      remainingAudioSeconds = audioSeconds;
+      scheduledAt = this.ctx.currentTime;
+      scheduledRate = currentRate;
+      timer = window.setTimeout(reshuffle, (audioSeconds / currentRate) * 1000);
+    };
 
     // přelosuj hranice a naplánuj další přelosování po délce právě nastaveného úseku
     const reshuffle = (): void => {
@@ -225,7 +237,7 @@ export class AudioView {
       const le = rand(endRange[0], endRange[1]) * dur;
       src.loopStart = ls;
       src.loopEnd = le;
-      timer = window.setTimeout(reshuffle, (le - ls) * 1000);
+      scheduleReshuffle(le - ls);
     };
 
     return {
@@ -241,9 +253,10 @@ export class AudioView {
           gain.gain.value = volume;
           src.connect(gain).connect(this.master);
           src.start(0, ls); // začni od první náhodné hranice
-          timer = window.setTimeout(reshuffle, (src.loopEnd - ls) * 1000);
+          scheduleReshuffle(src.loopEnd - ls);
         } else if (!on && src) {
           if (timer !== undefined) clearTimeout(timer);
+          timer = undefined;
           gain!.gain.setTargetAtTime(0, this.ctx.currentTime, 0.08); // fade out, ať konec nelupne
           src.stop(this.ctx.currentTime + 0.3);
           src = null; // uvolni → příští zabrzdění začne znovu
@@ -252,7 +265,19 @@ export class AudioView {
       },
       // rychlost přehrávání ∝ otáčení kol (skřípění zrychluje/zpomaluje s vlakem); plynule, ať netrhá
       setRate: (rate) => {
-        if (src) src.playbackRate.setTargetAtTime(rate, this.ctx.currentTime, 0.05);
+        const nextRate = Math.max(rate, 0.01);
+        if (src && Math.abs(nextRate - currentRate) > 0.001) {
+          const elapsed = this.ctx.currentTime - scheduledAt;
+          remainingAudioSeconds = Math.max(
+            0.001,
+            remainingAudioSeconds - elapsed * scheduledRate,
+          );
+          currentRate = nextRate;
+          scheduleReshuffle(remainingAudioSeconds);
+          src.playbackRate.setTargetAtTime(currentRate, this.ctx.currentTime, 0.05);
+        } else {
+          currentRate = nextRate;
+        }
       },
     };
   }
@@ -265,10 +290,6 @@ export class AudioView {
   toggleMute(): void {
     this.muted = !this.muted;
     this.applyMasterGain();
-  }
-
-  get isMuted(): boolean {
-    return this.muted;
   }
 
   // Výsledná hlasitost = základní × distanční útlum (nebo 0 při mute). Jeden zdroj pravdy pro
@@ -299,10 +320,10 @@ export class AudioView {
     // brzdy skřípou jen za jízdy (tření kolo↔špalík) — stojící vlak s drženou brzdou je tichý
     const speed = Math.abs(train.speed);
     if (this.brakeLoop) {
-      this.brakeLoop.setActive(train.isBraking && speed > 0.3);
       // playbackRate lineárně roste 0 → BRAKE_FUSE_SPEED, pak konstantní strop (cap)
       const t = Math.min(speed, BRAKE_FUSE_SPEED) / BRAKE_FUSE_SPEED; // 0..1
       this.brakeLoop.setRate(BRAKE_RATE_MIN + t * (BRAKE_RATE_MAX - BRAKE_RATE_MIN));
+      this.brakeLoop.setActive(train.isBraking && speed > 0.3);
     }
     this.steamLeak?.setActive(train.steamPressure > 0); // syčí, dokud je kotel pod párou
     // skřípění oblouku ∝ příčné zrychlení (v²·κ); práh převrácení ≈ 6 m/s² → /4 doplna před mezí

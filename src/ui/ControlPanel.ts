@@ -1,5 +1,6 @@
 import type { PhysicsParams } from '../sim/params';
 import type { DroneParams } from '../view/CameraController';
+import type { WindParams } from '../view/SteamView';
 import type { Train } from '../sim/Train';
 
 // Jeden zdroj pravdy o klávesové akci: pohání keydown handler (codes), nápovědu
@@ -20,13 +21,13 @@ export interface PanelHandlers {
 }
 
 interface SliderDef {
-  key: string;        // klíč v cílovém objektu params (PhysicsParams nebo DroneParams dle `source`)
+  key: string;        // klíč v cílovém objektu params dle `source`
   label: string;
   min: number;
   max: number;
   step: number;
   unit: string;
-  source?: 'drone';   // odkud/kam slider čte/zapisuje — výchozí fyzika, 'drone' = view kamera
+  source?: 'drone' | 'wind'; // výchozí fyzika; ostatní = view parametry
   // volitelná akce po posunu (vedle zápisu do params) — např. přestavba tratě.
   // Většina sliderů jen mutuje sdílenou params; tahle hrstka má i side effect.
   action?: (h: PanelHandlers) => void;
@@ -131,6 +132,16 @@ const SECTIONS: Section[] = [
     ],
   },
   {
+    // Náhodný world-space vítr pro kouř/páru. Síla 0 = bezvětří; směr se mění
+    // po omezených náhodných krocích a SteamView mezi nimi plynule přechází.
+    title: 'Vítr',
+    sliders: [
+      { key: 'strength', label: 'Síla větru', min: 0, max: 12, step: 0.5, unit: 'm/s', source: 'wind' },
+      { key: 'directionVariability', label: 'Proměnlivost směru', min: 0, max: 180, step: 5, unit: '°', source: 'wind' },
+      { key: 'changeInterval', label: 'Doba změny', min: 2, max: 30, step: 1, unit: 's', source: 'wind' },
+    ],
+  },
+  {
     // auto-kamera „dron" (klávesa C): krouží kolem lokomotivy; poloměr + výška + rychlost
     // kroužení; tuhost = jak ostře dohání pohyb vlaku. Ryze view → zapisuje do DroneParams, ne do fyziky.
     title: 'Dron (kamera)',
@@ -172,6 +183,7 @@ const BTN_CSS = [
 export function createControlPanel(
   params: PhysicsParams,
   drone: DroneParams,
+  wind: WindParams,
   actions: KeyAction[],
   handlers: PanelHandlers,
 ): (train: Train) => void {
@@ -187,7 +199,7 @@ export function createControlPanel(
   document.body.appendChild(status);
 
   // --- modální dialog „Nastavení" (slidery + nápověda); otevírá tlačítko dole ---
-  const settings = buildSettingsModal(params, drone, actions, handlers);
+  const settings = buildSettingsModal(params, drone, wind, actions, handlers);
   document.body.appendChild(settings.backdrop);
 
   // --- dolní bar (centrovaný): řízení soupravy + vstup do nastavení ---
@@ -241,6 +253,7 @@ export function createControlPanel(
 function buildSettingsModal(
   params: PhysicsParams,
   drone: DroneParams,
+  wind: WindParams,
   actions: KeyAction[],
   handlers: PanelHandlers,
 ): { backdrop: HTMLElement; open: () => void } {
@@ -275,9 +288,13 @@ function buildSettingsModal(
     head.style.cssText = 'margin:8px 0 2px;opacity:0.6;font-size:11px;text-transform:uppercase';
     sec.appendChild(head);
     for (const def of section.sliders) {
-      // cast přes unknown: oba params objekty mají jen number pole, ale bez index signatury
+      // cast přes unknown: cílové params objekty mají jen number pole, ale bez index signatury
       // (slider klíč je string — deklarativní mapování nedrží typovou vazbu na konkrétní interface)
-      const target = (def.source === 'drone' ? drone : params) as unknown as Record<string, number>;
+      const target = (
+        def.source === 'drone' ? drone :
+        def.source === 'wind' ? wind :
+        params
+      ) as unknown as Record<string, number>;
       sec.appendChild(buildSlider(target, def, handlers));
     }
     grid.appendChild(sec);

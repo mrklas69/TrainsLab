@@ -39,6 +39,15 @@ if (train.derailSpeed <= 0) throw new Error('Diagnostika převrácení neobsahuj
 
 console.log(`Převrácení volného vozu OK při ${train.derailSpeed.toFixed(2)} m/s.`);
 
+// Události rázů jsou per-frame flagy. Po vykolejení se sim už nehýbe, ale flagy se musí
+// v dalším update vynulovat, jinak AudioView přehrává poslední clunk/skřípnutí každý frame.
+train.switchFired = true;
+train.transitionJerkFired = true;
+train.update(1 / 60);
+if (train.switchFired || train.transitionJerkFired) {
+  throw new Error('Per-frame flagy rázů zůstaly aktivní po vykolejení.');
+}
+
 // Písek musí na mokré koleji odstranit prokluz i na maximální stupeň. Suchá μ=0,30
 // sama nestačí na 200 kN, proto je účinnost písku explicitní násobek nad suchou hodnotu.
 const adhesionParams = { ...DEFAULT_PARAMS, railFactor: 0.3 };
