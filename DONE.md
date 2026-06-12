@@ -559,3 +559,21 @@ křivosti. Sjednoceno do **jednoho balíku** „rázy z trati" — impulsy do ex
 - Emitory jsou součástí modelu lokomotivy: komín, odvodňovací kohouty válců, rozvod a píšťala.
 - Píšťala vypouští páru synchronně se zvukem; pojistné ventily záměrně chybí, dokud sim nemodeluje dynamický tlak kotle.
 - DD-23 rozšířeno, bez nového DD.
+
+## Sezení 39 (2026-06-12)
+
+### Nezávislý `%AUDIT:CODE` — opravy přehlédnutých hran
+- Per-frame `switchFired` / `transitionJerkFired` se čistí i po vykolejení; odstraněno
+  nekonečné opakování posledního clunku/skřípnutí. Přidán regresní scénář.
+- `TrackNetwork` validuje reciproční `next`/`prev`, výsledek `advance(choose)` i guard
+  proti zacyklení; testy pokrývají nereciproční graf a neplatnou volbu.
+- `AudioView.makeRandomizedLoop` plánuje změnu hranic podle aktuálního `playbackRate`.
+- `npm run check` je součást deploy CI; odstraněno mrtvé API.
+- Terminologie sjednocena na parní píšťalu (`playWhistle`); historický asset zůstává
+  `horn_on.wav`.
+
+### Proměnný vítr pro kouř a páru
+- `WindParams` ve view: síla, proměnlivost směru, doba změny; default 4 m/s, 70°, 8 s.
+- Náhodný cílový vítr plynule mění směr i sílu; `0 m/s` = bezvětří.
+- Pára se větru poddá rychleji než hutnější kouř; sim vlaku zůstává beze změny (DD-01).
+- Nová sekce Vítr v Nastavení. `npm run check`, TypeScript, build i živý test zelené.

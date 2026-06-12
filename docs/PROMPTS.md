@@ -2,7 +2,7 @@
 
 Projektová makra `%BEGIN` a `%END` (start a konec sezení). Ostatní makra
 (`%THINK`, `%DOCS`, `%AUDIT:CODE`, `%AUDIT:DOCS`, `%CALIBRATE`) jsou definovaná
-**globálně** v `~/.Codex/AGENTS.md` (Codex) / `~/.claude/CLAUDE.md` (Claude) — zde
+**globálně** v `~/.claude/PROMPTS.md` (routing pro Codex je v `~/AGENTS.md`) — zde
 se neopakují (DRY). Doménové rozšíření `%THINK` je v odpovídajícím projektovém overlayi.
 
 ---
@@ -53,7 +53,7 @@ o ≥ 2 sezení → spustit jako první bod sezení.
 
 | Audit | Naposledy (sezení) | Práh |
 |-------|--------------------|------|
-| `%AUDIT:CODE` | **S38** | ≥ 6 sez. **nebo** +250 LOC v `src/` |
+| `%AUDIT:CODE` | **S39** | ≥ 6 sez. **nebo** +250 LOC v `src/` |
 | `%AUDIT:DOCS` | **S26** | ≥ 12 sez. |
 | pruning (IDEAS/TODO) | **S26** | ≥ 12 sez. |
 | `%CALIBRATE` | **S28** | ≥ 15 sez. |

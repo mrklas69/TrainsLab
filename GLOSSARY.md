@@ -178,8 +178,12 @@ Termíny projektu. Anglické identifikátory v kódu, české vysvětlení.
   s procedurální radiální texturou; žádné lowpoly facety. Žijí ve **world-space** → vlečka za lokomotivou
   vzniká emergentně. Komín nese turbulentní spaliny (tmavost ∝ výkon) a pufy v taktu `ExhaustClock`;
   odvodňovací kohouty válců vypouštějí hustou bílou páru při rozjezdu, ucpávky rozvodu jemně prosakují
-  pod výkonem a píšťala má krátký parní výtrysk synchronní s akcí houkačky. Pojistné ventily nejsou
+  pod výkonem a píšťala má krátký parní výtrysk synchronní se zvukem píšťaly. Pojistné ventily nejsou
   modelovány, protože `steamPressure` zatím není dynamický tlak kotle.
+- **vítr (`WindParams`)** — view-only vodorovná rychlost vzduchu pro world-space částice.
+  Náhodně mění cílový směr i sílu a mezi stavy plynule přechází. Tři Lab knoby:
+  `strength` (0 = bezvětří), `directionVariability` a `changeInterval`. Pára se větru
+  přizpůsobuje rychleji než hutnější kouř; fyziku vlaku vítr neovlivňuje (DD-01).
 - **tikot / klapot spár** — „klikety-klak" na dilatačních spárách. Sample (`clattering_wheels.wav`)
   jako **smyčka** s `playbackRate ∝ rychlost` (`makeRateLoop`, `RAIL_REF_SPEED`) → frekvence klapotu
   úměrná rychlosti. Aktivní za jízdy; vypne `trackImpulse=0` / svařovaná kolej.
@@ -193,7 +197,8 @@ Termíny projektu. Anglické identifikátory v kódu, české vysvětlení.
   navíc relativní `/3` proti výhybce → výhybka je hlasitější.
 - **únik páry (steam leak)** — *(S24)* syčení kotle pod tlakem: sample smyčka (`makeSampleLoop`, úsek
   1.–11. s na 1/3 hlasitosti) běžící pořád, slyšitelná dokud `steamPressure > 0` (po vyčerpání zásob utichne).
-- **houkačka (horn)** — *(S24)* one-shot na vyžádání (tlačítko / klávesa H), `playHorn`. Hlasitá (3× nad běžné hlasy).
+- **parní píšťala (steam whistle)** — *(S24)* one-shot na vyžádání (tlačítko / klávesa H),
+  `playWhistle`. Zvukový asset se z historických důvodů jmenuje `horn_on.wav`.
 - **prokluz (slip, sample)** — *(S27)* sykot protáčejících se hnacích kol: sample smyčka (`steam_slip.wav`,
   `makeSampleLoop`) on/off podle `train.slipping`. Vizuální protějšek = `driverSlipPhase` (víření spojnic).
 - **brzdy (sample)** — *(S24)* `makeRandomizedLoop`: smyčka, jejíž hranice (`loopStart ∈ [0,1;0,3]`,

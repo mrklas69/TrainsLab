@@ -76,6 +76,9 @@ Kontext a rozhodnutí: viz `docs/diary/2026-05-29.md`.
       komín = turbulentní uhlíkový kouř, odvodňovací kohouty válců = bílá pára při rozjezdu, rozvod =
       jemný únik pod výkonem, píšťala = krátký výtrysk při houkání. Bez pojistných ventilů, dokud model
       nemá skutečnou dynamiku tlaku kotle.
+- [x] **Proměnný vítr pro částice** *(S39)* — view-only `WindParams`: náhodně proměnný
+      směr i síla s plynulým přechodem; pára reaguje rychleji než kouř. Nastavení:
+      síla / proměnlivost směru / doba změny; `0 m/s` = bezvětří.
 - [x] Osvětlení doladěno pro lowpoly (S17); kamera „dron" hotová (S15). **Mostovka + mlha na horizontu** *(S32)* —
       mostovka = plná betonová deska pod kolejí na estakádě (`elevatedSamples` sdílený s pilíři, DRY);
       mlha = `THREE.Fog` (bělavý opar, schová tvrdý okraj terénní desky). Dron přepnut chase → **orbit kolem loko**.
@@ -88,7 +91,7 @@ Kontext a rozhodnutí: viz `docs/diary/2026-05-29.md`.
 - [x] Zvuk: prototyp `AudioView` (procedurální) *(S3, vědomě předsunuto)* — nahrazen samply, procedurální vrstva odstraněna *(S27)*
 - [x] **Zvuk: vyměnit procedurální generátor za nahrané samply** *(S23–S27)* — **8 z 8 manifestu** + bonusy.
       `steam_chuff` (takt `ExhaustClock`), `steam_leak` (loop ∝ parní tlak, `makeSampleLoop`), `horn_on`
-      (houkačka `playHorn` + H), `brakes_on` (`makeRandomizedLoop` — náhodné hranice proti švu/2s periodě +
+      (parní píšťala `playWhistle` + H), `brakes_on` (`makeRandomizedLoop` — náhodné hranice proti švu/2s periodě +
       `playbackRate` ∝ rychlost, jen za jízdy), `clattering_wheels` (klapot spár, `makeRateLoop`),
       `clank`/`clunk`/`arc_jerk` (one-shoty), `arc_squeal` (loop ∝ příčné zrychlení, `makeSampleLevelLoop`),
       `steam_slip` (prokluz, loop on/off). **S27: čistě sample-based** — `proceduralAudio.ts` smazán,
@@ -132,6 +135,11 @@ Sjednocený balík: nespojitosti trati → impulsy do **existujících** roll/pi
 ## Dokumentace / infra
 - [x] Deploy dema na GitHub Pages (Actions, base `/TrainsLab/`) *(S4)*
 - [x] `README.md` — identita projektu, ovládání, stav fází, architektura, demo *(S5)*
+- [ ] **Upgrade Vite 5 → 8** — `npm audit` hlásí dvě střední zranitelnosti vývojového
+      toolchainu (Vite path traversal v optimized-deps sourcemapách + starý esbuild dev-server
+      advisory). Produkční statický build není přímo zasažen; oprava vyžaduje major upgrade.
+      Provést samostatně, zkontrolovat Node požadavky, `npm run check`, `npm run build`,
+      lokální dev server a GitHub Pages deploy. Nepoužívat slepě `npm audit fix --force`.
 
 ## Lab knoby
 - [x] Slider sklonu tratě — živá změna amplitudy + rebuild geometrie *(S5)*

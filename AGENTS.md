@@ -1,6 +1,6 @@
 # AGENTS.md — TrainsLab (projektový overlay)
 
-Rozšiřuje globální `~/.Codex/AGENTS.md`, **nepřevažuje ho.** Jen AI overlay
+Rozšiřuje globální `~/AGENTS.md`, **nepřevažuje ho.** Jen AI overlay
 (instrukce, code style, makra, key files). Fakta o projektu (identita, stav, hierarchie
 modelu, milníky, changelog) patří do `README.md` / `docs/DIARY.md` / `docs/DESIGN_DECISIONS.md`.
 
@@ -48,10 +48,11 @@ K obecným bodům globálního `%THINK` přidej:
 | view | `view/WorldView.ts` | terén/dekorace, koleje, most/pilíře; rebuild včetně disposal GPU prostředků |
 | view | `view/CameraController.ts` | orbit/dron/WASD, `DroneParams` (DD-19) |
 | view | `view/AudioView.ts` | sample-based Web Audio view nad simem (DD-01) |
-| view | `view/SteamView.ts` | měkké world-space částice kouře/páry; komín, válce, rozvod, píšťala (DD-23) |
+| view | `view/SteamView.ts` | měkké world-space částice kouře/páry + plynule proměnný vítr (`WindParams`); komín, válce, rozvod, píšťala (DD-23) |
 | ui | `ui/ControlPanel.ts` | slidery (dvouzdrojové params/drone) + status + tlačítka |
 | — | `main.ts` | skládá sim + view + ui, drží render loop |
 
 ## Makra
 Projektová `%BEGIN` / `%END` → `docs/PROMPTS.md`. Ostatní (`%THINK`, `%DOCS`,
-`%AUDIT:CODE`, `%AUDIT:DOCS`, `%CALIBRATE`) → globální `~/.Codex/AGENTS.md`.
+`%AUDIT:CODE`, `%AUDIT:DOCS`, `%CALIBRATE`) → globální `~/.claude/PROMPTS.md`
+(routing maker definuje `~/AGENTS.md`).

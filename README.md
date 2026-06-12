@@ -44,6 +44,7 @@ TrainsLab je jeden roh **mřížky experimentů** (měřítko × věrnost) — z
 | `P` (drž) | pískování — zvýší adhezi nad suchou hodnotu (drž klávesu/tlačítko) |
 | `R` | reset (doplní i palivo a písek) |
 | `M` | zvuk on/off |
+| `H` | parní píšťala |
 | `C` | auto-kamera „dron" — toggle kroužení kolem lokomotivy (vypne ruční ovládání kamery) |
 | `W` `A` `S` `D` | posun kamery v rovině (ruční režim) |
 | `Q` / `E` | výška kamery (dolů / nahoru, ruční režim) |
@@ -69,7 +70,9 @@ rozteč dilatačních spár, síla rázů z trati a kvalita přechodnic oblouků
 a palivo (kapacity a spotřeby uhlí / vody).
 Sekce **Dron** ladí kameru (výška / poloměr a rychlost kroužení / tuhost dohánění) — to je view, ne
 fyzika, takže žije mimo `params.ts` (drží DD-01). V Nastavení je i sekce **Zobrazení** (přepínač markerů
-napětí ve spřáhlech — osciloskop slack action, default skrytý).
+napětí ve spřáhlech — osciloskop slack action, default skrytý). Sekce **Vítr** řídí sílu,
+proměnlivost směru a dobu změny náhodného větru, který unáší world-space kouř a páru;
+`0 m/s` znamená bezvětří.
 
 ## Stav
 
@@ -98,7 +101,7 @@ vzniká až při renderu (DD-02).
 src/
   sim/    fyzika — TrackSegment + TrackNetwork (graf trati), trackData, terrain, params, Body, Coupler, Train
   view/   výstupy — Renderer (Three.js, aktéři + loop) + WorldView (terén/koleje/dekorace)
-          + CameraController (orbit/dron) + carModels (modely vozů) + SteamView (kouř/pára)
+          + CameraController (orbit/dron) + carModels (modely vozů) + SteamView (kouř/pára + vítr)
           + AudioView (samply) + ExhaustClock (rytmus výfuku)
   ui/     ControlPanel (slidery + status + tlačítka)
   main.ts skládá sim + view + ui, drží render loop
