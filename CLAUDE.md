@@ -1,6 +1,6 @@
 # CLAUDE.md — TrainsLab (projektový overlay)
 
-Rozšiřuje globální `~/.claude/CLAUDE.md`, **nepřevažuje ho.** Jen AI overlay
+Rozšiřuje globální `~/AGENTS.md`, **nepřevažuje ho.** Jen AI overlay
 (instrukce, code style, makra, key files). Fakta o projektu (identita, stav, hierarchie
 modelu, milníky, changelog) patří do `README.md` / `docs/DIARY.md` / `docs/DESIGN_DECISIONS.md`.
 
@@ -56,4 +56,5 @@ K obecným bodům globálního `%THINK` přidej:
 
 ## Makra
 Projektová `%BEGIN` / `%END` → `docs/PROMPTS.md`. Ostatní (`%THINK`, `%DOCS`,
-`%AUDIT:CODE`, `%AUDIT:DOCS`, `%CALIBRATE`) → globální `~/.claude/CLAUDE.md`.
+`%AUDIT:CODE`, `%AUDIT:DOCS`, `%CALIBRATE`) → globální `~/.claude/PROMPTS.md`
+(routing maker definuje `~/AGENTS.md`).

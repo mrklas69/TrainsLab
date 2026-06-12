@@ -577,3 +577,16 @@ křivosti. Sjednoceno do **jednoho balíku** „rázy z trati" — impulsy do ex
 - Náhodný cílový vítr plynule mění směr i sílu; `0 m/s` = bezvětří.
 - Pára se větru poddá rychleji než hutnější kouř; sim vlaku zůstává beze změny (DD-01).
 - Nová sekce Vítr v Nastavení. `npm run check`, TypeScript, build i živý test zelené.
+
+## Sezení 40 (2026-06-12)
+
+### Upgrade Vite 5 → 8
+
+- Vite `5.4.21` nahrazen Vite `8.0.16`; lockfile přešel z Rollupu na Rolldown.
+- Explicitní požadavek Node.js `^20.19.0 || >=22.12.0` v `package.json` a README;
+  lokální Node 22.21 i GitHub Actions Node 22 vyhovují.
+- `npm ci`, `npm run check`, `npm run build` a `npm audit` zelené; audit hlásí
+  0 zranitelností.
+- Lokální Vite 8 dev server ověřen přes HTTP 200 na `127.0.0.1:5173`.
+- Existující bundle má přibližně 560 kB a Vite 8 na něj nově upozorňuje; code-splitting
+  nebyl míchán do samostatného toolchain upgradu.

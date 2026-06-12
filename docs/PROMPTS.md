@@ -54,10 +54,11 @@ o ≥ 2 sezení → spustit jako první bod sezení.
 | Audit | Naposledy (sezení) | Práh |
 |-------|--------------------|------|
 | `%AUDIT:CODE` | **S39** | ≥ 6 sez. **nebo** +250 LOC v `src/` |
-| `%AUDIT:DOCS` | **S26** | ≥ 12 sez. |
-| pruning (IDEAS/TODO) | **S26** | ≥ 12 sez. |
+| `%AUDIT:DOCS` | **S40** | ≥ 12 sez. |
+| pruning (IDEAS/TODO) | **S40** | ≥ 12 sez. |
 | `%CALIBRATE` | **S28** | ≥ 15 sez. |
 
 Prahy odvozené z reálné kadence projektu: `%AUDIT:CODE` běžel S6/S12/S18/S25 (~6 sez.),
-`%AUDIT:DOCS` S13/S26 (13), pruning S13/S26 (13), `%CALIBRATE` S16/S28 (12). LOC práh
+`%AUDIT:DOCS` S13/S26/S40 (13/14), pruning S13/S26/S40 (13/14),
+`%CALIBRATE` S16/S28 (12). LOC práh
 u kódu je sekundární spouštěč (skok velikosti `src/` i mezi audity).

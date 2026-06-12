@@ -120,6 +120,7 @@ npm run preview  # náhled produkčního buildu
 
 Stack: **Three.js + TypeScript + Vite** (DD-03). Push na `main` automaticky buildí
 a nasazuje demo na GitHub Pages ([`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)).
+Vývoj vyžaduje Node.js `^20.19.0` nebo `>=22.12.0` (požadavek Vite 8).
 
 ## Dokumentace
 

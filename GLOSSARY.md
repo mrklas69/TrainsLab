@@ -34,7 +34,8 @@ Termíny projektu. Anglické identifikátory v kódu, české vysvětlení.
   tělesa jen surge. Kývání skříně (roll/pitch) ho neopouští; příčný DOF kola (hunting) ano.
 - **ležatá osmička (lemniskáta)** — tvar tratě (DD-12): křivka s jedním půdorysným křížením.
   Použita **Bernoulliho** (kulaté laloky) místo Gerono (špičaté, `r_min≈5 m` = nehratelné).
-  Laloky = ostré zatáčky (`r≈33 m`), střed = inflexe (`r→∞`) → proměnný poloměr (esíčko).
+  Laloky = ostré zatáčky (aktuální asymetrická trať má `r_min≈52 m`), střed = inflexe
+  (`r→∞`) → proměnný poloměr (esíčko).
 - **most / podjezd** — místo, kde se trať v půdorysu kříží (`t=π/2` i `t=3π/2` → týž bod (0,0)).
   Trať jinak **vede po povrchu terénu** (`Y=terrainHeight`, DD-20); u křížení `bridgeLift(s)`
   zvedne jednu větev na **most** (estakáda s pilíři), druhá zůstane na terénu = **podjezd** pod ním.
@@ -122,7 +123,8 @@ Termíny projektu. Anglické identifikátory v kódu, české vysvětlení.
 - **odpor v oblouku (curve resistance)** — *(S29)* přídavný jízdní odpor v zatáčce z tření okolků o vnější
   kolejnici a prokluzu kol na pevné nápravě (vnější kolo urazí delší dráhu). Model `R = curveResistance·|κ|·m·g`:
   specifický odpor `curveResistance·|κ|` (bezrozm., jako Crr) je úměrný křivosti — **Röcklův charakter** `c/r`,
-  ale `κ` je konečné → bez exploze u našich ostrých laloků (`r≈33 m`, kde empirický Röckl `500/(r−30)` selhává).
+  ale `κ` je konečné → bez exploze u ostrých laloků. Empirický Röcklův jmenovatel
+  `500/(r−30)` je navíc nevhodný poblíž své singularity; náš model zůstává spojitý.
   Branžově **rychlostně nezávislý** (proto jen směr ze `sign(v)`, ne `v` v magnitudě). **Geometrický** člen
   (z polohy `s` na trati, vedle gravitace v `Body.beginStep`), ne čtvrtý člen Davisovy rovnice. Drží DD-02:
   `κ` zůstává skalár, výstup je podélná síla (mění `v`), nezavádí příčný DOF. Na rovince `κ=0` → mizí.
@@ -208,7 +210,7 @@ Termíny projektu. Anglické identifikátory v kódu, české vysvětlení.
   **Rate cap (`BRAKE_FUSE_SPEED`):** rychlost přehrávání roste lineárně 0 → 3,8 m/s, pak strop
   (`rate ∈ [0,25; 0,6]`, S27 zpomaleno kvůli rychlé nahrávce) — bez capu by skřípání znělo jako „cikáda".
 - **AudioView** — zvuk jako další „view" nad simem (DD-01): čte stav, ozvučuje události (chuff, únik páry,
-  houkačka, clank/náraz spřáhla, sykot prokluzu, skřípění brzd, tikot spár, skřípění oblouku, clunk
+  píšťalu, clank/náraz spřáhla, sykot prokluzu, skřípění brzd, tikot spár, skřípění oblouku, clunk
   výhybky, trh přechodnice). **Čistě sample-based** (S27): nahrané samply z `public/audio/` (`loadSample`
   přes `BASE_URL` + `decodeAudioData`); chybí-li sample → hlas mlčí (procedurální vrstva odstraněna —
   set kompletní). Tvary hlasů: one-shot (`playSample`), trvalý loop on/off (`makeSampleLoop`), loop ∝ úroveň
