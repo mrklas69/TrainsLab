@@ -31,8 +31,8 @@ export interface TrackLocation {
  * je graf místo jediné smyčky). Navenek nahrazuje dřívější `Track` — místo skalárního `s` adresuje
  * polohu přes {@link TrackLocation} (segment + lokální s).
  *
- * Síť už může obsahovat větvení (`next`/`prev` s více možnostmi). Výchozí volba `[0]`
- * drží hlavní smyčku; route-aware souřadnice a řízení výhybek doplní další fáze DD-25.
+ * Síť obsahuje větvení (`next`/`prev` s více možnostmi) i deklarované route (`main`/`branch`).
+ * Route-aware `globalS`/`gap` dávají společným segmentům jednoznačný význam podle zvolené trasy.
  */
 export class TrackNetwork {
   segments!: TrackSegment[];

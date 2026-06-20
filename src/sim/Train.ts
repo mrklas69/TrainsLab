@@ -1,5 +1,14 @@
 import { Body } from './Body';
 import { Coupler } from './Coupler';
+import {
+  SERVICE_COAL_RATE,
+  SERVICE_RADIUS,
+  SERVICE_ROUTE,
+  SERVICE_SAND_RATE,
+  SERVICE_STOP_SPEED,
+  SERVICE_WATER_RATE,
+  serviceDistance,
+} from './serviceSite';
 import { trackPerturbationsFor } from './trackData';
 import type { RouteId, TrackNetwork } from './TrackNetwork';
 import type { PhysicsParams } from './params';
@@ -46,6 +55,7 @@ function crossed(sBefore: number, sNow: number, sI: number, period: number): boo
 export class Train {
   readonly bodies: Body[];
   slipping = false; // prokluz hnacích kol — čte renderer (DD-01)
+  refilling = false; // doplňování u vodního jeřábu — čte UI (DD-01)
   // bodové perturbace v posledním update — čte AudioView (odlišný zvuk dle typu, DD-01):
   switchFired = false;         // výhybka/křížení → tupý clunk
   transitionJerkFired = false; // skok křivosti (chybějící přechodnice) → krátké skřípnutí
@@ -156,6 +166,11 @@ export class Train {
   /** Pískuje a má ještě písek (jinak je páka bez efektu) — čte renderer/UI pro indikaci. */
   get isSanding(): boolean {
     return this.sanding && this.sand > 0;
+  }
+
+  /** Probíhá doplňování uhlí/vody/písku u servisního místa na odbočce — jen diagnostika pro UI. */
+  get isRefilling(): boolean {
+    return this.refilling;
   }
 
   /** Rychlost lokomotivy (m/s) — pro UI. */
@@ -291,6 +306,7 @@ export class Train {
     this.braking = false;
     this.sanding = false;
     this.slipping = false;
+    this.refilling = false;
     this.derailed = false;
     this.derailSpeed = 0;
     this.derailReason = null;
@@ -304,16 +320,21 @@ export class Train {
     // zůstane aktivní a AudioView ho přehrává každý frame až do resetu.
     this.switchFired = false;
     this.transitionJerkFired = false;
+    this.refilling = false;
     if (this.derailed) return; // vykolejená souprava leží — žádná dynamika, čeká na reset (R)
     this.consumeFuel(dt);      // uhlí + voda → klesající parní tlak (čte applyLocomotive)
+    this.refillAtService(dt);  // stojící loko u domku postupně doplní uhlí + vodu + písek
     // písek se spotřebovává jen při aktivním pískování (zvyšuje adhezi, viz effectiveAdhesion)
     if (this.sanding) this.sand = Math.max(0, this.sand - this.params.sandRate * dt);
-    // globální pozice před krokem — z ujeté vzdálenosti se pak detekují přejezdy spár/perturbací
-    const sBefore = this.bodies.map((b) => this.network.globalS(b));
+    // Globální pozice před krokem — z ujeté vzdálenosti se pak detekují přejezdy spár/perturbací.
+    // Patří sem i volné vozy: nejsou spřažené, ale jedou po stejné koleji a mají dostat stejný
+    // ráz výhybky/spáry jako souprava (izomorfismus souprava ↔ volné těleso).
+    const impulseBodies = [...this.bodies, ...this.freeBodies];
+    const sBefore = impulseBodies.map((b) => this.network.globalS(b));
     this.collisionEnergy = 0;   // nejtvrdší srážka tohoto framu — naplní ji contact() v substepech
     const h = dt / SUBSTEPS;
     for (let i = 0; i < SUBSTEPS; i++) this.step(h);
-    this.applyTrackImpulses(sBefore); // rázy z trati → kick do kývání skříně (DD-02)
+    this.applyTrackImpulses(impulseBodies, sBefore); // rázy z trati → kick do kývání skříně (DD-02)
 
     // fail state vyhodnocujeme po substepech (jako převrácení). Dvě nezávislé příčiny:
     //  - **převrácení** (DD-11): odstředivka na nejostřejším oblouku překoná rameno báze kol.
@@ -358,6 +379,14 @@ export class Train {
     return true;
   }
 
+  private canRefillAtService(): boolean {
+    if (this.currentRoute !== SERVICE_ROUTE) return false;
+    const loco = this.bodies[0];
+    if (Math.abs(loco.v) > SERVICE_STOP_SPEED) return false;
+    const distance = serviceDistance(this.network, loco);
+    return distance !== null && distance <= SERVICE_RADIUS;
+  }
+
   // Vykolejení = tvrdý fail state: souprava i volné vozy stojí a čekají na reset (R).
   // `reason` + `speed` nesou diagnostiku (čím a při jaké rychlosti) do UI.
   private derail(reason: 'overturn' | 'collision', speed: number): void {
@@ -394,7 +423,7 @@ export class Train {
       this.network.advance(this.bodies[i], this.network.routeChoice(this.bodies[i].route));
     }
     // volné vozy: bez trakce i brzdy — jen odpory + případný kontaktní ráz (statické tření je drží stát).
-    // V tomhle řezu zůstávají na hlavní trase; route-aware náhodné větvení je samostatný TODO.
+    // V tomhle řezu zůstávají na hlavní trase; route-aware náhodné větvení je otevřený úkol v TODO.md.
     for (const fb of this.freeBodies) {
       fb.applyFriction(this.params, this.params.carMass, 0);
       fb.integrate(h, this.params.carMass, this.params.rotatingMassFactorCar);
@@ -495,16 +524,17 @@ export class Train {
    * Síla ∝ rychlost (rychleji → tvrdší ráz) × `trackImpulse` (kvalita trati; 0 = hladká). Skok
    * křivosti (`kind:'transition'`) navíc škáluje `(1−transitionQuality)` — přechodnice (klotoida)
    * boční trh rozetře (kvalita 1 → 0 trh). Výhybky/spáry jsou na přechodnici nezávislé.
-   * Nemění `s`/`v` (DD-02). Per-vůz `s` → ráz proběhne soupravou jako vlna (emergence).
+   * Nemění `s`/`v` (DD-02). Per-vůz `s` → ráz proběhne soupravou i volnými vozy jako vlna
+   * (emergence, stejný track event pro všechna tělesa).
    */
-  private applyTrackImpulses(sBefore: number[]): void {
+  private applyTrackImpulses(bodies: readonly Body[], sBefore: number[]): void {
     const strength = this.params.trackImpulse;
     if (strength <= 0) return;
     const railLength = this.params.railLength;
     const transitionFactor = 1 - this.params.transitionQuality; // přechodnice tlumí κ-trh
 
-    for (let i = 0; i < this.bodies.length; i++) {
-      const body = this.bodies[i];
+    for (let i = 0; i < bodies.length; i++) {
+      const body = bodies[i];
       const speed = Math.abs(body.v);
       if (speed === 0) continue; // stojící vůz spáru „nepřejede" — žádný ráz
       const loop = this.network.routeLength(body.route);
@@ -600,6 +630,24 @@ export class Train {
     const demand = this.throttleFraction; // 0..1 — otevření regulátoru (single source)
     this.coal = Math.max(0, this.coal - this.params.coalRate * (COAL_IDLE_FRACTION + demand) * dt);
     this.water = Math.max(0, this.water - this.params.waterRate * demand * dt);
+  }
+
+  /**
+   * Automatické zásobení u domku s napaječkou: jen když lokomotiva skutečně stojí u vodního
+   * jeřábu na odbočce. View objekt není zdroj pravidla; obě vrstvy sdílí `serviceSite.ts`.
+   * Doplňování je postupné a clampnuté kapacitou, takže UI vidí průběh místo teleportu na 100 %.
+   * Zastávka doplní všechny provozní zásoby tendru: uhlí, vodu i písek.
+   */
+  private refillAtService(dt: number): void {
+    if (!this.canRefillAtService()) return;
+
+    const coalBefore = this.coal;
+    const waterBefore = this.water;
+    const sandBefore = this.sand;
+    this.coal = Math.min(this.params.coalCapacity, this.coal + SERVICE_COAL_RATE * dt);
+    this.water = Math.min(this.params.waterCapacity, this.water + SERVICE_WATER_RATE * dt);
+    this.sand = Math.min(this.params.sandCapacity, this.sand + SERVICE_SAND_RATE * dt);
+    this.refilling = this.coal > coalBefore || this.water > waterBefore || this.sand > sandBefore;
   }
 
   // tah omezený výkonem (P/v) i adhezí (μ·N). Brzda je řízené tření (DD-09), řeší se

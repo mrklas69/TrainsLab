@@ -57,7 +57,7 @@ export const DEFAULT_PARAMS: PhysicsParams = {
   startingResistanceFactor: 3,
   davisB: 20,          // lineární odpor (N·s/m per vůz): při 20 m/s ≈ 400 N, řádově jako valivý — doladí dojezd
   dragCoefficient: 1.2,
-  curveResistance: 0.15,  // v laloku (r≈33 m, κ≈0,03) specifický odpor ≈ 0,0045 ≈ 2× valivý — citelné přibrzdění v zatáčce
+  curveResistance: 0.15,  // v ostrém laloku (κ podle aktuální geometrie) specifický odpor vyjde řádově jako násobek valivého — citelné přibrzdění v zatáčce
   couplerSlack: 0.4,
   couplerStiffness: 2_000_000,
   couplerDamping: 60_000,

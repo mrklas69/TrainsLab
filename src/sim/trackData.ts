@@ -31,8 +31,9 @@ function bridgeLift(t: number): number {
  * Kontrolní body ležaté osmičky (Bernoulliho lemniskáta) v rovině XZ; výšku `Y` diktuje terén.
  *
  * Osmička dělá dvě věci jedním tahem:
- *  - **esíčko** — laloky jsou zatáčky (r ≈ 33 m), střed je inflexe (r → ∞); souprava zatáčí
- *    doleva, projede středem, pak doprava. Proměnný poloměr živí příčnou dynamiku (odstředivka).
+ *  - **esíčko** — laloky jsou zatáčky (min. poloměr měří `tools/check-radius.ts`), střed je
+ *    inflexe (r → ∞); souprava zatáčí doleva, projede středem, pak doprava. Proměnný poloměr
+ *    živí příčnou dynamiku (odstředivka).
  *  - **křížení** — trať se v půdorysu protne ve středu osmičky (`t=π/2` i `t=3π/2` → bod (0,0)).
  *    Řeší se **mostem** ({@link bridgeLift}): větev u `t=π/2` jde po estakádě nad druhou.
  *
@@ -176,9 +177,10 @@ export interface TrackPerturbation {
  *  - **transition** — **fenomenologický** skok křivosti (A4 b): místo přepisu geometrie hladké
  *    lemniskáty se na náběhy/výjezdy laloků (kde by reálná trať potřebovala přechodnici) posadí
  *    roll-ráz = boční trh. Pozice ověřeny profilem `signedCurvature` — leží na strmých úsecích κ
- *    mezi inflexí (křížení) a vrcholem laloku (max |κ|, r≈33 m).
- *  - **switch** — výhybka/srdcovka u **křížení** asymetrické osmičky (`u≈0.2966` a `0.7033`, kde se
- *    větve protínají = most/podjezd) → svislý radiální clunk + lehký roll.
+ *    mezi inflexí (křížení) a vrcholem laloku (max |κ| podle aktuální geometrie).
+ *  - **switch** — radiální clunk u **křížení** asymetrické osmičky (`u≈0.2966` a `0.7033`, kde se
+ *    větve protínají = most/podjezd) → svislý náraz + lehký roll. Stejný druh zvuku používají
+ *    níže i skutečné výhybkové uzly, protože pro ucho jde o podobný tupý ráz.
  *
  * Sjednoceno s dilatačními spárami: {@link Train} obě řeší týmž `crossed()` testem (jen jiná perioda).
  * Pozice jako zlomky délky **hlavní** route → přežijí slider sklonu (TrackNetwork.rebuild mění
@@ -210,15 +212,27 @@ function toSegmentMeters(network: TrackNetwork, loc: TrackLocation): TrackLocati
   return { ...loc, s: loc.s * network.segments[loc.seg].length };
 }
 
+function routeSwitches(network: TrackNetwork, route: RouteId): TrackPerturbation[] {
+  // Skutečné uzly θ-grafu: první je rozbočení (main pokračuje seg2, branch seg4),
+  // druhý je sloučení obou tras do seg3. Obě route musí mít stejný fyzický clunk,
+  // jinak by výhybka zněla jen při jízdě po odbočce.
+  const diverge: TrackLocation = route === 'main' ? { seg: 2, s: 0 } : { seg: 4, s: 0 };
+  const merge: TrackLocation = { seg: 3, s: 0 };
+  return [
+    { u: routeU(network, route, diverge), kind: 'switch', roll: 0.5, pitch: 0.9 },
+    { u: routeU(network, route, merge), kind: 'switch', roll: 0.5, pitch: 0.9 },
+  ];
+}
+
 /**
  * Bodové perturbace pro zvolenou route. Hlavní trasa zachovává historické `u` body beze změny.
- * Odbočka dostane:
+ * Každá route navíc dostane dva skutečné výhybkové clunky na rozbočení/sloučení. Odbočka dostane:
  *  - fyzické perturbace ze sdílených segmentů přeložené do odbočné délky,
- *  - dva skutečné výhybkové clunky na začátku a konci spojky.
+ *  - výhybkové clunky přepočtené do své kratší/delší route délky.
  * Spojka samotná nemá transition rázy: její C² profil je právě navržený bez skoku κ.
  */
 export function trackPerturbationsFor(network: TrackNetwork, route: RouteId): TrackPerturbation[] {
-  if (route === 'main') return MAIN_TRACK_PERTURBATIONS;
+  if (route === 'main') return [...MAIN_TRACK_PERTURBATIONS, ...routeSwitches(network, route)].sort((a, b) => a.u - b.u);
 
   const translated = MAIN_TRACK_PERTURBATIONS
     .map((p): TrackPerturbation | null => {
@@ -229,10 +243,5 @@ export function trackPerturbationsFor(network: TrackNetwork, route: RouteId): Tr
     })
     .filter((p): p is TrackPerturbation => p !== null);
 
-  const branchSwitches: TrackPerturbation[] = [
-    { u: routeU(network, route, { seg: 4, s: 0 }), kind: 'switch', roll: 0.5, pitch: 0.9 },
-    { u: routeU(network, route, { seg: 3, s: 0 }), kind: 'switch', roll: 0.5, pitch: 0.9 },
-  ];
-
-  return [...translated, ...branchSwitches].sort((a, b) => a.u - b.u);
+  return [...translated, ...routeSwitches(network, route)].sort((a, b) => a.u - b.u);
 }

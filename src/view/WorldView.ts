@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import type { RouteId, TrackNetwork } from '../sim/TrackNetwork';
 import type { TrackCurve } from '../sim/TrackSegment';
+import { SERVICE_SEG, SERVICE_U } from '../sim/serviceSite';
 import { terrainHeight, smoothstep } from '../sim/terrain';
 
 // WorldView = statická scéna kolem soupravy (terén, dekorace, trať/pilíře) jako samostatná
@@ -23,6 +24,15 @@ const SWITCH_STAND_OFFSET = 5.2; // m — výměnový terč vedle koleje, mimo p
 const ROUTE_MAIN_COLOR = new THREE.Color(0x35a05a);   // hlavní trasa — zelená
 const ROUTE_BRANCH_COLOR = new THREE.Color(0xd6a33a); // odbočka — okrová jako mechanický terč
 const ROUTE_LOCK_COLOR = new THREE.Color(0xc33a2e);   // zámek při obsazené výhybce — červená
+const SERVICE_SITE_OFFSET = 11;    // m — odstup od osy odbočky; bouda je mimo průjezdný profil
+const SERVICE_CRANE_OFFSET = 6.8;  // m — sloup je blíž ke koleji, rameno dosáhne nad tendr
+const SERVICE_PAD_COLOR = 0x6b6254;
+const SERVICE_HOUSE_COLOR = 0x9a6a42;
+const SERVICE_ROOF_COLOR = 0x6e2b24;
+const SERVICE_DARK_COLOR = 0x2c241d;
+const SERVICE_WINDOW_COLOR = 0x9fc4d0;
+const SERVICE_METAL_COLOR = 0x415b62;
+const SERVICE_COAL_COLOR = 0x171717;
 
 // poloměr trubky kolejnice (m) — štíhlá pro párový vzhled. Exportováno: render loop i markery
 // spřáhel ho potřebují jako výšku temene koleje nad osou (vozy sedí na koleji).
@@ -149,6 +159,7 @@ export class WorldView {
     this.buildDeck(amplitude);
     this.buildPiers(amplitude);
     this.buildSwitchStands();
+    this.buildServiceSite(amplitude);
   }
 
   /**
@@ -210,10 +221,166 @@ export class WorldView {
     }
   }
 
+  /**
+   * Malé zázemí u odbočky: bouda, vodní jeřáb a uhlí. Je to zatím čistě view řez —
+   * sim stále neví o doplňování zásob. Geometrie se váže na segment spojky, takže při změně
+   * slideru sklonu sedí na aktuálním terénu a drží se u stejného fyzického místa tratě.
+   */
+  private buildServiceSite(amplitude: number): void {
+    const branch = this.network.segments[SERVICE_SEG];
+    if (!branch) return; // pojistka pro případ, že budoucí scénář spojku nemá
+
+    const sample = this.network.at({
+      seg: SERVICE_SEG,
+      s: branch.length * SERVICE_U,
+      route: 'branch',
+    });
+    const tangent = sample.tangent.clone();
+    tangent.y = 0;
+    tangent.normalize();
+
+    const sideToTrack = new THREE.Vector3().crossVectors(UP, tangent).normalize();
+    const serviceSide = sideToTrack.clone().multiplyScalar(-1);
+    const center = sample.position.clone().addScaledVector(serviceSide, SERVICE_SITE_OFFSET);
+    const baseY = terrainHeight(center.x, center.z, amplitude);
+    const site = new THREE.Group();
+    site.position.set(center.x, baseY, center.z);
+    site.rotation.y = Math.atan2(tangent.x, tangent.z);
+
+    // Lokální +X míří zpátky ke koleji, +Z po směru jízdy. Výšku dopočítáváme per objekt,
+    // protože terén je zvlněný a servisní plocha má přes deset metrů.
+    const groundY = (localX: number, localZ: number) => {
+      const worldX = center.x + sideToTrack.x * localX + tangent.x * localZ;
+      const worldZ = center.z + sideToTrack.z * localX + tangent.z * localZ;
+      return terrainHeight(worldX, worldZ, amplitude) - baseY;
+    };
+
+    const pad = new THREE.Mesh(
+      new THREE.BoxGeometry(16.4, 0.08, 14),
+      new THREE.MeshStandardMaterial({ color: SERVICE_PAD_COLOR, flatShading: true }),
+    );
+    pad.position.set(0, 0.04, 0);
+    site.add(pad);
+
+    this.addServiceHouse(site, groundY(-1.7, -3.1), -1.7, -3.1);
+    this.addWaterCrane(site, groundY(SERVICE_CRANE_OFFSET, 0.2), SERVICE_CRANE_OFFSET, 0.2);
+    this.addCoalPile(site, groundY(-2.6, 3.8), -2.6, 3.8);
+
+    this.trackGroup.add(site);
+  }
+
+  private addServiceHouse(parent: THREE.Group, groundY: number, x: number, z: number): void {
+    const house = new THREE.Group();
+    house.position.set(x, groundY, z);
+
+    const body = new THREE.Mesh(
+      new THREE.BoxGeometry(7, 4, 5.5),
+      new THREE.MeshStandardMaterial({ color: SERVICE_HOUSE_COLOR, flatShading: true }),
+    );
+    body.position.y = 2;
+    house.add(body);
+
+    const roof = new THREE.Mesh(
+      new THREE.ConeGeometry(5.2, 2.2, 4),
+      new THREE.MeshStandardMaterial({ color: SERVICE_ROOF_COLOR, flatShading: true }),
+    );
+    roof.position.y = 5.1;
+    roof.rotation.y = Math.PI / 4;
+    roof.scale.z = 0.78;
+    house.add(roof);
+
+    const door = new THREE.Mesh(
+      new THREE.BoxGeometry(0.12, 2.35, 1.25),
+      new THREE.MeshStandardMaterial({ color: SERVICE_DARK_COLOR, flatShading: true }),
+    );
+    door.position.set(3.56, 1.18, -1.25);
+    house.add(door);
+
+    const window = new THREE.Mesh(
+      new THREE.BoxGeometry(0.12, 0.9, 1.25),
+      new THREE.MeshStandardMaterial({
+        color: SERVICE_WINDOW_COLOR,
+        emissive: new THREE.Color(SERVICE_WINDOW_COLOR).multiplyScalar(0.12),
+        flatShading: true,
+      }),
+    );
+    window.position.set(3.57, 2.75, 1.15);
+    house.add(window);
+
+    const chimney = new THREE.Mesh(
+      new THREE.BoxGeometry(0.7, 1.4, 0.7),
+      new THREE.MeshStandardMaterial({ color: SERVICE_DARK_COLOR, flatShading: true }),
+    );
+    chimney.position.set(-1.9, 5.1, -0.8);
+    house.add(chimney);
+
+    parent.add(house);
+  }
+
+  private addWaterCrane(parent: THREE.Group, groundY: number, x: number, z: number): void {
+    const crane = new THREE.Group();
+    crane.position.set(x, groundY, z);
+    const metal = new THREE.MeshStandardMaterial({ color: SERVICE_METAL_COLOR, flatShading: true });
+    const dark = new THREE.MeshStandardMaterial({ color: SERVICE_DARK_COLOR, flatShading: true });
+
+    const base = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.55, 0.45, 8), dark);
+    base.position.y = 0.23;
+    crane.add(base);
+
+    const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.22, 5.2, 8), metal);
+    mast.position.y = 2.85;
+    crane.add(mast);
+
+    const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.14, 5.8, 8), metal);
+    arm.position.set(2.9, 5.25, 0);
+    arm.rotation.z = Math.PI / 2;
+    crane.add(arm);
+
+    const spout = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.13, 1.8, 8), metal);
+    spout.position.set(5.65, 4.35, 0);
+    crane.add(spout);
+
+    const valve = new THREE.Mesh(new THREE.BoxGeometry(0.75, 0.12, 0.75), dark);
+    valve.position.set(0, 5.35, 0);
+    valve.rotation.y = Math.PI / 4;
+    crane.add(valve);
+
+    parent.add(crane);
+  }
+
+  private addCoalPile(parent: THREE.Group, groundY: number, x: number, z: number): void {
+    const coal = new THREE.Group();
+    coal.position.set(x, groundY, z);
+    const coalMat = new THREE.MeshStandardMaterial({ color: SERVICE_COAL_COLOR, roughness: 0.9, flatShading: true });
+    const timberMat = new THREE.MeshStandardMaterial({ color: SLEEPER_COLOR, flatShading: true });
+
+    const heap = new THREE.Mesh(new THREE.ConeGeometry(3.2, 1.35, 7), coalMat);
+    heap.position.y = 0.68;
+    heap.rotation.y = 0.25;
+    heap.scale.z = 0.7;
+    coal.add(heap);
+
+    for (const localZ of [-1.9, 1.9]) {
+      const beam = new THREE.Mesh(new THREE.BoxGeometry(6.1, 0.32, 0.35), timberMat);
+      beam.position.set(0, 0.18, localZ);
+      coal.add(beam);
+    }
+
+    const lumpGeo = new THREE.DodecahedronGeometry(0.45, 0);
+    for (const [lx, ly, lz] of [[-1.1, 1.0, -0.2], [0.7, 1.18, 0.6], [1.5, 0.72, -0.55]] as const) {
+      const lump = new THREE.Mesh(lumpGeo, coalMat);
+      lump.position.set(lx, ly, lz);
+      lump.scale.set(1.1, 0.7, 0.85);
+      coal.add(lump);
+    }
+
+    parent.add(coal);
+  }
+
   // Dvě kolejnice (Tube ±rozchod/2 do horizontální kolmice) + pražce (InstancedMesh) podél
   // jedné master křivky. Volá se per křivku sítě.
   private buildCurveRails(curve: TrackCurve): void {
-    const closed = curve.closed; // uzavřená smyčka (lemniskáta) vs. otevřená slepá odbočka
+    const closed = curve.closed; // uzavřená smyčka (lemniskáta) vs. otevřená spojka výhybky
     const N = 400; // vzorků podél trati — hustota offset křivek i tuby
     const leftPts: THREE.Vector3[] = [];
     const rightPts: THREE.Vector3[] = [];

@@ -233,6 +233,8 @@ export function createControlPanel(
       (train.notch > 0 && train.tractionDerating < 1 ? ' · OTÁČKY' : '') +
       // pískování — aktivní jen dokud je zásoba (pak páka bez efektu)
       (train.isSanding ? ' · PÍSEK' : '') +
+      // servisní místo na odbočce: loko stojí u vodního jeřábu a postupně bere uhlí/vodu
+      (train.isRefilling ? ' · DOPLŇUJE' : '') +
       // route lock: výhybka je obsazená nebo souprava leží na exkluzivní větvi → nepřestavuj
       (!train.routeCanChange ? ' · VÝHYBKA ZÁMEK' : '');
     // příčné (odstředivé) zrychlení / práh převrácení — blízkost meze je vidět v čísle
