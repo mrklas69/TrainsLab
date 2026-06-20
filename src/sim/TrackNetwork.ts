@@ -1,6 +1,13 @@
 import type { Vector3 } from 'three';
 import type { TrackCurve, TrackSegment, TrackSample } from './TrackSegment';
 
+export const ROUTE_IDS = ['main', 'branch'] as const;
+export type RouteId = typeof ROUTE_IDS[number];
+const DEFAULT_ROUTE: RouteId = 'main';
+
+type AdvanceDirection = 'next' | 'prev';
+type AdvanceChoice = (opts: readonly number[], from: number, direction: AdvanceDirection) => number;
+
 /** Popis sítě — segmenty + topologie (kdo na koho navazuje). Staví ho factory v trackData. */
 export interface NetworkSpec {
   segments: TrackSegment[];
@@ -9,12 +16,14 @@ export interface NetworkSpec {
   // jízda bere vždy [0], náhodná (volný vagon, DD-25 fáze 2) vybírá libovolný.
   next: number[][]; // next[seg] = segmenty za koncem `seg` (exit při s ≥ length)
   prev: number[][]; // prev[seg] = segmenty před začátkem `seg` (exit při s < 0)
+  routes: Record<RouteId, number[]>; // route id → uzavřená sekvence segmentů v pořadí jízdy
 }
 
 /** Poloha tělesa na síti: na kterém segmentu a kde (lokální arc-length, m). */
 export interface TrackLocation {
   seg: number;
   s: number;
+  route?: RouteId; // která uzavřená trasa dává polohám na společných segmentech jednoznačný význam
 }
 
 /**
@@ -31,7 +40,9 @@ export class TrackNetwork {
                                     // větve mimo cyklus (rovinky) se do ní nepočítají (DD-25 fáze 2)
   private next!: number[][];        // možná pokračování za koncem `seg` (víc = výhybka)
   private prev!: number[][];        // možná pokračování před začátkem `seg` (víc = výhybka)
-  private startGlobal!: number[];   // kumulativní arc-length začátku každého segmentu
+  private routes!: Record<RouteId, number[]>;       // uzavřené jízdní trasy přes graf
+  private routeStarts!: Record<RouteId, number[]>;  // route → kumulativní začátek segmentu
+  private routeLengths!: Record<RouteId, number>;   // route → délka celé smyčky
 
   constructor(spec: NetworkSpec) {
     this.apply(spec);
@@ -47,20 +58,23 @@ export class TrackNetwork {
     this.segments = spec.segments;
     this.next = spec.next;
     this.prev = spec.prev;
-    // Globální souřadnice existuje zatím jen na hlavní trase next[·][0]. Větve dostanou NaN,
-    // aby se jejich použití v gap/globalS nepočítalo potichu podle náhodného pořadí pole.
-    this.startGlobal = Array(spec.segments.length).fill(Number.NaN);
-    let acc = 0;
-    let segIndex = 0;
-    const seen = new Set<number>();
-    while (!seen.has(segIndex)) {
-      seen.add(segIndex);
-      this.startGlobal[segIndex] = acc;
-      acc += spec.segments[segIndex].length;
-      segIndex = spec.next[segIndex][0]; // [0] = hlavní smyčka
+    this.routes = spec.routes;
+    this.routeStarts = { main: [], branch: [] };
+    this.routeLengths = { main: 0, branch: 0 };
+
+    for (const route of ROUTE_IDS) {
+      const starts = Array(spec.segments.length).fill(Number.NaN);
+      let acc = 0;
+      for (const seg of spec.routes[route]) {
+        starts[seg] = acc;
+        acc += spec.segments[seg].length;
+      }
+      this.routeStarts[route] = starts;
+      this.routeLengths[route] = acc;
     }
-    if (segIndex !== 0) throw new Error('Hlavní trasa next[·][0] musí tvořit cyklus zpět do segmentu 0.');
-    this.totalLength = acc;
+
+    // Zpětná kompatibilita pro místa, která pořád znamenají „hlavní smyčka".
+    this.totalLength = this.routeLengths.main;
   }
 
   private validate(spec: NetworkSpec): void {
@@ -93,6 +107,28 @@ export class TrackNetwork {
         }
       }
     });
+    for (const route of ROUTE_IDS) {
+      const sequence = spec.routes[route];
+      if (!sequence || sequence.length === 0) {
+        throw new Error(`TrackNetwork: route ${route} musí obsahovat alespoň jeden segment.`);
+      }
+      const seen = new Set<number>();
+      sequence.forEach((seg, i) => {
+        if (!Number.isInteger(seg) || seg < 0 || seg >= count) {
+          throw new Error(`TrackNetwork: route ${route} obsahuje neplatný segment ${seg}.`);
+        }
+        if (seen.has(seg)) throw new Error(`TrackNetwork: route ${route} obsahuje segment ${seg} víckrát.`);
+        seen.add(seg);
+        const nextSeg = sequence[(i + 1) % sequence.length];
+        const prevSeg = sequence[(i - 1 + sequence.length) % sequence.length];
+        if (!spec.next[seg].includes(nextSeg)) {
+          throw new Error(`TrackNetwork: route ${route} nemá hranu next ${seg}→${nextSeg}.`);
+        }
+        if (!spec.prev[seg].includes(prevSeg)) {
+          throw new Error(`TrackNetwork: route ${route} nemá hranu prev ${seg}→${prevSeg}.`);
+        }
+      });
+    }
   }
 
   /** Unikátní master křivky (pořadí vložení) — view z nich kreslí kolejnice a pražce. */
@@ -111,10 +147,12 @@ export class TrackNetwork {
   }
   signedCurvature(loc: TrackLocation): number {
     const ds = 0.5;
-    const before = { seg: loc.seg, s: loc.s - ds };
-    const after = { seg: loc.seg, s: loc.s + ds };
-    this.advance(before);
-    this.advance(after);
+    const route = this.routeOf(loc);
+    const before = { seg: loc.seg, s: loc.s - ds, route };
+    const after = { seg: loc.seg, s: loc.s + ds, route };
+    const choose = this.routeChoice(route);
+    this.advance(before, choose);
+    this.advance(after, choose);
     const p0 = this.positionAt(before);
     const p1 = this.positionAt(loc);
     const p2 = this.positionAt(after);
@@ -134,20 +172,21 @@ export class TrackNetwork {
    * `choose` vybírá pokračování ve **výhybce** (uzel s víc možnostmi). Default = `[0]` (hlavní
    * smyčka, osmička) → deterministická jízda soupravy. Volný vagon předá náhodný výběr (DD-25 fáze 2).
    */
-  advance(loc: TrackLocation, choose: (opts: number[]) => number = (o) => o[0]): void {
+  advance(loc: TrackLocation, choose?: AdvanceChoice): void {
+    const chooser = choose ?? this.routeChoice(this.routeOf(loc));
     for (let guard = 0; guard < 100; guard++) {
       const seg = this.segments[loc.seg];
       if (loc.s >= seg.length) {
         loc.s -= seg.length;
         const options = this.next[loc.seg];
-        const selected = choose(options);
+        const selected = chooser(options, loc.seg, 'next');
         if (!options.includes(selected)) {
           throw new Error(`TrackNetwork.advance: zvolený segment ${selected} není mezi [${options.join(', ')}].`);
         }
         loc.seg = selected;
       } else if (loc.s < 0) {
         const options = this.prev[loc.seg];
-        const selected = choose(options);
+        const selected = chooser(options, loc.seg, 'prev');
         if (!options.includes(selected)) {
           throw new Error(`TrackNetwork.advance: zvolený segment ${selected} není mezi [${options.join(', ')}].`);
         }
@@ -161,14 +200,42 @@ export class TrackNetwork {
   }
 
   /**
-   * Globální arc-length polohy podél smyčky (m) — kumulativní začátek segmentu + lokální s.
-   * Pro kontakty volných vozů (rozteč po dráze) a fázi otáčení kol (spojitá přes hranice segmentů).
-   * Platí pro orientovanou smyčku (fáze 1); s větvením (fáze 3) přestane být jednoznačné.
+   * Výběr pokračování podle explicitní route. Směr `next`/`prev` je důležitý při couvání:
+   * na sloučení se musí zvolit předchozí segment stejné trasy (main: 2, branch: 4).
    */
-  globalS(loc: TrackLocation): number {
-    const start = this.startGlobal[loc.seg];
+  routeChoice(route: RouteId): AdvanceChoice {
+    return (options, from, direction) => {
+      const sequence = this.routes[route];
+      const i = sequence.indexOf(from);
+      if (i < 0) throw new Error(`Segment ${from} neleží na trase ${route}.`);
+      const target = direction === 'next'
+        ? sequence[(i + 1) % sequence.length]
+        : sequence[(i - 1 + sequence.length) % sequence.length];
+      if (!options.includes(target)) {
+        throw new Error(`Trasa ${route} zvolila segment ${target}, který není mezi [${options.join(', ')}].`);
+      }
+      return target;
+    };
+  }
+
+  /** Délka uzavřené trasy (m). */
+  routeLength(route: RouteId): number {
+    return this.routeLengths[route];
+  }
+
+  /** Může se poloha promítnout do dané trasy? Společné segmenty patří do obou, větev jen do branch. */
+  isSegmentOnRoute(seg: number, route: RouteId): boolean {
+    return Number.isFinite(this.routeStarts[route][seg]);
+  }
+
+  /**
+   * Globální arc-length polohy podél vybrané trasy (m) — kumulativní začátek segmentu + lokální s.
+   * Route je nutná, protože společný segment za sloučením má jiný offset na hlavní trase a na odbočce.
+   */
+  globalS(loc: TrackLocation, route = this.routeOf(loc)): number {
+    const start = this.routeStarts[route][loc.seg];
     if (!Number.isFinite(start)) {
-      throw new Error(`Segment ${loc.seg} neleží na hlavní trase; globalS pro větev zatím není definováno.`);
+      throw new Error(`Segment ${loc.seg} neleží na trase ${route}; globalS není jednoznačné.`);
     }
     return start + loc.s;
   }
@@ -176,14 +243,24 @@ export class TrackNetwork {
   /**
    * Nejkratší rozdíl pozic po smyčce (m): globalS(to) − globalS(from) zabalený do [−L/2, L/2).
    * Kladné = `to` je před `from` (ve směru rostoucího s). Pro spřáhla, kontakty a rázy, které
-   * počítají rozteč těles — funguje i přes hranici segmentu i přes wrap smyčky. (Orientovaná
-   * smyčka, fáze 1; s větvením přestane být jednoznačné jako globalS.)
+   * počítají rozteč těles — funguje i přes hranici segmentu i přes wrap smyčky.
    */
-  gap(from: TrackLocation, to: TrackLocation): number {
-    const L = this.totalLength;
-    let d = (this.globalS(to) - this.globalS(from)) % L;
+  gap(from: TrackLocation, to: TrackLocation, route = this.sharedRoute(from, to)): number {
+    const L = this.routeLength(route);
+    let d = (this.globalS(to, route) - this.globalS(from, route)) % L;
     if (d > L / 2) d -= L;
     else if (d < -L / 2) d += L;
     return d;
+  }
+
+  private routeOf(loc: TrackLocation): RouteId {
+    return loc.route ?? DEFAULT_ROUTE;
+  }
+
+  private sharedRoute(from: TrackLocation, to: TrackLocation): RouteId {
+    const a = this.routeOf(from);
+    const b = this.routeOf(to);
+    if (a !== b) throw new Error(`Polohy leží na různých trasách (${a}/${b}); gap není jednoznačný.`);
+    return a;
   }
 }

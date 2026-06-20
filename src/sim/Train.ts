@@ -1,7 +1,7 @@
 import { Body } from './Body';
 import { Coupler } from './Coupler';
-import { TRACK_PERTURBATIONS } from './trackData';
-import type { TrackNetwork } from './TrackNetwork';
+import { trackPerturbationsFor } from './trackData';
+import type { RouteId, TrackNetwork } from './TrackNetwork';
 import type { PhysicsParams } from './params';
 
 const SUBSTEPS = 8;        // tužší spřáhla → víc substepů pro stabilitu integrátoru
@@ -24,6 +24,7 @@ const V_SKID = 0.1;               // m/s — pod tím vůz stojí; skid (klouzá
 const BRAKE_FADE_RATE = 0.1;      // 1/(m/s) — strmost poklesu tření brzdy s rychlostí; 0.1 → půl-pokles ~10 m/s
 
 const JOINT_WEIGHT = 0.4; // spárový ráz je jemnější než bodová perturbace (časté tiknutí, ne trh)
+const SWITCH_LOCK_MARGIN = 12; // m — u výhybky už nepřestavuj, aby vozy nepřeskočily mezi route identitami
 
 /**
  * Přejel-li vůz „fázový" bod `sI` s periodou `period` mezi pozicemi `sBefore` a `sNow`?
@@ -61,6 +62,7 @@ export class Train {
   readonly freeBodies: Body[] = [];
   private readonly freeStartS: number[] = []; // výchozí pozice volných vozů (pro reset)
   private readonly restGaps: number[];
+  private currentRoute: RouteId = 'main'; // hráčem zvolená trasa soupravy přes θ-graf
   private throttle = 0; // −MAX_REVERSE..MAX_FORWARD
   private braking = false;
   private sanding = false; // pískování — held-key stav (zvyšuje adhezi), čte renderer/UI
@@ -75,12 +77,12 @@ export class Train {
     private readonly startS = 0,
     freeCars: { length: number; startS: number }[] = [], // odstavené volné vozy (mimo soupravu)
   ) {
-    this.bodies = carLengths.map((length) => new Body(0, 0, length));
+    this.bodies = carLengths.map((length) => new Body(0, 0, length, this.currentRoute));
 
     // volné vozy: každý je samostatné těleso na trati se svou výchozí pozicí (mimo řetězec spřáhel).
     // startS je globální arc-length (reset ho přes advance rozloží na segment + lokální s).
     for (const car of freeCars) {
-      this.freeBodies.push(new Body(0, car.startS, car.length));
+      this.freeBodies.push(new Body(0, car.startS, car.length, 'main'));
       this.freeStartS.push(car.startS);
     }
 
@@ -114,6 +116,28 @@ export class Train {
   /** Pískování (held-key): zapne/vypne sypání písku pod kola — zvedne adhezi, dokud je zásoba. */
   setSanding(on: boolean): void {
     this.sanding = on;
+  }
+
+  /**
+   * Přestavení trasy pro příští průjezd výhybkou. Nejde o view tlačítko: route identita určuje,
+   * jak se počítá `globalS`/`gap` přes společné segmenty. Proto ji měníme jen tehdy, když celá
+   * souprava stojí mimo výhybkové uzly a mimo exkluzivní větev; jinak by se vozy uprostřed
+   * průjezdu teleportovaly mezi topologiemi.
+   */
+  setRoute(route: RouteId): boolean {
+    if (route === this.currentRoute) return true;
+    if (!this.routeCanChange) return false;
+    this.currentRoute = route;
+    for (const body of this.bodies) body.route = route;
+    return true;
+  }
+
+  get route(): RouteId {
+    return this.currentRoute;
+  }
+
+  get routeCanChange(): boolean {
+    return this.canChangeRouteNow();
   }
 
   get notch(): number {
@@ -248,16 +272,17 @@ export class Train {
     // souprava: loko na startS, vozy za ním (klesající arc-length). Pozice zadáme globálně na
     // segment 0 a advance() je rozloží na správné segmenty (záporné/přetečené s přejde přes uzel).
     let s = this.startS;
-    this.bodies[0].seg = 0; this.bodies[0].s = s; this.bodies[0].v = 0;
+    this.bodies[0].seg = 0; this.bodies[0].s = s; this.bodies[0].v = 0; this.bodies[0].route = this.currentRoute;
     for (let i = 1; i < this.bodies.length; i++) {
       s -= this.restGaps[i - 1];
-      this.bodies[i].seg = 0; this.bodies[i].s = s; this.bodies[i].v = 0;
+      this.bodies[i].seg = 0; this.bodies[i].s = s; this.bodies[i].v = 0; this.bodies[i].route = this.currentRoute;
     }
     this.freeBodies.forEach((body, i) => {
-      body.seg = 0; body.s = this.freeStartS[i]; body.v = 0;
+      body.seg = 0; body.s = this.freeStartS[i]; body.v = 0; body.route = 'main';
     });
     // srovnej segment podle zadaného (globálního) s
-    for (const body of [...this.bodies, ...this.freeBodies]) this.network.advance(body);
+    for (const body of this.bodies) this.network.advance(body, this.network.routeChoice(body.route));
+    for (const body of this.freeBodies) this.network.advance(body, this.network.routeChoice(body.route));
     // vynuluj i rotační stav vypružení (roll/pitch), ať reset srovná skříně (souprava i volné vozy)
     for (const body of [...this.bodies, ...this.freeBodies]) {
       body.roll = 0; body.rollVel = 0; body.pitch = 0; body.pitchVel = 0;
@@ -315,6 +340,24 @@ export class Train {
     return result;
   }
 
+  /**
+   * Route lock: přestavit výhybku smí hráč jen ve chvíli, kdy celá souprava leží na segmentech
+   * společných pro obě trasy a není těsně u uzlu. Je to záměrně konzervativní: první řez řeší
+   * jednoznačnou trasu soupravy, ne realističtější blokovou logiku po nápravách.
+   */
+  private canChangeRouteNow(): boolean {
+    for (const body of this.bodies) {
+      if (!this.network.isSegmentOnRoute(body.seg, 'main')) return false;
+      if (!this.network.isSegmentOnRoute(body.seg, 'branch')) return false;
+
+      const len = this.network.segments[body.seg].length;
+      // seg1 končí rozbočením, seg3 začíná sloučením. V jejich těsné blízkosti už je výhybka obsazená.
+      if (body.seg === 1 && body.s > len - SWITCH_LOCK_MARGIN) return false;
+      if (body.seg === 3 && body.s < SWITCH_LOCK_MARGIN) return false;
+    }
+    return true;
+  }
+
   // Vykolejení = tvrdý fail state: souprava i volné vozy stojí a čekají na reset (R).
   // `reason` + `speed` nesou diagnostiku (čím a při jaké rychlosti) do UI.
   private derail(reason: 'overturn' | 'collision', speed: number): void {
@@ -347,15 +390,15 @@ export class Train {
       this.bodies[i].applyFriction(this.params, mass, i === 0 ? brake : 0);
       // integrace dělí silou setrvačnou hmotu m·(1+λ) — rotující kola/ojnice (massOf drží tíhu)
       this.bodies[i].integrate(h, mass, this.rotatingFactorOf(i));
-      this.network.advance(this.bodies[i]); // posun mohl přejít hranici segmentu → srovnej seg
+      // posun mohl přejít hranici segmentu → srovnej seg podle zvolené trasy soupravy
+      this.network.advance(this.bodies[i], this.network.routeChoice(this.bodies[i].route));
     }
     // volné vozy: bez trakce i brzdy — jen odpory + případný kontaktní ráz (statické tření je drží stát).
-    // Zatím jedou deterministicky po hlavní smyčce (advance default = [0]); po spojce nikdo nejede.
-    // Volba trasy a route-aware gap/globalS přes větve přijdou v další fázi DD-25.
+    // V tomhle řezu zůstávají na hlavní trase; route-aware náhodné větvení je samostatný TODO.
     for (const fb of this.freeBodies) {
       fb.applyFriction(this.params, this.params.carMass, 0);
       fb.integrate(h, this.params.carMass, this.params.rotatingMassFactorCar);
-      this.network.advance(fb);
+      this.network.advance(fb, this.network.routeChoice(fb.route));
     }
 
     // vypružení skříně (DD-02: rotace, nemění s/v) — buzení z příčného (v²·κ se znaménkem)
@@ -401,7 +444,9 @@ export class Train {
 
   // jedna kontaktní dvojice: odpudivá síla ∝ překryv skříní + tlumení; zároveň měří energii srážky.
   private contact(a: Body, massA: number, b: Body, massB: number): void {
-    const d = this.network.gap(a, b);                         // + = b je „před" a (rostoucí s)
+    const route = this.contactRoute(a, b);
+    if (!route) return;                                       // různé větve: první řez kontakty přes route neřeší
+    const d = this.network.gap(a, b, route);                  // + = b je „před" a (rostoucí s)
     const minGap = a.length / 2 + b.length / 2 + COUPLER_GAP; // rozteč středů při dotyku
     const dist = Math.abs(d);
     if (dist >= minGap) return;                               // skříně se nedotýkají → bez síly
@@ -429,11 +474,22 @@ export class Train {
   }
 
   /**
+   * Kontakty přes větvení jsou těžší fáze 4. V prvním route řezu měříme kontakt jen tehdy,
+   * když tělesa sdílejí route, nebo jsou fyzicky na témž segmentu (společná kolej). Tím se
+   * volný vůz na hlavní trase nespojuje na dálku s vlakem jedoucím po odbočce.
+   */
+  private contactRoute(a: Body, b: Body): RouteId | null {
+    if (a.route === b.route) return a.route;
+    if (a.seg === b.seg) return a.route; // na stejném segmentu se rozdíl route v offsetu odečte
+    return null;
+  }
+
+  /**
    * Rázy z trati → impulsy do kývání skříně (rozšíření DD-13). Jeden balík, dva zdroje
    * nespojitosti řešené týmž {@link crossed} testem nad ujetou vzdáleností (`sBefore`→`s`):
    *  - **dilatační spáry** (perioda `railLength`): svislý ráz → **pitch**, znaménko střídá
    *    podle parity spáry (klikety-klak); jemnější ({@link JOINT_WEIGHT}).
-   *  - **bodové perturbace** ({@link TRACK_PERTURBATIONS}, perioda = délka smyčky): skok
+   *  - **bodové perturbace** (`trackPerturbationsFor(route)`, perioda = délka route): skok
    *    křivosti → **roll** ve směru oblouku (`sign(κ)` → trh dosedne do náklonu) + výhybka → pitch.
    *
    * Síla ∝ rychlost (rychleji → tvrdší ráz) × `trackImpulse` (kvalita trati; 0 = hladká). Skok
@@ -445,13 +501,13 @@ export class Train {
     const strength = this.params.trackImpulse;
     if (strength <= 0) return;
     const railLength = this.params.railLength;
-    const loop = this.network.totalLength;
     const transitionFactor = 1 - this.params.transitionQuality; // přechodnice tlumí κ-trh
 
     for (let i = 0; i < this.bodies.length; i++) {
       const body = this.bodies[i];
       const speed = Math.abs(body.v);
       if (speed === 0) continue; // stojící vůz spáru „nepřejede" — žádný ráz
+      const loop = this.network.routeLength(body.route);
 
       // globální arc-length po smyčce (s je teď lokální per segment); rozbal wrap, ať crossed()
       // dostane monotónní úsek (krok je malý → velký skok = přejezd přes konec smyčky)
@@ -466,7 +522,7 @@ export class Train {
       }
 
       // bodové perturbace: roll ve směru oblouku (skok křivosti) + pitch (výhybka)
-      for (const p of TRACK_PERTURBATIONS) {
+      for (const p of trackPerturbationsFor(this.network, body.route)) {
         if (!crossed(sBefore[i], sNow, p.u * loop, loop)) continue;
         // přechodnice rozetře jen skok křivosti; výhybka/křížení je radiální závada (nezávislá)
         const scale = p.kind === 'transition' ? transitionFactor : 1;

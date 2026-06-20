@@ -11,10 +11,10 @@ const branch = net.segments[4];
 const samples = 600;
 let maxCurvature = 0;
 let maxJump = 0;
-let previous = net.signedCurvature({ seg: 4, s: 0 });
+let previous = net.signedCurvature({ seg: 4, s: 0, route: 'branch' });
 
 for (let i = 0; i <= samples; i++) {
-  const curvature = net.signedCurvature({ seg: 4, s: (i / samples) * branch.length });
+  const curvature = net.signedCurvature({ seg: 4, s: (i / samples) * branch.length, route: 'branch' });
   check(Number.isFinite(curvature), `Neplatná křivost ve vzorku ${i}.`);
   maxCurvature = Math.max(maxCurvature, Math.abs(curvature));
   if (i > 0) maxJump = Math.max(maxJump, Math.abs(curvature - previous));
@@ -22,10 +22,10 @@ for (let i = 0; i <= samples; i++) {
 }
 
 const startDelta = Math.abs(
-  net.signedCurvature({ seg: 4, s: 0 }) - net.signedCurvature({ seg: 2, s: 0 }),
+  net.signedCurvature({ seg: 4, s: 0, route: 'branch' }) - net.signedCurvature({ seg: 2, s: 0 }),
 );
 const endDelta = Math.abs(
-  net.signedCurvature({ seg: 4, s: branch.length }) - net.signedCurvature({ seg: 3, s: 0 }),
+  net.signedCurvature({ seg: 4, s: branch.length, route: 'branch' }) - net.signedCurvature({ seg: 3, s: 0, route: 'branch' }),
 );
 
 check(maxCurvature < 0.025, `Spojka překročila mez křivosti: ${maxCurvature.toFixed(5)} 1/m.`);

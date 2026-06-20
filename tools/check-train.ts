@@ -69,3 +69,45 @@ if (adhesionTrain.effectiveAdhesion <= adhesionParams.adhesionCoeff) {
 console.log(`Pískování OK: μ ${(
   adhesionParams.adhesionCoeff * adhesionParams.railFactor
 ).toFixed(2)} → ${adhesionTrain.effectiveAdhesion.toFixed(2)}.`);
+
+function trainOnBranchNearSegmentEnd(seg: number): Train {
+  const testNetwork = new TrackNetwork(buildLoopNetwork(DEFAULT_PARAMS.trackAmplitude));
+  const testTrain = new Train(testNetwork, DEFAULT_PARAMS, [8]);
+  if (!testTrain.setRoute('branch')) throw new Error('Trasu branch nebylo možné nastavit v bezpečném úseku.');
+  const testLoco = testTrain.bodies[0];
+  testLoco.seg = seg;
+  testLoco.s = testNetwork.segments[seg].length - 0.2;
+  testLoco.v = 6;
+  testLoco.route = 'branch';
+  return testTrain;
+}
+
+// Route-aware průjezd: souprava na trase branch musí na první výhybce vybrat spojku
+// a route lock nesmí dovolit přestavení, když už lokomotiva leží na exkluzivní větvi.
+const routeNetwork = new TrackNetwork(buildLoopNetwork(DEFAULT_PARAMS.trackAmplitude));
+const routeTrain = new Train(routeNetwork, DEFAULT_PARAMS, [8]);
+if (!routeTrain.setRoute('branch')) throw new Error('Trasu branch nebylo možné nastavit v bezpečném úseku.');
+const loco = routeTrain.bodies[0];
+loco.seg = 1;
+loco.s = routeNetwork.segments[1].length - 0.2;
+loco.v = 6;
+loco.route = 'branch';
+routeTrain.update(1 / 12);
+if (loco.seg !== 4) throw new Error(`Route branch nepřejela na spojku, skončila na segmentu ${loco.seg}.`);
+if (routeTrain.setRoute('main')) throw new Error('Route lock dovolil přestavit výhybku uprostřed odbočky.');
+
+console.log('Route-aware průjezd OK: branch volí spojku a zámek drží obsazenou větev.');
+
+// Rázy na odbočce musí vzniknout v obou topologických uzlech, nejen na historických bodech
+// hlavní lemniskáty. Test jede skutečným update(), aby ověřil advance + route globalS + crossed().
+const branchSwitchIn = trainOnBranchNearSegmentEnd(1);
+branchSwitchIn.update(1 / 12);
+if (!branchSwitchIn.switchFired) throw new Error('Průjezd na spojku nespustil branch switchFired.');
+if (branchSwitchIn.bodies[0].seg !== 4) throw new Error('Test rázu na rozbočení nepřejel na spojku.');
+
+const branchSwitchOut = trainOnBranchNearSegmentEnd(4);
+branchSwitchOut.update(1 / 12);
+if (!branchSwitchOut.switchFired) throw new Error('Návrat ze spojky nespustil branch switchFired.');
+if (branchSwitchOut.bodies[0].seg !== 3) throw new Error('Test rázu na sloučení nepřejel zpět na hlavní segment.');
+
+console.log('Route-specific rázy OK: odbočka hlásí clunk na rozbočení i sloučení.');

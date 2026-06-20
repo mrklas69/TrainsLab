@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import type { TrackNetwork } from '../sim/TrackNetwork';
+import type { RouteId, TrackNetwork } from '../sim/TrackNetwork';
 import type { TrackCurve } from '../sim/TrackSegment';
 import { terrainHeight, smoothstep } from '../sim/terrain';
 
@@ -19,6 +19,10 @@ const PIER_COLOR = 0x807a70; // pilíř i mostovka — betonová šeď (jeden mo
 const DECK_SPACING = 2;     // rozteč segmentů mostovky podél trati (m) — hustá, segmenty se překrývají
 const DECK_THICKNESS = 0.4; // tloušťka nosníku mostovky (m)
 const DECK_DROP = 0.35;     // o kolik je střed mostovky pod osou koleje (m) — sedí pod pražci
+const SWITCH_STAND_OFFSET = 5.2; // m — výměnový terč vedle koleje, mimo průjezdný profil
+const ROUTE_MAIN_COLOR = new THREE.Color(0x35a05a);   // hlavní trasa — zelená
+const ROUTE_BRANCH_COLOR = new THREE.Color(0xd6a33a); // odbočka — okrová jako mechanický terč
+const ROUTE_LOCK_COLOR = new THREE.Color(0xc33a2e);   // zámek při obsazené výhybce — červená
 
 // poloměr trubky kolejnice (m) — štíhlá pro párový vzhled. Exportováno: render loop i markery
 // spřáhel ho potřebují jako výšku temene koleje nad osou (vozy sedí na koleji).
@@ -80,6 +84,10 @@ function forestDensity(x: number, z: number): number {
 
 // místo pro kus dekorace (strom/kámen) na terénu
 type Spot = { x: number; z: number; y: number; scale: number; rot: number };
+type SwitchStand = {
+  target: THREE.MeshStandardMaterial;
+  arm: THREE.Mesh;
+};
 
 // Uvolní unikátní GPU prostředky celé větve scény. Materiál může sdílet víc meshů
 // (např. obě kolejnice), proto Set brání opakovanému dispose téhož objektu.
@@ -100,6 +108,7 @@ export class WorldView {
   private trackGroup!: THREE.Group;   // dvě kolejnice + pražce + pilíře — přestavitelné sliderem sklonu
   private terrainMesh!: THREE.Mesh;   // lowpoly heightfield — přestavitelný sliderem sklonu
   private sceneryGroup!: THREE.Group; // stromy + kameny — sedí na terénu (rebuild se sklonem)
+  private switchStands: SwitchStand[] = []; // výměnové terče u uzlů θ-grafu (route stav)
 
   constructor(
     private readonly scene: THREE.Scene,
@@ -128,6 +137,7 @@ export class WorldView {
   private rebuildTrack(amplitude: number): void {
     disposeObject(this.trackGroup);
     this.trackGroup.clear();
+    this.switchStands = [];
     this.populateTrack(amplitude);
   }
 
@@ -138,6 +148,66 @@ export class WorldView {
     for (const curve of this.network.masterCurves) this.buildCurveRails(curve);
     this.buildDeck(amplitude);
     this.buildPiers(amplitude);
+    this.buildSwitchStands();
+  }
+
+  /**
+   * Výměnové terče u obou uzlů θ-grafu. Jsou čistě view: barva a poloha ramene jen ukazují
+   * aktuální trasu a zámek, rozhodnutí zůstává v Train/TrackNetwork.
+   */
+  updateRouteIndicators(route: RouteId, locked: boolean): void {
+    const color =
+      locked ? ROUTE_LOCK_COLOR :
+      route === 'branch' ? ROUTE_BRANCH_COLOR :
+      ROUTE_MAIN_COLOR;
+    for (const stand of this.switchStands) {
+      stand.target.color.copy(color);
+      stand.target.emissive.copy(color).multiplyScalar(0.35);
+      stand.arm.rotation.z = route === 'branch' ? -0.62 : 0.62;
+    }
+  }
+
+  private buildSwitchStands(): void {
+    const nodes = [
+      { seg: 2, s: 0, side: 1 }, // rozbočení do hlavní/odbočné hrany
+      { seg: 3, s: 0, side: -1 }, // sloučení zpět na společnou trať
+    ];
+    const mastGeo = new THREE.CylinderGeometry(0.07, 0.09, 1.35, 6);
+    const targetGeo = new THREE.BoxGeometry(0.82, 0.42, 0.08);
+    const armGeo = new THREE.BoxGeometry(1.1, 0.08, 0.08);
+    const mastMat = new THREE.MeshStandardMaterial({ color: 0x2b2d2f, flatShading: true });
+    const armMat = new THREE.MeshStandardMaterial({ color: 0x1d1f21, flatShading: true });
+
+    for (const node of nodes) {
+      const { position, tangent } = this.network.at({ seg: node.seg, s: node.s, route: 'main' });
+      const side = new THREE.Vector3().crossVectors(UP, tangent).normalize().multiplyScalar(node.side * SWITCH_STAND_OFFSET);
+      const group = new THREE.Group();
+      group.position.copy(position).add(side);
+      group.position.y += RAIL_RADIUS;
+      // natoč terč podél koleje, aby rameno ukazovalo „rovně/odbočka" ve vztahu k trati
+      group.rotation.y = Math.atan2(tangent.x, tangent.z);
+
+      const mast = new THREE.Mesh(mastGeo, mastMat);
+      mast.position.y = 0.68;
+      group.add(mast);
+
+      const targetMat = new THREE.MeshStandardMaterial({
+        color: ROUTE_MAIN_COLOR,
+        emissive: ROUTE_MAIN_COLOR.clone().multiplyScalar(0.35),
+        flatShading: true,
+      });
+      const target = new THREE.Mesh(targetGeo, targetMat);
+      target.position.y = 1.45;
+      group.add(target);
+
+      const arm = new THREE.Mesh(armGeo, armMat);
+      arm.position.y = 1.82;
+      arm.rotation.z = 0.62;
+      group.add(arm);
+
+      this.trackGroup.add(group);
+      this.switchStands.push({ target: targetMat, arm });
+    }
   }
 
   // Dvě kolejnice (Tube ±rozchod/2 do horizontální kolmice) + pražce (InstancedMesh) podél

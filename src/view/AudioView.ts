@@ -29,12 +29,12 @@ const CLUNK_GAIN = 1.1 / 3;
 
 /** Trvalý hlas (loop) jen se zapínáním/vypínáním — prokluz, únik páry. */
 interface SustainVoice {
-  setActive(on: boolean): void;
+  setActive(on: boolean, hard?: boolean): void;
 }
 
 /** Trvalý hlas s plynule řízenou hlasitostí (0..1) — skřípění oblouku ∝ příčné zrychlení. */
 interface LevelVoice {
-  setLevel(level: number): void;
+  setLevel(level: number, hard?: boolean): void;
 }
 
 /** Trvalý hlas se zapínáním + řízenou rychlostí přehrávání (smyčka brzd/klapotu ∝ otáčení kol). */
@@ -138,6 +138,7 @@ export class AudioView {
 
   /** Jednorázové přehrání nahraného bufferu danou hlasitostí (přes master gain). */
   private playSample(buffer: AudioBuffer, volume: number): void {
+    if (this.muted) return; // tvrdý mute: během ticha nespouštěj ani one-shoty do fronty
     const src = this.ctx.createBufferSource();
     src.buffer = buffer;
     const gain = this.ctx.createGain();
@@ -162,7 +163,14 @@ export class AudioView {
     src.connect(gain).connect(this.master);
     src.start();
     return {
-      setActive: (on) => gain.gain.setTargetAtTime(on ? volume : 0, this.ctx.currentTime, 0.15),
+      setActive: (on, hard = false) => {
+        if (hard) {
+          gain.gain.cancelScheduledValues(this.ctx.currentTime);
+          gain.gain.setValueAtTime(on ? volume : 0, this.ctx.currentTime);
+          return;
+        }
+        gain.gain.setTargetAtTime(on ? volume : 0, this.ctx.currentTime, 0.15);
+      },
     };
   }
 
@@ -180,7 +188,14 @@ export class AudioView {
     src.connect(gain).connect(this.master);
     src.start();
     return {
-      setActive: (on) => gain.gain.setTargetAtTime(on ? volume : 0, this.ctx.currentTime, 0.12),
+      setActive: (on, hard = false) => {
+        if (hard) {
+          gain.gain.cancelScheduledValues(this.ctx.currentTime);
+          gain.gain.setValueAtTime(on ? volume : 0, this.ctx.currentTime);
+          return;
+        }
+        gain.gain.setTargetAtTime(on ? volume : 0, this.ctx.currentTime, 0.12);
+      },
       setRate: (rate) => src.playbackRate.setTargetAtTime(rate, this.ctx.currentTime, 0.05),
     };
   }
@@ -199,8 +214,15 @@ export class AudioView {
     src.connect(gain).connect(this.master);
     src.start();
     return {
-      setLevel: (level) =>
-        gain.gain.setTargetAtTime(Math.max(0, Math.min(level, 1)) * maxVolume, this.ctx.currentTime, 0.08),
+      setLevel: (level, hard = false) => {
+        const target = Math.max(0, Math.min(level, 1)) * maxVolume;
+        if (hard) {
+          gain.gain.cancelScheduledValues(this.ctx.currentTime);
+          gain.gain.setValueAtTime(target, this.ctx.currentTime);
+          return;
+        }
+        gain.gain.setTargetAtTime(target, this.ctx.currentTime, 0.08);
+      },
     };
   }
 
@@ -241,7 +263,7 @@ export class AudioView {
     };
 
     return {
-      setActive: (on) => {
+      setActive: (on, hard = false) => {
         if (on && !src) {
           src = this.ctx.createBufferSource();
           src.buffer = buffer;
@@ -258,7 +280,13 @@ export class AudioView {
           if (timer !== undefined) clearTimeout(timer);
           timer = undefined;
           gain!.gain.setTargetAtTime(0, this.ctx.currentTime, 0.08); // fade out, ať konec nelupne
-          src.stop(this.ctx.currentTime + 0.3);
+          if (hard) {
+            gain!.gain.cancelScheduledValues(this.ctx.currentTime);
+            gain!.gain.setValueAtTime(0, this.ctx.currentTime);
+            src.stop(this.ctx.currentTime);
+          } else {
+            src.stop(this.ctx.currentTime + 0.3);
+          }
           src = null; // uvolni → příští zabrzdění začne znovu
           gain = null;
         }
@@ -290,13 +318,32 @@ export class AudioView {
   toggleMute(): void {
     this.muted = !this.muted;
     this.applyMasterGain();
+    if (this.muted) this.silenceContinuousVoices();
   }
 
   // Výsledná hlasitost = základní × distanční útlum (nebo 0 při mute). Jeden zdroj pravdy pro
-  // master gain, kam přispívají mute i vzdálenost kamery. setTargetAtTime = plynulý přechod bez lupnutí.
+  // master gain, kam přispívají mute i vzdálenost kamery. Unmute přejde plynule, ale mute je tvrdá nula:
+  // zvukové tlačítko má být bezpečnostní stop, ne jen pomalý fade.
   private applyMasterGain(): void {
-    const target = this.muted ? 0 : MASTER_VOLUME * this.distanceVolume;
-    this.master.gain.setTargetAtTime(target, this.ctx.currentTime, 0.05);
+    const now = this.ctx.currentTime;
+    this.master.gain.cancelScheduledValues(now);
+    if (this.muted) {
+      this.master.gain.setValueAtTime(0, now);
+      return;
+    }
+    this.master.gain.setTargetAtTime(MASTER_VOLUME * this.distanceVolume, now, 0.05);
+  }
+
+  /**
+   * Vypni všechny trvalé hlasy, které si drží vlastní gain/zdroj. Master gain by je sice ztlumil
+   * taky, ale explicitní stav zabrání doznívání a drží mute jednotně pro loop i one-shot zvuky.
+   */
+  private silenceContinuousVoices(): void {
+    this.steamLeak?.setActive(false, true);
+    this.slipLoop?.setActive(false, true);
+    this.brakeLoop?.setActive(false, true);
+    this.railLoop?.setActive(false, true);
+    this.arcLoop?.setLevel(0, true);
   }
 
   /**
@@ -307,6 +354,11 @@ export class AudioView {
     // distanční hlasitost: kamera dál od soupravy → tišší (∝ 1/d, ticho u horizontu mlhy)
     this.distanceVolume = distanceGain(cameraDistance);
     this.applyMasterGain();
+    if (this.muted) {
+      this.silenceContinuousVoices();
+      this.syncCouplerModes(train); // po unmute nepřehraj starý clank jen kvůli změně během ticha
+      return;
+    }
 
     // výfuk páry: puf v taktu sdíleného ExhaustClock (sladěný s kouřem), jen pod párou —
     // otevřený regulátor (notch ≠ 0) A pára v kotli (steamPressure > 0). Bez páry píst
@@ -331,6 +383,12 @@ export class AudioView {
   }
 
   // --- jednorázové události ---
+
+  private syncCouplerModes(train: Train): void {
+    train.couplers.forEach((coupler, i) => {
+      this.prevModes[i] = coupler.mode;
+    });
+  }
 
   // přechod spřáhla z vůle do kontaktu → cvaknutí (draft) nebo náraz (buff)
   private updateCouplers(train: Train): void {

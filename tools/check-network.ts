@@ -13,6 +13,8 @@ check(net.segments[4].curve.closed === false, 'Spojka musí být otevřená kři
 
 const mainLength = net.segments.slice(0, 4).reduce((sum, segment) => sum + segment.length, 0);
 check(Math.abs(net.totalLength - mainLength) < 1e-6, 'totalLength musí obsahovat pouze hlavní smyčku.');
+const branchLength = net.segments[0].length + net.segments[1].length + net.segments[4].length + net.segments[3].length;
+check(Math.abs(net.routeLength('branch') - branchLength) < 1e-6, 'Odbočná route má špatnou délku.');
 
 const firstSwitch = { seg: 1, s: net.segments[1].length + 1 };
 const secondSwitch = { seg: 2, s: net.segments[2].length + 1 };
@@ -20,6 +22,17 @@ net.advance(firstSwitch);
 net.advance(secondSwitch);
 check(firstSwitch.seg === 2, 'Výchozí trasa na první výhybce musí pokračovat po hlavní smyčce.');
 check(secondSwitch.seg === 3, 'Výchozí trasa na druhé výhybce musí pokračovat po hlavní smyčce.');
+
+const branchSwitch = { seg: 1, s: net.segments[1].length + 1, route: 'branch' as const };
+net.advance(branchSwitch);
+check(branchSwitch.seg === 4, 'Odbočná route musí na první výhybce zvolit spojku.');
+branchSwitch.s = net.segments[4].length + 1;
+net.advance(branchSwitch);
+check(branchSwitch.seg === 3, 'Odbočná route se musí ve druhém uzlu vrátit na společnou trať.');
+
+const branchReverse = { seg: 3, s: -1, route: 'branch' as const };
+net.advance(branchReverse);
+check(branchReverse.seg === 4, 'Couvání po odbočné route musí ze sloučení vybrat spojku.');
 
 const branchStart = net.positionAt({ seg: 4, s: 0 });
 const branchEnd = net.positionAt({ seg: 4, s: net.segments[4].length });
@@ -34,7 +47,8 @@ try {
 } catch {
   branchGlobalRejected = true;
 }
-check(branchGlobalRejected, 'globalS musí odmítnout větev bez definované route-aware souřadnice.');
+check(branchGlobalRejected, 'globalS musí odmítnout větev bez explicitní odbočné route.');
+check(Number.isFinite(net.globalS({ seg: 4, s: 0, route: 'branch' })), 'globalS musí podporovat odbočnou route.');
 
 let invalidChoiceRejected = false;
 try {

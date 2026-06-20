@@ -1,7 +1,7 @@
 import { CatmullRomCurve3, Curve, Vector3 } from 'three';
 import { terrainHeight } from './terrain';
 import { TrackSegment } from './TrackSegment';
-import type { NetworkSpec } from './TrackNetwork';
+import type { NetworkSpec, RouteId, TrackLocation, TrackNetwork } from './TrackNetwork';
 
 const BRIDGE_HEIGHT = 8;  // m — výška mostu nad podjezdem; clearance > výška vozu (~5,8 m)
 const BRIDGE_WIDTH = 0.5; // rad — pološířka náběhu mostu v parametru t (rampa stoupání/klesání)
@@ -129,8 +129,8 @@ class BranchCurve extends Curve<Vector3> {
  * smyčka je jedna hladká lemniskáta rozdělená na 4 segmenty se **dvěma uzly výhybek** ({@link SWITCH_U}
  * rozbočení, {@link MERGE_U} sloučení); mezi nimi vede 5. segment (otevřená spojka,
  * {@link BranchCurve}). `next`/`prev` jsou seznamy možností (DD-25): jeden prvek = jednoznačné
- * napojení, víc = výhybka (volba v `advance`). Souprava i volný vagon zatím jedou deterministicky `[0]`
- * (hlavní smyčka) — po spojce nikdo nejede (jízda + route-aware gap/globalS přes větve = další fáze DD-25).
+ * napojení, víc = výhybka (volba v `advance`). Souprava už může dostat route `main` nebo `branch`
+ * a díky route-aware `globalS`/`gap` projet hlavní smyčku i spojku. Volný vagon zatím zůstává na main.
  */
 export function buildLoopNetwork(amplitude: number): NetworkSpec {
   const curve = new CatmullRomCurve3(makeLoopControlPoints(amplitude), true, 'centripetal');
@@ -145,11 +145,16 @@ export function buildLoopNetwork(amplitude: number): NetworkSpec {
     new TrackSegment(connector, 0, 1, connector.getLength()), // 4: spojka (výhybka 1 → výhybka 2)
   ];
   // hlavní smyčka 0→1→2→3→0; výhybka 1 (konec seg1): rovně seg2 ([0]) / spojka seg4; výhybka 2 (konec
-  // seg2 i seg4): obě slévají na seg3. Couvání zrcadlově (prev). totalLength bere cyklus next[·][0] = lemniskáta.
+  // seg2 i seg4): obě slévají na seg3. Couvání zrcadlově (prev). `routes` popisuje dvě uzavřené
+  // trasy: main = původní lemniskáta, branch = objížďka přes spojku.
   return {
     segments,
     next: [[1], [2, 4], [3], [0], [3]],
     prev: [[3], [0], [1], [2, 4], [1]],
+    routes: {
+      main: [0, 1, 2, 3],
+      branch: [0, 1, 4, 3],
+    },
   };
 }
 
@@ -176,9 +181,10 @@ export interface TrackPerturbation {
  *    větve protínají = most/podjezd) → svislý radiální clunk + lehký roll.
  *
  * Sjednoceno s dilatačními spárami: {@link Train} obě řeší týmž `crossed()` testem (jen jiná perioda).
- * Pozice jako zlomky délky → přežijí slider sklonu (TrackNetwork.rebuild mění délku trati).
+ * Pozice jako zlomky délky **hlavní** route → přežijí slider sklonu (TrackNetwork.rebuild mění
+ * délku trati). Odbočná route si je překládá přes fyzický segment v {@link trackPerturbationsFor}.
  */
-export const TRACK_PERTURBATIONS: TrackPerturbation[] = [
+const MAIN_TRACK_PERTURBATIONS: TrackPerturbation[] = [
   { u: 0.10, kind: 'transition', roll: 1.0, pitch: 0.0 }, // výjezd z pravého laloku
   { u: 0.296613, kind: 'switch', roll: 0.5, pitch: 0.9 }, // křížení (horní větev / most) — radiální clunk
   { u: 0.40, kind: 'transition', roll: 1.0, pitch: 0.0 }, // náběh do levého laloku
@@ -186,3 +192,47 @@ export const TRACK_PERTURBATIONS: TrackPerturbation[] = [
   { u: 0.703325, kind: 'switch', roll: 0.5, pitch: 0.9 }, // křížení (dolní větev / podjezd)
   { u: 0.90, kind: 'transition', roll: 1.0, pitch: 0.0 }, // náběh do pravého laloku
 ];
+
+function routeU(network: TrackNetwork, route: RouteId, loc: TrackLocation): number {
+  return network.globalS({ ...loc, route }, route) / network.routeLength(route);
+}
+
+// Přelož historickou pozici `u` z master lemniskáty na konkrétní segment. Vrací null,
+// pokud daný bod leží na hlavním segmentu 2, který odbočná route objíždí spojkou.
+function sharedLoopLocation(u: number): TrackLocation | null {
+  if (u < 0.5) return { seg: 0, s: u / 0.5 };
+  if (u < SWITCH_U) return { seg: 1, s: (u - 0.5) / (SWITCH_U - 0.5) };
+  if (u >= MERGE_U) return { seg: 3, s: (u - MERGE_U) / (1 - MERGE_U) };
+  return null;
+}
+
+function toSegmentMeters(network: TrackNetwork, loc: TrackLocation): TrackLocation {
+  return { ...loc, s: loc.s * network.segments[loc.seg].length };
+}
+
+/**
+ * Bodové perturbace pro zvolenou route. Hlavní trasa zachovává historické `u` body beze změny.
+ * Odbočka dostane:
+ *  - fyzické perturbace ze sdílených segmentů přeložené do odbočné délky,
+ *  - dva skutečné výhybkové clunky na začátku a konci spojky.
+ * Spojka samotná nemá transition rázy: její C² profil je právě navržený bez skoku κ.
+ */
+export function trackPerturbationsFor(network: TrackNetwork, route: RouteId): TrackPerturbation[] {
+  if (route === 'main') return MAIN_TRACK_PERTURBATIONS;
+
+  const translated = MAIN_TRACK_PERTURBATIONS
+    .map((p): TrackPerturbation | null => {
+      const loc = sharedLoopLocation(p.u);
+      if (!loc) return null;
+      const metered = toSegmentMeters(network, loc);
+      return { ...p, u: routeU(network, route, metered) };
+    })
+    .filter((p): p is TrackPerturbation => p !== null);
+
+  const branchSwitches: TrackPerturbation[] = [
+    { u: routeU(network, route, { seg: 4, s: 0 }), kind: 'switch', roll: 0.5, pitch: 0.9 },
+    { u: routeU(network, route, { seg: 3, s: 0 }), kind: 'switch', roll: 0.5, pitch: 0.9 },
+  ];
+
+  return [...translated, ...branchSwitches].sort((a, b) => a.u - b.u);
+}

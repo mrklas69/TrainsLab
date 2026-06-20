@@ -1,4 +1,5 @@
 import type { TrackNetwork } from './TrackNetwork';
+import type { RouteId } from './TrackNetwork';
 import type { PhysicsParams } from './params';
 
 const V_STATIC = 0.05; // m/s — pod tímhle se těleso považuje za stojící
@@ -35,6 +36,7 @@ export class Body {
     public seg: number,      // index segmentu trati, na kterém vůz je (viz TrackNetwork)
     public s: number,        // lokální arc-length pozice středu vozu na segmentu (m)
     readonly length: number, // délka vozu (m), pro render i rozteč spřáhel
+    public route: RouteId = 'main', // vybraná uzavřená trasa přes graf; zpřesní globalS/gap
   ) {}
 
   /** Přičti sílu do akumulátoru tohoto kroku (volá {@link Coupler}, trakce, brzda). */

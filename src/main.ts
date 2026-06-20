@@ -41,6 +41,8 @@ const actions: KeyAction[] = [
   { codes: ['ArrowUp'], hint: '↑', label: 'Stupeň +', preventDefault: true, run: () => train.notchUp() },
   { codes: ['ArrowDown'], hint: '↓', label: 'Stupeň −', preventDefault: true, run: () => train.notchDown() },
   { codes: ['KeyB', 'Space'], hint: 'B / mezerník', label: 'Brzda', preventDefault: true, run: () => train.toggleBrake() },
+  { codes: ['Digit1'], hint: '1', label: 'Hlavní', run: () => train.setRoute('main') },
+  { codes: ['Digit2'], hint: '2', label: 'Odbočka', run: () => train.setRoute('branch') },
   // held-key: drž P → sype písek (zvedne adhezi), pusť → přestane. blur to taky vypne.
   { codes: ['KeyP'], hint: 'P (drž)', label: 'Písek', run: () => train.setSanding(true), onRelease: () => train.setSanding(false) },
   {

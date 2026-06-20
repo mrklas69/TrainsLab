@@ -232,7 +232,9 @@ export function createControlPanel(
       // otáčkový strop — tah utlumen blízkostí mezní rychlosti (jen při zrychlování vpřed)
       (train.notch > 0 && train.tractionDerating < 1 ? ' · OTÁČKY' : '') +
       // pískování — aktivní jen dokud je zásoba (pak páka bez efektu)
-      (train.isSanding ? ' · PÍSEK' : '');
+      (train.isSanding ? ' · PÍSEK' : '') +
+      // route lock: výhybka je obsazená nebo souprava leží na exkluzivní větvi → nepřestavuj
+      (!train.routeCanChange ? ' · VÝHYBKA ZÁMEK' : '');
     // příčné (odstředivé) zrychlení / práh převrácení — blízkost meze je vidět v čísle
     const lat = train.lateralAcceleration.toFixed(1);
     const limit = train.overturnThreshold.toFixed(1);
@@ -240,7 +242,7 @@ export function createControlPanel(
     const water = (train.waterFraction * 100).toFixed(0);
     const sand = (train.sandFraction * 100).toFixed(0);
     status.textContent =
-      `Regulátor ${notch} · ${train.speed.toFixed(1)} m/s · příč ${lat}/${limit} m/s²` +
+      `Trasa ${train.route === 'branch' ? 'odbočka' : 'hlavní'} · Regulátor ${notch} · ${train.speed.toFixed(1)} m/s · příč ${lat}/${limit} m/s²` +
       ` · uhlí ${coal} % · voda ${water} % · písek ${sand} %${flags}`;
   };
 }

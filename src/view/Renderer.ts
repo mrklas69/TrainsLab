@@ -100,6 +100,7 @@ export class Renderer {
   render(dt: number): void {
     const train = this.train;
     this.cameraCtrl.update(dt); // dron/orbit/WASD — kamera je samostatná view starost (SLAP)
+    this.world.updateRouteIndicators(train.route, !train.routeCanChange);
     train.bodies.forEach((body, i) => {
       const vis = this.carVisuals[i];
       this.placeCar(body, vis, i === 0, dt); // umístění + orientace + náklon + valení kol (sdíleno s volnými)
