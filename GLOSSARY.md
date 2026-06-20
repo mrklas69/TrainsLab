@@ -163,6 +163,10 @@ Termíny projektu. Anglické identifikátory v kódu, české vysvětlení.
   **Písek** = spotřební zásoba (jako uhlí/voda):
   `sandCapacity`, spotřeba `sandRate` jen po dobu sypání, `R` doplní. Ovládání **held-key** (drž P /
   drž tlačítko). Zachrání rozjezd (prokluz) i brzdění (skid); účinnost je živý Lab parametr.
+- **servisní místo / napaječka** — *(S41)* bod na odbočné trase (`serviceSite.ts`), kde
+  stojící lokomotiva postupně doplní uhlí, vodu a písek. `WorldView` z něj staví boudu,
+  vodní jeřáb a uhlí; `Train` z téhož zdroje počítá vzdálenost pro pravidlo doplňování.
+  Průjezd kolem nedoplňuje — zásobení vyžaduje zastávku u jeřábu.
 
 ## Zvuk
 - **chuff (výfuk páry)** — nárazový výdech páry komínem **pod párou** (otevřený regulátor `notch≠0`

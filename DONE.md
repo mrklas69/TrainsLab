@@ -612,11 +612,36 @@ křivosti. Sjednoceno do **jednoho balíku** „rázy z trati" — impulsy do ex
 - Spojka sama nemá transition rázy, protože její C² profil je navržený bez skoku křivosti.
 - `tools/check-train.ts` ověřuje `switchFired` při průjezdu oběma branch uzly.
 
+### `%AUDIT:CODE` — výhybkové rázy a volná tělesa
+
+- Hlavní i odbočná route teď dostávají skutečné výhybkové clunky na rozbočení/sloučení;
+  dřív byly fyzické uzly slyšet jen v branch testech.
+- Rázy z trati se aplikují i na `freeBodies`, nejen na spřaženou soupravu.
+- `tools/check-train.ts` pokrývá main/branch výhybkové rázy, rázy volných vozů a
+  plnou šestivozovou branch soupravu bez vykolejení.
+
 ### Audio bug fix — tvrdý mute
 
 - `AudioView.toggleMute` teď vypíná všechny kontinuální hlasy tvrdě, nejen přes master gain fade.
 - One-shoty (`chuff`, píšťala, clank/clunk, transition jerk) se při mute vůbec nespouští.
 - Coupler režimy se při mute synchronizují, aby po unmute nevyskočil starý clank.
+
+### Domek s napaječkou — view-only řez
+
+- `WorldView` staví u odbočné spojky lowpoly servisní místo: boudu, vodní jeřáb
+  s ramenem nad kolejí a hromadu uhlí.
+- Umístění je vázané na segment spojky a přepočítává výšku z `terrainHeight`, takže
+  po změně sklonu sedí na terénu. Bouda a uhlí jsou mimo průjezdný profil, jeřáb je
+  blíž ke koleji.
+
+### Domek s napaječkou — auto-doplnění zásob
+
+- `sim/serviceSite.ts` je single source pro polohu servisního bodu na branch trase;
+  stejnou polohu používá `WorldView` i `Train`.
+- `Train` postupně doplňuje uhlí, vodu a písek jen tehdy, když lokomotiva stojí u vodního
+  jeřábu na odbočce. Průjezd kolem jeřábu nedoplňuje.
+- UI status ukazuje `DOPLŇUJE`; `tools/check-train.ts` má regresi pro stojící i
+  projíždějící lokomotivu.
 
 ### Dokumentace a nové otevřené úkoly
 

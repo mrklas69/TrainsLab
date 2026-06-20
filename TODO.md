@@ -19,10 +19,3 @@ Markery: `[ ]` čeká · `[~]` rozděláno · `[!]` priorita.
 - [ ] **UI pro odpojování/zapojování vozů soupravy** — vybrat spřáhlo mezi vozy,
   odpojit ho na volné těleso a znovu zapojit při bezpečném dotyku/nízké relativní
   rychlosti. UI musí jasně ukázat aktivní spřáhlo a platnost akce.
-
-### Domek s napaječkou
-
-- [ ] **Domek + napaječka** — lowpoly bouda, vodní jeřáb s ramenem nad kolejí
-  a hromada uhlí v oku odbočky; view v `WorldView`.
-- [ ] **Postupné auto-doplnění zásob** — stojící lokomotiva na odbočce plynule
-  doplňuje vodu a uhlí. Závisí na fázi 3.
