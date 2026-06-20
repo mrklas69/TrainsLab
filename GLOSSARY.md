@@ -83,8 +83,9 @@ Termíny projektu. Anglické identifikátory v kódu, české vysvětlení.
   (`transitionQuality ∈ [0,1]`, slider „Přechodnice"): 1 = dokonalá (trh rozetřen na 0), 0 = žádná (plný trh).
 - **skok křivosti (curvature jump)** — nespojitá změna `κ` → skok příčného zrychlení = **boční trh**
   (jerk). V modelu **fenomenologicky** (DD-21, A4 b): perturbace `kind:'transition'` = roll-impuls ve směru
-  oblouku na nábězích/výjezdech laloků (`TRACK_PERTURBATIONS`), ne přepis geometrie hladké lemniskáty.
-  Sílu tlumí **kvalita přechodnice** (`1−transitionQuality`) — jen tenhle typ, spáry/výhybky nezávisle.
+  oblouku na nábězích/výjezdech laloků (`trackPerturbationsFor(route)`), ne přepis geometrie hladké
+  lemniskáty. Sílu tlumí **kvalita přechodnice** (`1−transitionQuality`) — jen tenhle typ,
+  spáry/výhybky nezávisle.
 - **výhybka (jako bodový ráz)** — perturbace `kind:'switch'` u **křížení** asymetrické osmičky
   (`u≈0.2966/0.7033`, inflexe
   κ≈0, kde se větve protínají = most/podjezd): **bodový** roll+pitch clunk, ne topologický uzel (síť/větvení =
@@ -287,9 +288,15 @@ Termíny projektu. Anglické identifikátory v kódu, české vysvětlení.
   **spojitě** (vzorky u±du i přes hranice segmentu) → na uzlu mezi segmenty **žádný zlom**.
 - **TrackNetwork** — *(DD-25)* graf segmentů + uzly (kdo na koho navazuje, `next`/`prev`). Nahradil
   dřívější `Track`: poloha tělesa = `(seg, s)`, `advance` ji posune přes hranice segmentů, `globalS`
-  (kumulativní arc-length po smyčce) a `gap` (nejkratší rozteč po dráze) slouží spřáhlům, kontaktům,
-  rázům i valení kol na hlavní trase. Síť obsahuje hlavní smyčku i C² spojku; route-aware
-  souřadnice větví jsou samostatná navazující fáze.
+  (kumulativní arc-length po zvolené route) a `gap` (nejkratší rozteč po dráze) slouží spřáhlům,
+  kontaktům, rázům i valení kol. Síť obsahuje hlavní smyčku i C² spojku.
+- **route / route identity** — uzavřená jízdní trasa přes graf: `main = 0→1→2→3→0`,
+  `branch = 0→1→4→3→0`. Je nutná, protože společné segmenty před/za výhybkou mají na různých
+  trasách jinou kumulativní souřadnici. Bez route by `globalS`/`gap` na větvi tiše míchaly dvě
+  topologie.
+- **route lock (zámek výhybky)** — přestavení trasy je povolené jen tehdy, když celá souprava leží
+  na segmentech společných pro obě trasy a není těsně u uzlu. Konzervativní první řez: chrání před
+  přepsáním route identity uprostřed průjezdu výhybkou.
 - **segment / uzel / výhybka (topologie)** — *(DD-25)* segment = úsek koleje mezi uzly; uzel = bod
   napojení segmentů. **Výhybka** = uzel s víc než jedním pokračováním (volba trasy, `next/prev` =
   seznam možností, `advance(choose)`). Tím se opouští „jedna smyčka" (Úr. 4 žebříku / DD-04), ale

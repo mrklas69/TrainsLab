@@ -9,10 +9,6 @@ Markery: `[ ]` čeká · `[~]` rozděláno · `[!]` priorita.
 
 ### Výhybky — fáze 3: jízda po grafu
 
-- [!] **Řízení obou výhybek hráčem** — souprava musí umět zvolit hlavní trať
-  nebo odbočku a projet všemi třemi hranami θ-grafu.
-- [ ] **Route-aware souřadnice** — rozšířit `globalS`/`gap`, kontakty a rázy tak,
-  aby byly jednoznačné pro zvolenou trasu přes větev.
 - [ ] **Náhodné větvení volného vozu** — vrátit `randomBranch`, dočasně odebrané
   v S37, až bude průjezd větví plně podporovaný.
 
@@ -20,6 +16,9 @@ Markery: `[ ]` čeká · `[~]` rozděláno · `[!]` priorita.
 
 - [ ] **Vagon, srážky a rázy přes větve** — kontakty volných vozů a soupravy
   musí respektovat zvolenou trasu; nejtěžší část síťové fáze.
+- [ ] **UI pro odpojování/zapojování vozů soupravy** — vybrat spřáhlo mezi vozy,
+  odpojit ho na volné těleso a znovu zapojit při bezpečném dotyku/nízké relativní
+  rychlosti. UI musí jasně ukázat aktivní spřáhlo a platnost akce.
 
 ### Domek s napaječkou
 

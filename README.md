@@ -41,6 +41,8 @@ TrainsLab je jeden roh **mřížky experimentů** (měřítko × věrnost) — z
 | `↑` | přidat stupeň regulátoru |
 | `↓` | ubrat stupeň (notch −1 = reverz / protiproudé brzdění) |
 | `B` / mezerník | brzda lokomotivy |
+| `1` | nastavit hlavní trasu výhybek |
+| `2` | nastavit odbočku přes spojku |
 | `P` (drž) | pískování — zvýší adhezi nad suchou hodnotu (drž klávesu/tlačítko) |
 | `R` | reset (doplní i palivo a písek) |
 | `M` | zvuk on/off |
@@ -84,7 +86,7 @@ proměnlivost směru a dobu změny náhodného větru, který unáší world-spa
 | **F6** | příčná dynamika — esíčko (osmička), most/podjezd, převrácení/vykolejení, kývání skříně, gradient meze, rázy z trati (spáry / skok křivosti) | ✅ |
 | **F3** | palivo & zásoby — uhlí/voda (parní tlak), proměnná adheze + písek | ✅ |
 | **F4** | záclony — lowpoly svět/modely ✅, párové koleje + mostovka + mlha ✅, realistické měkké částice kouře/páry (komín, válce, rozvod, píšťala) ✅, zvukové samply ✅ | ✅ |
-| **F7** | interakce vozů — odstavený volný vagon + srážky (mez energie → vykolejení) ✅; **výhybky / topologie sítě** — graf segmentů (fáze 1 ✅), **odbočka = θ-graf 2 uzly / 3 hrany, boční offset se spojitou omezenou κ** (fáze 2 ✅, DD-26); jízda po grafu + domek s napaječkou (fáze 3–4 🔧) | 🔧 |
+| **F7** | interakce vozů — odstavený volný vagon + srážky (mez energie → vykolejení) ✅; **výhybky / topologie sítě** — graf segmentů (fáze 1 ✅), **odbočka = θ-graf 2 uzly / 3 hrany, boční offset se spojitou omezenou κ** (fáze 2 ✅, DD-26), route-aware průjezd soupravy + výměnové terče (fáze 3 první řez ✅); kontakty přes větve + domek s napaječkou (fáze 4 🔧) | 🔧 |
 
 **PoC (F0–F4 + příčná) dokončen.** Po něm **restart** novým směrem (S35): interakce volného vagonu
 a **topologie sítě** (osa trati přešla na graf segmentů — výhybky se staví po fázích, viz

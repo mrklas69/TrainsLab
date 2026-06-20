@@ -590,3 +590,36 @@ křivosti. Sjednoceno do **jednoho balíku** „rázy z trati" — impulsy do ex
 - Lokální Vite 8 dev server ověřen přes HTTP 200 na `127.0.0.1:5173`.
 - Existující bundle má přibližně 560 kB a Vite 8 na něj nově upozorňuje; code-splitting
   nebyl míchán do samostatného toolchain upgradu.
+
+## Sezení 41 (2026-06-20)
+
+### Výhybky — fáze 3: route-aware průjezd soupravy
+
+- `TrackNetwork` má explicitní `routes` (`main`, `branch`), route-aware `routeLength`,
+  `routeChoice`, `globalS` a `gap`; validace kontroluje návaznost tras.
+- `Body` nese `route`; `Train` drží `currentRoute`, `setRoute` a `routeCanChange`.
+- Souprava projede hlavní smyčku i odbočku podle hráčské volby; volné vozy zatím
+  zůstávají na main.
+- Route lock brání přestavení uprostřed výhybkového uzlu nebo na exkluzivní větvi.
+- UI: klávesy/tlačítka `1` / `2`, status `Trasa ...` a `VÝHYBKA ZÁMEK`.
+- `WorldView` kreslí výměnové terče a `Renderer` je aktualizuje podle route/locku.
+
+### Rázy na odbočce
+
+- `TRACK_PERTURBATIONS` nahrazeno route-aware helperem `trackPerturbationsFor(network, route)`.
+- Hlavní route zachovává historické body; odbočka překládá sdílené perturbace do své délky
+  a přidává výhybkové clunky na rozbočení i sloučení.
+- Spojka sama nemá transition rázy, protože její C² profil je navržený bez skoku křivosti.
+- `tools/check-train.ts` ověřuje `switchFired` při průjezdu oběma branch uzly.
+
+### Audio bug fix — tvrdý mute
+
+- `AudioView.toggleMute` teď vypíná všechny kontinuální hlasy tvrdě, nejen přes master gain fade.
+- One-shoty (`chuff`, píšťala, clank/clunk, transition jerk) se při mute vůbec nespouští.
+- Coupler režimy se při mute synchronizují, aby po unmute nevyskočil starý clank.
+
+### Dokumentace a nové otevřené úkoly
+
+- README, GLOSSARY a `docs/DESIGN_DECISIONS.md` aktualizovány na route-aware stav.
+- `TODO.md` zůstává open-only; přibyl úkol **UI pro odpojování/zapojování vozů soupravy**.
+- `npm run check` a `npm run build` zelené; Vite 8 pouze opakuje známý chunk-size warning.
