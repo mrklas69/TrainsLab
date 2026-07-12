@@ -266,12 +266,11 @@ export class Renderer {
     this.cameraCtrl.setAspect(w, h);
   }
 
-  /** Uklízí Three.js zdroje a event listenery (DD-01). */
+  /** Uklízí Three.js zdroje a event listenery (DD-01). WorldView/SteamView vlastní
+   *  dispose zatím nemají — GPU buffery instancí řeší otevřená položka TODO. */
   dispose(): void {
     this.cameraCtrl.dispose();
     this.scene.clear();
     this.gl.dispose();
-    this.steam.dispose?.();
-    this.world.dispose?.();
   }
 }
