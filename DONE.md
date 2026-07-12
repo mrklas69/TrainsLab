@@ -657,3 +657,13 @@ křivosti. Sjednoceno do **jednoho balíku** „rázy z trati" — impulsy do ex
 - `docs/PROMPTS.md`: projektová `%BEGIN`/`%END` explicitně provádějí globální protějšky (skládání, ne přebití); `%CALIBRATE` → `%CALIBRATE:PROJ` (kolize jmen s globální revizí spolupráce).
 - Mrtvé odkazy na `~/AGENTS.md` odstraněny (soubor se neobnovuje).
 - Ztracená makra `%THINK`/`%DOCS`/`%AUDIT:CODE`/`%AUDIT:DOCS` rekonstruována globálně (`~/.claude/PROMPTS.md`) — auditní ledger je zase spustitelný.
+
+## Mimo číslovaná sezení (2026-07-12, globální sezení 4)
+
+### Ověření `@AGENTS.md` importu — bod „Příště" z S42
+- Import v projektovém `CLAUDE.md` **změřen a potvrzen**: headless `claude -p`
+  spuštěný z repa měl v kontextu `CLAUDE.md` i `AGENTS.md`, správně zodpověděl
+  fakt existující jen v overlayi (`view/WorldView.ts` exportuje `RAIL_RADIUS`)
+  i kontrolní dvojče z globálních pravidel; `num_turns: 1` vylučuje, že by si
+  soubor přečetl nástrojem. Rozcestníková konstrukce overlaye tím přestává být
+  předpoklad — funguje stejně jako globální import.
