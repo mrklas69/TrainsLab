@@ -42,15 +42,16 @@ na stroji chybí Node. Před opravou zprovoznit toolchain.
   a UI o obou hlásí jen `· PROKLUZ`. Sdílení flagu je záměr (`Train.ts:602`),
   chybějící diagnostika ne. Izomorfismus vůči `derail` nedodržen.
 
-- [ ] **Dvě implementace křivosti.** `sim/TrackNetwork.ts:148` (vzorkuje přes uzel
-  na navazující segment — používá ji sim) a `sim/TrackSegment.ts:71` (jednostranné
-  diference na koncích otevřené křivky — používá ji `tools/check-radius.ts:42`).
-  Obě jsou ve svém kontextu správně, ale **návrhová kalkulačka tak měří jinou
-  veličinou, než jakou cítí vlak.** Čísla pro ladění geometrie nemusí sedět.
+## Dohra auditu S43/S44 (Copilot; nedotažené opravy)
 
-- [ ] **Mrtvý odkaz v komentáři.** `sim/trackData.ts:11` ukazuje na
-  `tools/check-switch.ts`, který zanikl v S38. Opravit na `check-connector.ts` /
-  `check-network.ts`.
+- [ ] **Dotáhnout C-3 — adheze všech těles.** `sim/Train.ts:583` má od S44 metodu
+  `adhesionLimitFor(index)`, ale volá ji jen getter pro index 0 (lokomotiva).
+  Brzda (`Train.ts:617`) i tah (`Train.ts:668`) používají dál jen limit
+  lokomotivy a volné vozy mají μ=∞ — přesně stav, který audit S43 vytkl.
+  Deník S44 tvrdí opak („Callsites UPDATED"); není to pravda.
+- [ ] **Zavolat `Renderer.dispose()`.** Metoda od S44 existuje (a po opravě
+  je typově korektní), ale nikdo ji nevolá — leak listenerů je teď
+  „odstranitelný, leč neodstraňovaný". Dává smysl při HMR/rebuildu scény.
 
 ### Dokumentace
 

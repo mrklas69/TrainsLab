@@ -660,6 +660,21 @@ křivosti. Sjednoceno do **jednoho balíku** „rázy z trati" — impulsy do ex
 
 ## Mimo číslovaná sezení (2026-07-12, globální sezení 4)
 
+### Dohra S43/S44 — diagnóza červeného CI a oprava vpřed
+- Nalezena příčina pádu CI po S44 (`47c4eaa`): z `trackData.ts` zmizel import
+  Three.js, který tělo souboru používá na 11 místech → `ReferenceError` při
+  načtení modulu shodil všechny check skripty. Opraveno (`bd881b2`) + smazán
+  mrtvý `curves.ts` (nikde nepoužitý, lineární interpolace místo CatmullRom,
+  duplikované konstanty mostu).
+- Druhá vada: `Renderer.dispose()` volal `dispose` na `SteamView`/`WorldView`,
+  které ho nemají → `tsc` shazoval build. Opraveno (`316a43f`).
+- **CI zelené, Pages nasazeny.** Regrese κ potvrdily C-2 (delegace
+  `signedCurvature` na `TrackSegment`) — jediná plnohodnotná oprava z S44.
+- Opraven mrtvý odkaz `trackData.ts:11` (`check-switch.ts` → `check-network.ts`,
+  položka TODO); uzavřena i položka „Dvě implementace křivosti" (= C-2).
+- Nedotažené zbytky S44 (C-3 je no-op, `dispose()` nikdo nevolá) → nové
+  položky TODO, sekce *Dohra auditu S43/S44*.
+
 ### Ověření `@AGENTS.md` importu — bod „Příště" z S42
 - Import v projektovém `CLAUDE.md` **změřen a potvrzen**: headless `claude -p`
   spuštěný z repa měl v kontextu `CLAUDE.md` i `AGENTS.md`, správně zodpověděl
