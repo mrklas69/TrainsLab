@@ -49,12 +49,20 @@ export class CameraController {
   private readonly targetPos = new THREE.Vector3();
   private readonly targetLook = new THREE.Vector3();
 
+  // event handlery (uloženy pro cleanup v dispose) — DD-01 čistota
+  private readonly keydownHandler: (e: KeyboardEvent) => void;
+  private readonly keyupHandler: (e: KeyboardEvent) => void;
+  private readonly blurHandler: () => void;
+  private readonly wheelHandler: (e: WheelEvent) => void;
+  private readonly canvas: HTMLCanvasElement;
+
   constructor(
     canvas: HTMLCanvasElement,
     private readonly network: TrackNetwork,
     private readonly train: Train,
     private readonly drone: DroneParams, // sdílená instance — slidery ji ladí za běhu
   ) {
+    this.canvas = canvas;
     this.camera = new THREE.PerspectiveCamera(55, 1, 0.1, 2000);
     this.camera.position.set(188, 175, 188); // dál — osmička je ~300 m napříč
 
@@ -63,19 +71,24 @@ export class CameraController {
 
     // klávesy kamery: keydown drží, keyup pouští; blur vyčistí (jinak by klávesa
     // držená při ztrátě fokusu zůstala „zaseknutá"). Lokomotivu řídí jiný handler.
-    window.addEventListener('keydown', (e) => {
+    this.keydownHandler = (e) => {
       if (CAMERA_KEYS.includes(e.code)) this.heldKeys.add(e.code);
-    });
-    window.addEventListener('keyup', (e) => this.heldKeys.delete(e.code));
-    window.addEventListener('blur', () => this.heldKeys.clear());
+    };
+    this.keyupHandler = (e) => this.heldKeys.delete(e.code);
+    this.blurHandler = () => this.heldKeys.clear();
+
+    window.addEventListener('keydown', this.keydownHandler);
+    window.addEventListener('keyup', this.keyupHandler);
+    window.addEventListener('blur', this.blurHandler);
 
     // kolečko myši v dron režimu = zoom (poloměr kroužení). V ručním režimu si wheel bere
     // OrbitControls sám (necháme ho), tady jen pro dron. passive:false kvůli preventDefault.
-    canvas.addEventListener('wheel', (e) => {
+    this.wheelHandler = (e) => {
       if (!this.droneActive) return; // ruční režim: zoom řeší OrbitControls
       e.preventDefault();            // nescrolluj stránku
       this.adjustOrbitRadius(Math.sign(e.deltaY) * WHEEL_ZOOM_STEP); // dolů = oddálit (konvence OrbitControls)
-    }, { passive: false });
+    };
+    canvas.addEventListener('wheel', this.wheelHandler, { passive: false });
   }
 
   /** Každý frame: dron řídí kameru sám, jinak orbit damping + klávesy. */
@@ -190,5 +203,14 @@ export class CameraController {
       const newDist = Math.max(MIN_DIST, dist - delta);
       cam.position.copy(target).addScaledVector(dir, -newDist);
     }
+  }
+
+  /** Uklízí event listenery — zavolej před zničením instance (DD-01). */
+  dispose(): void {
+    window.removeEventListener('keydown', this.keydownHandler);
+    window.removeEventListener('keyup', this.keyupHandler);
+    window.removeEventListener('blur', this.blurHandler);
+    this.canvas.removeEventListener('wheel', this.wheelHandler);
+    this.controls.dispose(); // OrbitControls má i svůj cleanup
   }
 }

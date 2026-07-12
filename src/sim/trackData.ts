@@ -1,7 +1,7 @@
-import { CatmullRomCurve3, Curve, Vector3 } from 'three';
 import { terrainHeight } from './terrain';
 import { TrackSegment } from './TrackSegment';
 import type { NetworkSpec, RouteId, TrackLocation, TrackNetwork } from './TrackNetwork';
+import type { Point3D } from './curves';
 
 const BRIDGE_HEIGHT = 8;  // m — výška mostu nad podjezdem; clearance > výška vozu (~5,8 m)
 const BRIDGE_WIDTH = 0.5; // rad — pološířka náběhu mostu v parametru t (rampa stoupání/klesání)

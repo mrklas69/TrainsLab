@@ -265,4 +265,13 @@ export class Renderer {
     this.gl.setSize(w, h);
     this.cameraCtrl.setAspect(w, h);
   }
+
+  /** Uklízí Three.js zdroje a event listenery (DD-01). */
+  dispose(): void {
+    this.cameraCtrl.dispose();
+    this.scene.clear();
+    this.gl.dispose();
+    this.steam.dispose?.();
+    this.world.dispose?.();
+  }
 }

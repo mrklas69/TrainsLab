@@ -579,8 +579,18 @@ export class Train {
 
   // adhezní strop μ·N (tíha lokomotivy = adhezní tíha N) — max přenositelná síla
   // kolo-kolej; společný limit pro tah, protiproudé brzdění i provozní brzdu.
+  // OPRAVA: parametrizován na index pro všechna tělesa (i freeBodies) — DD-01 izomorfismus
+  private adhesionLimitFor(index: number): number {
+    const mass = this.massOf(index);
+    const isLoco = index === 0;
+    const adhesion = isLoco
+      ? this.effectiveAdhesion
+      : this.params.adhesionCoeff * this.params.railFactor; // vozy bez pískování
+    return adhesion * mass * this.params.gravity;
+  }
+
   private get adhesionLimit(): number {
-    return this.effectiveAdhesion * this.params.locomotiveMass * this.params.gravity;
+    return this.adhesionLimitFor(0); // kompatibilita: jen lokomotiva
   }
 
   /**

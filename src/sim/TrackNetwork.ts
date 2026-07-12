@@ -146,22 +146,9 @@ export class TrackNetwork {
     return this.segments[loc.seg].grade(loc.s);
   }
   signedCurvature(loc: TrackLocation): number {
-    const ds = 0.5;
-    const route = this.routeOf(loc);
-    const before = { seg: loc.seg, s: loc.s - ds, route };
-    const after = { seg: loc.seg, s: loc.s + ds, route };
-    const choose = this.routeChoice(route);
-    this.advance(before, choose);
-    this.advance(after, choose);
-    const p0 = this.positionAt(before);
-    const p1 = this.positionAt(loc);
-    const p2 = this.positionAt(after);
-    const d1x = (p2.x - p0.x) / (2 * ds);
-    const d1z = (p2.z - p0.z) / (2 * ds);
-    const d2x = (p2.x - 2 * p1.x + p0.x) / (ds * ds);
-    const d2z = (p2.z - 2 * p1.z + p0.z) / (ds * ds);
-    const speed = Math.hypot(d1x, d1z);
-    return (d1x * d2z - d1z * d2x) / (speed * speed * speed);
+    // Jediná cesta: zavolej segment na lokální s. Segment sám ošetří boundary případy (otevřená křivka).
+    // Na uzlu mezi segmenty: segment "vidí" svůj začátek/konec, takže κ je spojitá (master křivka je hladká).
+    return this.segments[loc.seg].signedCurvature(loc.s);
   }
 
   /**
