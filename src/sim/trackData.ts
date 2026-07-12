@@ -1,14 +1,15 @@
+import { CatmullRomCurve3, Curve, Vector3 } from 'three';
 import { terrainHeight } from './terrain';
 import { TrackSegment } from './TrackSegment';
 import type { NetworkSpec, RouteId, TrackLocation, TrackNetwork } from './TrackNetwork';
-import type { Point3D } from './curves';
 
 const BRIDGE_HEIGHT = 8;  // m — výška mostu nad podjezdem; clearance > výška vozu (~5,8 m)
 const BRIDGE_WIDTH = 0.5; // rad — pološířka náběhu mostu v parametru t (rampa stoupání/klesání)
 
 // VÝHYBKY — spojka 2→1 (objížďka pravého laloku). Odbočí „kousek pod mostem", levou zatáčkou objede
 // lalok a tečně se napojí zpět za ním (S37, DD-25 fáze 2). Poloha i geometrie ověřeny
-// `tools/check-switch.ts` + `tools/check-connector.ts` PŘED zápisem (lekce S36: žádné slepé iterace).
+// `tools/check-network.ts` (nástupce check-switch.ts, S38) + `tools/check-connector.ts`
+// PŘED zápisem (lekce S36: žádné slepé iterace).
 const SWITCH_U = 0.713;     // výhybka 1 (rozbočení) — kousek za podjezdem (inflexe, r≈4400 m, sklon 3 %)
 const MERGE_U = 0.86;       // výhybka 2 (sloučení) — na pravém laloku za mostem
 const BRANCH_OFFSET = 12;   // m — max boční odsazení odbočky od hlavní trati
