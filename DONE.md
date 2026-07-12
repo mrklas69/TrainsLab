@@ -648,3 +648,12 @@ křivosti. Sjednoceno do **jednoho balíku** „rázy z trati" — impulsy do ex
 - README, GLOSSARY a `docs/DESIGN_DECISIONS.md` aktualizovány na route-aware stav.
 - `TODO.md` zůstává open-only; přibyl úkol **UI pro odpojování/zapojování vozů soupravy**.
 - `npm run check` a `npm run build` zelené; Vite 8 pouze opakuje známý chunk-size warning.
+
+## Sezení 42 (2026-07-12)
+
+### Adopce sdílené metodiky (globální × projektová pravidla; bez kódu)
+- Overlay sjednocen: `AGENTS.md` je zdroj, `CLAUDE.md` rozcestník s `@AGENTS.md` — drift dvojčat ukončen.
+- Key Files opraveny: `trackData.ts` = asymetrická lemniskáta + C² spojka (DD-20/DD-26), doplněn `sim/serviceSite.ts` (S41); `ExhaustClock`/`carModels` už nechybí.
+- `docs/PROMPTS.md`: projektová `%BEGIN`/`%END` explicitně provádějí globální protějšky (skládání, ne přebití); `%CALIBRATE` → `%CALIBRATE:PROJ` (kolize jmen s globální revizí spolupráce).
+- Mrtvé odkazy na `~/AGENTS.md` odstraněny (soubor se neobnovuje).
+- Ztracená makra `%THINK`/`%DOCS`/`%AUDIT:CODE`/`%AUDIT:DOCS` rekonstruována globálně (`~/.claude/PROMPTS.md`) — auditní ledger je zase spustitelný.

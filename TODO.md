@@ -54,40 +54,11 @@ na stroji chybí Node. Před opravou zprovoznit toolchain.
 
 ### Dokumentace
 
-- [!] **`CLAUDE.md:42` popisuje trať zastarale** — „ležatá osmička (asymetrická,
-  izotropní stretch)". Skutečnost je Bernoulliho lemniskáta se dvěma výhybkami
-  a C² spojkou. `AGENTS.md:42` to má správně (včetně DD-26). Pozor na past:
-  `CLAUDE.md` je novější podle gitu (S40 vs. S39), ale právě v tomhle řádku
-  zastaralejší — nesjednocovat mechanicky „podle data".
-
-- [ ] **`sim/serviceSite.ts` chybí v Key Files** v `CLAUDE.md` i `AGENTS.md`
-  a ve stromu architektury v `README.md:104`. Vznikl v S41, seznamy modulů se
-  neaktualizovaly.
-
-- [ ] **`AGENTS.md` navíc postrádá** `view/ExhaustClock.ts` a `view/carModels.ts`.
-
-- [ ] **`AGENTS.md` × `CLAUDE.md` driftují.** Dva overlaye téhož obsahu pro dva
-  agenty. Rozhodnout: jeden kanonický zdroj, nebo vědomě přijmout „Codex =
-  zkrácená verze" a rozdíl zapsat. Dnes je to nezapsaný drift.
+- [ ] **`sim/serviceSite.ts` chybí ve stromu architektury v `README.md:104`.**
+  Vznikl v S41; Key Files v `AGENTS.md` už ho mají (S42), README ještě ne.
 
 - [ ] **`npm run check` není v README ani v `%END`.** CI ho spouští před buildem
   (`.github/workflows/deploy.yml:29`), README sekce Vývoj uvádí jen `dev`/`build`/
   `preview` a projektový `%END` krok 2 žádá jen `tsc` + `build`. Rozbité regrese
   se tak objeví až po pushi, kdy je commit v historii.
 
-### Rozbité vazby na globální kontext
-
-Stroj byl přeinstalován; globální `~/.claude/` se staví znovu. Řeší se
-v globálním `TODO.md` (úkol *Metodika: globální × projektová pravidla*).
-
-- [ ] **`~/AGENTS.md` neexistuje.** Odkazují na něj `CLAUDE.md:3,60`,
-  `AGENTS.md:3,58`, `docs/PROMPTS.md:5`.
-- [ ] **Makra `%DOCS`, `%THINK`, `%AUDIT:CODE`, `%AUDIT:DOCS` nemají definici.**
-  `docs/PROMPTS.md:29` (`%END` krok 1) volá `%DOCS`; `%BEGIN` krok 3 vyhodnocuje
-  kadenci auditů. Ledger v `docs/PROMPTS.md:54` hlídá kadenci maker, která nelze
-  spustit.
-- [ ] **Práh `%CALIBRATE` má dvě hodnoty:** globálně ~40 sezení,
-  `docs/PROMPTS.md:59` ≥ 15. Dva zdroje pravdy pro totéž číslo.
-- [ ] **`%BEGIN`/`%END` existují dvakrát** pod týmž jménem s jinými kroky
-  (globální: deník, půlnoc; projektový: `git fetch`, cadence, dva commity).
-  Není zapsáno, který platí, když se `claude` spustí z repozitáře.
