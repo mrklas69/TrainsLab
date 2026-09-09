@@ -37,6 +37,27 @@ K obecným bodům globálního `%THINK` přidej:
   odstředivka) — izomorfní rozdělení vertikála/horizontála. Drží to 1D model (DD-02)?
 - **Roh mřížky:** neopouštíme MIKRO × vysoká věrnost plíživě (DD-04). Multi-body, síť,
   výhybky = jiný roh, vědomě (žebřík DOF v IDEAS).
+- **Podmínky přijetí:** před netriviální změnou urči pozorovatelný výsledek
+  a relevantní mezní nebo opačný případ. U geometrie prověř návaznost, mez
+  křivosti, nežádoucí průsečíky a průjezd; u pískování účinek na prokluz;
+  u servisu zastavení oproti průjezdu. Rozsah ověření odpovídá změně — dvě
+  vizuální konstanty nevyžadují novou testovací infrastrukturu.
+
+## Opora auditního nálezu a opravy
+
+Projektové doplnění globálního `%AUDIT:CODE` (kalibrace S45):
+
+- U nálezu uveď konkrétní rozpor s platným pravidlem nebo očekávaným chováním
+  a důkaz z kódu či reprodukčního scénáře. Respektuj domluvené výjimky
+  a hranice modelu; například matematické použití `three` v `sim/` je přípustné.
+- Rozšíření modelu veď jako návrh. Odlišná role lokomotivy a volného vozu
+  sama o sobě nedokazuje chybu ani porušení izomorfismu.
+- Dokončení funkční opravy dolož cestou od volajícího k pozorovatelnému účinku.
+  Přidaná pomocná metoda bez zapojení nestačí. Ověření před převzetím změny
+  upravuje projektový `%END` v `docs/PROMPTS.md`.
+
+Proč: S43/S44 zaměnily povolený model za vadu a existenci metody za opravené
+chování; evidence je v [kalibraci S45](docs/CALIBRATION_2026-09-09.md).
 
 ## Key Files (`src/`)
 | Vrstva | Soubor | Obsah |

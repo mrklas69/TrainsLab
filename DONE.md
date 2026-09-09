@@ -2,7 +2,24 @@
 
 Dokončené úkoly. Detaily a rozhodnutí: `docs/diary/`.
 
-*(Sezení 1 = kick-off / koncept, bez kódu — nic k „dokončení", proto začínáme Sezením 2.)*
+## Sezení 45 (2026-09-09)
+
+- Obnovený projekt zprovozněn na STELLE: Node 22.23.2, npm ci/check/build
+  zelené, Vite spuštěn přes junction bez `~` s oběma preserve-symlinks přepínači.
+  Ovládání a zvuk ověřeny v Chrome, živý test přijat A48. Lokální spouštěč
+  a instalaci eviduje prostředí STELLY.
+- Opraveny čtyři zranitelné tranzitivní závislosti v lockfile: `esbuild`
+  0.28.2, `fflate` 0.6.11, `nanoid` 3.3.18 a `postcss` 8.5.28.
+  `npm audit fix` bez force; čistá instalace `npm ci`, audit (0 nálezů),
+  regrese i build prošly. Po restartu dev serveru ověřeno v Chrome také
+  vykreslení, jízda, trasy, brzda a zvuk včetně tvrdého mute.
+- Lokální ověřovací postup v README a projektovém `%END` sjednocen s CI:
+  `npm run check` + `npm run build` (včetně `tsc`), aby regresní kontroly
+  nebyly vynechávány před předáním změny. Přesunuto z TODO po přijetí A18.
+- Přijaty čtyři procesní změny z [kalibrace S45](docs/CALIBRATION_2026-09-09.md);
+  závazné znění v `AGENTS.md` a `docs/PROMPTS.md`.
+
+*(Starší část je řazena chronologicky od Sezení 2; Sezení 1 byl kick-off / koncept.)*
 
 ## Sezení 2 (2026-05-29)
 

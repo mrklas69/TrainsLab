@@ -22,8 +22,9 @@ Markery: `[ ]` čeká · `[~]` rozděláno · `[!]` priorita.
 
 ## Nálezy revize 2026-07-10
 
-Revize po klonu na nový stroj. **Nic z toho není ověřené `tsc`/`npm run check`** —
-na stroji chybí Node. Před opravou zprovoznit toolchain.
+Historická revize po klonu na nový stroj; původně bez dostupného Node.
+V S45 už `npm run check` a build prošly. Tím nejsou jednotlivé níže uvedené
+nálezy automaticky potvrzené ani opravené; před zásahem ověř jejich konkrétní scénář.
 
 ### Kód
 
@@ -49,6 +50,10 @@ na stroji chybí Node. Před opravou zprovoznit toolchain.
   Brzda (`Train.ts:617`) i tah (`Train.ts:668`) používají dál jen limit
   lokomotivy a volné vozy mají μ=∞ — přesně stav, který audit S43 vytkl.
   Deník S44 tvrdí opak („Callsites UPDATED"); není to pravda.
+  **Výhrada S45:** nutnost tohoto rozšíření není doložena. DD-07 a `Train.step()`
+  předepisují pohon a brzdu pouze lokomotivě; volné vozy mají brzdu 0.
+  Před opravou určit chybný scénář a posoudit soulad s rozsahem modelu.
+  Viz [kalibrace S45](docs/CALIBRATION_2026-09-09.md).
 - [ ] **Zavolat `Renderer.dispose()`.** Metoda od S44 existuje (a po opravě
   je typově korektní), ale nikdo ji nevolá — leak listenerů je teď
   „odstranitelný, leč neodstraňovaný". Dává smysl při HMR/rebuildu scény.
@@ -57,9 +62,4 @@ na stroji chybí Node. Před opravou zprovoznit toolchain.
 
 - [ ] **`sim/serviceSite.ts` chybí ve stromu architektury v `README.md:104`.**
   Vznikl v S41; Key Files v `AGENTS.md` už ho mají (S42), README ještě ne.
-
-- [ ] **`npm run check` není v README ani v `%END`.** CI ho spouští před buildem
-  (`.github/workflows/deploy.yml:29`), README sekce Vývoj uvádí jen `dev`/`build`/
-  `preview` a projektový `%END` krok 2 žádá jen `tsc` + `build`. Rozbité regrese
-  se tak objeví až po pushi, kdy je commit v historii.
 

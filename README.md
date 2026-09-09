@@ -116,13 +116,25 @@ Renderer i AudioView jsou nezávislá „view" nad týmž simem — vyměniteln�
 ```bash
 npm install
 npm run dev      # vite dev server
+npm run check    # regresní kontroly sítě, spojky a soupravy
 npm run build    # tsc + vite build → dist/
 npm run preview  # náhled produkčního buildu
 ```
 
+Před převzetím změny kódu spusť `npm run check` a `npm run build`, stejně jako CI.
+Podrobnosti ověření a výjimku pro samotnou dokumentaci popisuje projektový
+[`%END`](docs/PROMPTS.md).
+
 Stack: **Three.js + TypeScript + Vite** (DD-03). Push na `main` automaticky buildí
 a nasazuje demo na GitHub Pages ([`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)).
 Vývoj vyžaduje Node.js `^20.19.0` nebo `>=22.12.0` (požadavek Vite 8).
+
+**Windows a znak `~` v cestě:** Vite 8.0.16 takové cesty odmítá i uvnitř
+povoleného kořene. Ověřený postup je junction na projekt v cestě bez `~`
+a spuštění z tohoto aliasu příkazem
+`node --preserve-symlinks --preserve-symlinks-main node_modules/vite/bin/vite.js`.
+Oba přepínače zachovají alias také pro Vite klienta; samotný junction nestačí.
+Ochrana `server.fs.strict` zůstává zapnutá. Jde o stejná data, nikoli kopii projektu.
 
 ## Dokumentace
 
